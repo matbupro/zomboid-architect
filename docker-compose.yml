@@ -1,0 +1,104 @@
+# =============================================================================
+# docker-compose.yml — Orchestration du projet Zomboid_Architect
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Bot Discord — interface conversationnelle
+  # ---------------------------------------------------------------------------
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: zomboid-bot
+    restart: unless-stopped
+    volumes:
+      - "F:/Antigravity DEV/Zomboid_Architect/bot/.env:/app/bot/.env:ro"   # .env du bot
+      - "F:/Antigravity DEV/Zomboid_Architect:/app/zomboid_repo:ro"          # repo complet pour roadmap/docs
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      CHROMA_HOST: http://host.docker.internal:8000
+      WORKSPACE_CHANNEL_NAME: "💻 WORKSPACE Z-ARCHITECT"
+    networks:
+      - zomboid-net
+    depends_on: []  # pas de dépendance interne, tout est externe
+
+  # ---------------------------------------------------------------------------
+  # Ollama — LLM local (optionnel, décommenter si tu veux Ollama dans Docker)
+  # Pour Windows : préfère Ollama installé sur la machine hôte + host.docker.internal
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: zomboid-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - zomboid-net
+    # Pull du modèle au démarrage :
+    command: >
+      sh -c "
+        ollama pull llama3.2 &&
+        ollama pull nomic-embed-text &&
+        exec ollama serve
+      "
+
+  # ---------------------------------------------------------------------------
+  # ChromaDB — base vectorielle du knowledge engine
+  # ---------------------------------------------------------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: zomboid-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_ALLOW_SIGNUP=true
+    networks:
+      - zomboid-net
+
+  # ---------------------------------------------------------------------------
+  # Ingestor — moteur d'ingestion multi-format (PDF, images, vidéo, audio, web)
+  # ---------------------------------------------------------------------------
+  ingestor:
+    build:
+      context: ./ingestor
+      dockerfile: Dockerfile
+    container_name: zomboid-ingestor
+    restart: "no"          # lancé à la demande via `docker compose run`
+    volumes:
+      - "F:/Antigravity DEV/Zomboid_Architect/data:/app/zomboid_data:rw"
+      - "F:/Antigravity DEV/Zomboid_Architect/ingestor/.env:/app/ingestor/.env:ro"
+    environment:
+      CHROMA_HOST: http://chromadb:8000
+      OLLAMA_BASE_URL: http://ollama:11434
+      EMBEDDING_MODEL: "nomic-embed-text"
+      CLAUDE_API_KEY: ""       # optionnel : mettre la clé Claude pour vision API
+    networks:
+      - zomboid-net
+    depends_on:
+      - chromadb
+      - ollama
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+# ---------------------------------------------------------------------------
+# Volumes persistants
+# ---------------------------------------------------------------------------
+volumes:
+  ollama-data:
+  chroma-data:
+
+# ---------------------------------------------------------------------------
+# Network (bridge par défaut)
+# ---------------------------------------------------------------------------
+networks:
+  zomboid-net:
+    driver: bridge

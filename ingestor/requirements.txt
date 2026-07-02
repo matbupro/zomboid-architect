@@ -1,0 +1,39 @@
+# =============================================================================
+# ingestor/requirements.txt — Dépendances du moteur d'ingestion multi-format
+# =============================================================================
+
+# ------------------------------------------------------------------------------
+# Documents
+# ------------------------------------------------------------------------------
+python-docx>=0.8.11        # Word .docx
+ebooklib>=0.18             # eBooks .epub
+pdfplumber>=0.10           # PDF texte extraction
+filetype>=1.2              # Détection MIME de fichier
+beautifulsoup4>=4.12       # Parsing HTML/XML
+lxml>=5.0                  # Parser XML/HTML rapide
+
+# ------------------------------------------------------------------------------
+# OCR / Vision (optionnel : seulement si tu as des images/scans)
+# ------------------------------------------------------------------------------
+easyocr>=1.7               # OCR multi-langue (FR/EN) — ~500MB d'install
+# python-magic>=0.4        # Alternative detection
+
+# ------------------------------------------------------------------------------
+# Vidéo / Audio (optionnel : seulement si tu as des vidéos/audio)
+# ------------------------------------------------------------------------------
+ffmpeg-python>=0.2         # Interface ffmpeg
+pydub>=0.25                # Manipulation audio
+openai-whisper>=20231117   # Transcription audio (via CLI whisper, pas Ollama API)
+
+# ------------------------------------------------------------------------------
+# Web browsing (prioritaire)
+# ------------------------------------------------------------------------------
+playwright>=1.40           # Navigateur headless Chromium
+duckduckgo-search>=6.0     # Recherche DuckDuckGo (no API key needed)
+python-readability>=0.7    # Extraction contenu propre (port JS readability)
+
+# ------------------------------------------------------------------------------
+# HTTP & utilitaires
+# ------------------------------------------------------------------------------
+httpx>=0.27                # HTTP async client (shared avec bot/)
+pydantic>=2.0              # Validation (shared avec bot/)

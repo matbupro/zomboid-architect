@@ -1,0 +1,170 @@
+[
+  {
+    "id": "b41-axe-pickup",
+    "question": "What can I use to chop down trees in Project Zomboid?",
+    "expected_ids": ["Base.Axe"],
+    "filter": {"type": "item", "version": "b41"}
+  },
+  {
+    "id": "b41-bread-recipe",
+    "question": "How do you craft bread in Project Zomboid?",
+    "expected_ids": ["Base.Bread", "Base.Wheat"],
+    "filter": {"type": "recipe", "version": "b41"}
+  },
+  {
+    "id": "b41-meleecombo",
+    "question": "How to perform a melee combo attack?",
+    "expected_ids": ["meleocombo"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-zombielifespan",
+    "question": "How long do zombies stay active after waking up?",
+    "expected_ids": ["zombieAwakeDuration"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-craftingtree",
+    "question": "What recipes are needed for a campfire?",
+    "expected_ids": ["campfireRecipe"],
+    "filter": {"type": "recipe", "version": "b41"}
+  },
+  {
+    "id": "b41-traitfitter",
+    "question": "What does the Fitter trait do in character creation?",
+    "expected_ids": ["trait_fitter_description"],
+    "filter": {"type": "trait", "version": "b41"}
+  },
+  {
+    "id": "b41-traitfrail",
+    "question": "What are the stat penalties for the Frail trait?",
+    "expected_ids": ["trait_frail_statpenalties"],
+    "filter": {"type": "trait", "version": "b41"}
+  },
+  {
+    "id": "b41-traitheavyfeet",
+    "question": "How does Heavy Feet affect sprinting?",
+    "expected_ids": ["trait_heavyfeetsprinting"],
+    "filter": {"type": "trait", "version": "b41"}
+  },
+  {
+    "id": "b41-coldweather",
+    "question": "How does cold weather affect player health?",
+    "expected_ids": ["coldWeatherMechanics"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-farmingsoil",
+    "question": "How do you prepare soil for farming crops?",
+    "expected_ids": ["farmingSoilPrep"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-firearm-reload",
+    "question": "What is the process for reloading a revolver?",
+    "expected_ids": ["firearmReload"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-car-mods",
+    "question": "What car modifications are available in B41?",
+    "expected_ids": ["carModsList"],
+    "filter": {"type": "item", "version": "b41"}
+  },
+  {
+    "id": "b41-bushcraft-recipe",
+    "question": "How to unlock the bushcraft crafting skill?",
+    "expected_ids": ["bushcraftUnlocked"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-zombie-difficulty",
+    "question": "How do zombie difficulty settings change spawn rates?",
+    "expected_ids": ["zombieDifficultySpawnRates"],
+    "filter": {"type": "mechanic", "version": "b41"}
+  },
+  {
+    "id": "b41-steel-bow-arrow",
+    "question": "How to craft a steel bow and arrows?",
+    "expected_ids": ["steelBowRecipe"],
+    "filter": {"type": "recipe", "version": "b41"}
+  },
+  {
+    "id": "b42-hunting-rifle",
+    "question": "What is the hunting rifle's damage against zombies?",
+    "expected_ids": ["Base.HuntingRifle"],
+    "filter": {"type": "item", "version": "b42"}
+  },
+  {
+    "id": "b42-new-crafting",
+    "question": "What is the new crafting UI change in B42?",
+    "expected_ids": ["b42CraftingUI"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-multiplayer-skill",
+    "question": "How do skill books work differently in B42 multiplayer?",
+    "expected_ids": ["multiplayerSkillBooks"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-cold-adaptation",
+    "question": "What new cold weather mechanics are in B42?",
+    "expected_ids": ["b42ColdWeatherMechanics"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-farming-upgrade",
+    "question": "How has farming been changed in B42?",
+    "expected_ids": ["farmingB42Changes"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-camping",
+    "question": "What camping features were added in B42?",
+    "expected_ids": ["campingB42Features"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-pets",
+    "question": "Can you have pets in B42?",
+    "expected_ids": ["b42PetMechanics"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-cooking-enhanced",
+    "question": "What cooking improvements are in B42?",
+    "expected_ids": ["cookingB42Enhancements"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-vehicle-combat",
+    "question": "How does vehicle combat differ in B42?",
+    "expected_ids": ["vehicleCombatB42"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-new-zombies",
+    "question": "What new zombie types appear in B42?",
+    "expected_ids": ["newZombieTypesB42"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-trait-rework",
+    "question": "What trait changes were made in B42?",
+    "expected_ids": ["traitReworkB42"],
+    "filter": {"type": "trait", "version": "b42"}
+  },
+  {
+    "id": "b42-bard-patch-note",
+    "question": "What were the key changes in the B42 Bard patch?",
+    "expected_ids": ["bardPatchNotes"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  },
+  {
+    "id": "b42-screenshot-save",
+    "question": "How do screenshots save in B42?",
+    "expected_ids": ["screenshotB42SavePath"],
+    "filter": {"type": "mechanic", "version": "b42"}
+  }
+]

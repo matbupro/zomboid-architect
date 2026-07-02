@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# =============================================================================
+# commit-msg — Valide le format Conventional Commits avant chaque commit.
+# =============================================================================
+set -euo pipefail
+
+COMMIT_MSG_FILE="${1:-}"
+[[ -f "$COMMIT_MSG_FILE" ]] || { echo "Usage: $0 <commit-msg-file>"; exit 1; }
+
+# ── Pattern principal ────────────────────────────────────────────────────────
+# feat | fix | docs | style | refactor | test | chore | perf | revert | ci | build
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|revert|ci|build)(\([a-z0-9/_-]+\))?!?:\s\S"
+
+# ── Lectures ─────────────────────────────────────────────────────────────────
+read -r FIRST_LINE < "$COMMIT_MSG_FILE"
+
+# Lignes vides initiales (blank block) — on les retire pour lire le type réel
+while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    FIRST_LINE="$line"
+    break
+done < "$COMMIT_MSG_FILE"
+
+# ── Validation ───────────────────────────────────────────────────────────────
+if ! grep -PqoE "$PATTERN" <<< "$FIRST_LINE"; then
+    echo "ERROR: Commit message mal formé."
+    echo ""
+    echo "Format attendu :  <type>(<scope>): <description>"
+    echo ""
+    echo "  Types valides  : feat | fix | docs | style | refactor |"
+    echo "                   test | chore | perf | revert | ci | build"
+    echo "  Exemple        :  feat(parser): ajout du support B42"
+    echo ""
+    echo "  Votre commit   : $FIRST_LINE"
+    echo ""
+    echo "Corrigez avec: git commit --amend -m \"<message valide>\""
+    exit 1
+fi
+
+# ── Détails bons (bonus, non-bloquant) ──────────────────────────────────────
+echo "✅ Commit validé : $FIRST_LINE"

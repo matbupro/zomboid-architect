@@ -1,0 +1,66 @@
+MANIFEST — PZ RAG Assistant
+=============================
+Livrables produits par le pipeline d'ingestion et de gouvernance.
+
+Racine : /home/user/
+
+## VERSION ET GOUVERNANCE
+  [x] VERSION                         — 0.1.0-alpha (b41)
+  [x] docs/VERSIONING.md              — Spec SemVer + cycle de vie
+  [x] docs/CHANGELOG.md               — Keep a Changelog format
+  [x] scripts/hooks/commit-msg       — Conventional Commits hook
+  [x] .gitmessage                     — Commit message template
+
+## INGESTOR (moteur d'ingestion)
+  [x] ingestor/__init__.py           — Package init, exports, __version__
+  [x] ingestor/parser.py             — Parsers XML/MD/Lua (~573 lignes)
+  [x] ingestor/engine.py             — IngestionEngine (~393 lignes)
+  [x] ingestor/promote.py            — Gate promotion staging→prod (~348 lignes)
+  [x] ingestor/logger.py             — Logs JSON + console, correlation_id
+  [x] ingestor/lock.py               — FileLock exclusif, 24h timeout
+  [x] ingestor/worker.py             — WorkerContext pour tâches async
+  [x] ingestor/game_version.py        — GameVersion enum, helpers
+
+## RAG (moteur de retrieval)
+  [x] src/retrieval/__init__.py      — query_staging(), RetrievalResult
+
+## DONNÉES
+  [ ] data/sources/                   — Fichiers bruts (à fournir par le jeu)
+  [ ] data/staging/chromadb/          — Persistance staging (généré)
+  [ ] data/production/chromadb/        — Persistance prod (généré)
+  [x] data/quarantine/                — Quarantaine parsing (répertoire prêt)
+  [x] data/workspace/                 — Lock, checksum (répertoire prêt)
+  [ ] data/tmp/                        — Fichiers temporaires
+
+## TESTS
+  [x] tests/conftest.py              — Fixtures pytest
+  [x] tests/golden_set/golden.json   — 10 questions de référence
+
+## BACKUPS
+  [ ] backups/chromadb/               — Snapshots tar.gz (générés par promote)
+  [ ] backups/manual/                 — Backups manuels
+  [ ] backups/scheduled/             — Backups planifiés (cron)
+  [x] backups/restore.py             — Script de restauration
+
+## LOGS
+  [ ] logs/project.log                — Log JSON rotatif (généré au premier run)
+  [ ] logs/audit.json                — Journal quotidien des ops sensibles
+
+## DOCUMENTATION
+  [x] STRUCTURE.md                   — Arborescence complète du projet
+  [ ] docs/architecture.md           — Vue d'ensemble (optionnel)
+  [ ] Makefile                        — Orchestration (optionnel)
+
+## ÉTAT DE SYNTAXE (validé)
+  ingestor/game_version.py  ✅
+  ingestor/logger.py        ✅
+  ingestor/lock.py          ✅
+  ingestor/parser.py        ✅
+  ingestor/engine.py        ✅
+  ingestor/promote.py       ✅
+  ingestor/worker.py         ✅
+  ingestor/__init__.py      ✅
+  src/retrieval/__init__.py  ✅
+  tests/conftest.py          ✅
+
+TOTAL : 20 livrables (17 fichiers produits, 3 répertoires de données en attente)
