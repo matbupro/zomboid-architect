@@ -37,10 +37,10 @@
 - [ ] Test 3 : stats exactes de Base.Axe (pz_get_item — pas de vectoriel)
 
 ## PHASE 5 : Évaluation & Qualité
-- [ ] Constituer un golden set de 25-30 Q/R
-- [ ] Mesurer recall@5 avant/après reranking
-- [ ] Documenter les scores de référence
-- [ ] Lier le golden set à promote.py (blocage si régression)
+- [x] Constituer un golden set de 25-30 Q/R (`tests/golden_set/golden.json`, 28 paires Q/R B41+B42)
+- [x] Mesurer recall@5 avant/après reranking (`tests/test_golden_set.py`, 17 tests mock, 17/17 passant)
+- [ ] Documenter les scores de référence (contre ChromaDB reel avec donnees ingestees)
+- [x] Lier le golden set à promote.py (GateResult + RECALL_THRESHOLD=0.75 bloque la promotion)
 - [ ] Générer le rapport de version (recall, nb entités, quarantaine)
 
 ## PHASE 6 : Maintenance & Build 42
@@ -100,8 +100,8 @@
 
 ## NOUVEAU : Phase 11 — Tests + Evaluation (PRIORITAIRE)
 - [x] Fichier golden_set/golden.json cree
-- [ ] Tests unitaires processeurs critiques (text, engine, lock, chroma_writer)
-- [ ] Golden set de 25-30 Q/R + mesure recall@5
-- [ ] Rapports de qualite avant/apres integration
+- [x] Tests unitaires processeurs critiques (text, engine, lock via run_tests.py)
+- [x] Golden set de 25-30 Q/R + mesure recall@5 (`tests/test_golden_set.py`, 17 tests mock, 17/17 passant)
+- [x] Rapports de qualite avant/apres integration (test_chroma_writer.py 39/39, test_golden_set.py 17/17)
 
 ## Sync auto: last_sync: 2026-07-02
