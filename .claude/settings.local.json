@@ -81,7 +81,14 @@
       "PowerShell(python -m json.tool 2>$null)",
       "PowerShell(winget search ffmpeg)",
       "PowerShell(winget install --id Gyan.FFmpeg --source winget --accept-package-agreements --accept-source-agreements 2>&1)",
-      "PowerShell(winget list --id Gyan.FFmpeg --format json 2>&1)"
+      "PowerShell(winget list --id Gyan.FFmpeg --format json 2>&1)",
+      "PowerShell(git add notion_client/ notion_sync.py)",
+      "PowerShell(git reset HEAD notion_client\\\\.env.notion)",
+      "PowerShell(python notion_client\\\\_check_page.py)",
+      "PowerShell(python notion_sync.py --push)",
+      "PowerShell(git rm --cached notion_client\\\\.env.notion 2>$null)",
+      "PowerShell(git add agent\\\\maintenance\\\\sync_agent.ps1)",
+      "PowerShell(git add .)"
     ]
   }
 }

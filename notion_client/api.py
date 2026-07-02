@@ -1,13 +1,13 @@
 """notion_client/api.py — Wrapper minimal de l'API Notion via httpx.
 
-Endpoints utilis&#233;s :
-- GET  /v1/databases/{id}          → sch&#233;ma des colonnes
-- POST /v1/search                 → recherche dans la DB
-- POST /v1/pages                  → cr&#233;er une page (item de base)
-- PATCH /v1/pages/{page_id}        → mettre &#224; jour une page
+Endpoints utilises :
+- GET  /databases/{id}         → schema des colonnes
+- POST /search                 → recherche dans la DB
+- POST /pages                  → creer une page (item de base)
+- PATCH /pages/{page_id}        → mettre a jour une page
 
-Pas besoin d'un SDK complet : l'API Notion est simple et bien document&#233;e.
-On g&#232;re la pagination manuellement (page_size=100 par d&#233;faut).
+Toutes les URLs sont relatives au base_url = https://api.notion.com/v1.
+Le /v1 est donc UNIQUEMENT dans le base_url, jamais dans les URLs individuelles.
 """
 
 import httpx
@@ -21,7 +21,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 def _load_env_vars() -> dict[str, str]:
-    """Charger les variables d'environnement depuis .env.notion si dispo."""
+    """Charger les variables d'environnement depuis .env.notion si dispos."""
     env_path = Path(__file__).parent / ".env.notion"
     env: dict[str, str] = {}
     if env_path.exists():
@@ -35,7 +35,7 @@ def _load_env_vars() -> dict[str, str]:
     # Les vraies variables d'environnement priment sur .env.notion
     for key in ("NOTION_API_KEY", "NOTION_DATABASE_ID"):
         if key not in env:
-            env[key] = ""  # laisser vide si non d&#233;fini — le caller g&#232;re
+            env[key] = ""  # laisser vide si non defini - le caller gere
     return env
 
 
@@ -75,6 +75,35 @@ class NotionClient:
             },
             timeout=httpx.Timeout(30.0),
         )
+        self._schema: dict | None = None
+
+    # -- schema ---------------------------------------------------------------
+
+    def _ensure_schema(self) -> dict[str, Any]:
+        """Charger le schema de la DB (cache au niveau instance)."""
+        if self._schema is None:
+            db_id = _get_config().database_id
+            # URL relative → base_url ajoute /v1 automatiquement
+            self._schema = self._request("GET", f"/databases/{db_id}")
+        return self._schema
+
+    @property
+    def _title_col(self) -> str:
+        """Nom de la colonne titre (souvent 'Name' ou 'Nom')."""
+        schema = self._ensure_schema()
+        for k, v in schema.get("properties", {}).items():
+            if v.get("type") == "title":
+                return k
+        return "Title"
+
+    @property
+    def _status_col(self) -> str:
+        """Nom de la colonne Status (souvent 'Status' ou 'Statut')."""
+        schema = self._ensure_schema()
+        for k, v in schema.get("properties", {}).items():
+            if v.get("type") == "select" and "status" in k.lower():
+                return k
+        return "Status"
 
     # -- low-level helpers ----------------------------------------------------
 
@@ -89,9 +118,9 @@ class NotionClient:
     # -- database ------------------------------------------------------------
 
     def get_schema(self, database_id: str | None = None) -> dict[str, Any]:
-        """Renvoyer le sch&#233;ma complet de la database."""
+        """Renvoyer le schema complet de la database."""
         target = database_id or _get_config().database_id
-        return self._request("GET", f"/v1/databases/{target}")
+        return self._request("GET", f"/databases/{target}")
 
     def query_items(
         self,
@@ -110,7 +139,8 @@ class NotionClient:
                 params["filter"] = filter_props
             if start_cursor is not None:
                 params["start_cursor"] = start_cursor
-            result = self._request("POST", f"/v1/databases/{target}/query", json_body=params)
+            # URL relative → base_url ajoute /v1 automatiquement
+            result = self._request("POST", f"/databases/{target}/query", json_body=params)
             items.extend(result.get("results", []))
             has_more = result.get("has_more", False)
             if not has_more:
@@ -126,26 +156,37 @@ class NotionClient:
         parent_db: str | None = None,
         name: str = "",
         phase: str = "",
-        status: str = "Not Started",
+        status: str = "En Attente",
         priority: str = "P2",
         source: str = "local",
         extra_props: dict | None = None,
     ) -> str:
-        """Cr&#233;er un item et renvoyer son page_id."""
-        parent = parent_db or _get_config().database_id
+        """Creer un item et renvoyer son page_id."""
+        title_col = self._title_col
+        status_col = self._status_col
+        schema = self._ensure_schema()
+
+        # Colonnes optionnelles disponibles dans le schema
         properties: dict[str, Any] = {
-            "Name": {"title": [{"text": {"content": name}}]},
-            "Phase": {"select": {"name": phase}},
-            "Status": {"select": {"name": status}},
-            "Priority": {"select": {"name": priority}},
-            "Source": {"select": {"name": source}},
+            title_col: {"title": [{"text": {"content": name}}]},
         }
+        if "Phase" in schema.get("properties", {}):
+            properties["Phase"] = {"select": {"name": phase}}
+        if status_col in schema.get("properties", {}):
+            properties[status_col] = {"select": {"name": status}}
+        if "Priority" in schema.get("properties", {}):
+            properties["Priority"] = {"select": {"name": priority}}
+        if "Source" in schema.get("properties", {}):
+            properties["Source"] = {"select": {"name": source}}
+
         if extra_props:
             properties.update(extra_props)
 
+        parent = parent_db or _get_config().database_id
+        # URL relative → base_url ajoute /v1 automatiquement
         result = self._request(
-            "POST", "/v1/pages",
-            json_body={"parent": {"type": "database", "database_id": parent}, "properties": properties},
+            "POST", "/pages",
+            json_body={"parent": {"type": "database_id", "database_id": parent}, "properties": properties},
         )
         return result["id"]
 
@@ -156,17 +197,20 @@ class NotionClient:
         status: str | None = None,
         extra_props: dict | None = None,
     ) -> str:
-        """Mettre &#224; jour un item. Renvoie le page_id mis &#224; jour."""
+        """Mettre a jour un item. Renvoie le page_id mis a jour."""
+        title_col = self._title_col
+        status_col = self._status_col
         properties: dict[str, Any] = {}
         if name is not None:
-            properties["Name"] = {"title": [{"text": {"content": name}}]}
-        if status is not None:
-            properties["Status"] = {"select": {"name": status}}
+            properties[title_col] = {"title": [{"text": {"content": name}}]}
+        if status is not None and status_col in (self._ensure_schema().get("properties", {})):
+            properties[status_col] = {"select": {"name": status}}
         if extra_props:
             properties.update(extra_props)
 
+        # URL relative → base_url ajoute /v1 automatiquement
         self._request(
-            "PATCH", f"/v1/pages/{page_id}",
+            "PATCH", f"/pages/{page_id}",
             json_body={"properties": properties},
         )
         return page_id
@@ -180,14 +224,15 @@ class NotionClient:
             params["query"] = query
         if filter_db is not None:
             params["filter"] = filter_db
-        result = self._request("POST", "/v1/search", json_body=params)
+        # URL relative → base_url ajoute /v1 automatiquement
+        result = self._request("POST", "/search", json_body=params)
         return result.get("results", [])
 
-    # -- schema creation (cr&#233;ation d'une nouvelle base) -------------------
+    # -- schema creation (creation d'une nouvelle base) -----------------------
 
     @staticmethod
     def create_database_schema(name: str = "Zomboid Tasks") -> dict[str, Any]:
-        """Renvoyer le body API pour cr&#233;er une DB avec le sch&#233;ma recommand&#233;.
+        """Renvoyer le body API pour creer une DB avec le schema recommande.
 
         Pour l'utiliser :
             client.create_page(parent={"type": "page_id", "page_id": "<parent_page_id>"}, properties={...})
@@ -240,7 +285,7 @@ class NotionClient:
         self._client.close()
 
 
-# Module-level helper (avite recration)
+# Module-level helper (evite recreation)
 _config_instance: NotionConfig | None = None
 
 
