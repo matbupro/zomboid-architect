@@ -207,3 +207,43 @@ class KnowledgeEngineClient:
             return self._backend.list_collections()
         except Exception:  # noqa: BLE001
             return self.COLLECTIONS
+
+    # -- Golden set gate — utilisé par promote.py --
+
+    def query_staging(
+        self,
+        question: str,
+        k: int = 5,
+        filters: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Interroge ChromaDB staging pour le golden set gate.
+
+        Utilisé par promote.py pour calculer le recall@5.
+        Fallback local si ChromaDB injoignable.
+        """
+        chunks: list[dict[str, Any]] = []
+
+        # Essaie d'abord via l'API HTTP ChromaDB
+        if hasattr(self._backend, "_http") and self._backend._http is not None:  # type: ignore[attr-defined]
+            http = self._backend._http
+            try:
+                resp = http.post(
+                    f"{self._backend._host}/api/v1/query",  # type: ignore[attr-defined]
+                    json={
+                        "namespace": "pz_staging",
+                        "queries": [question],
+                        "n_results": k,
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                for ids, docs, metas in zip(
+                    data.get("ids", [[]])[0],
+                    data.get("documents", [[]])[0],
+                    data.get("metadatas", [[]])[0],
+                ):
+                    chunks.append({"id": ids, "prose": docs if isinstance(docs, str) else "", "metadata": metas or {}})
+            except Exception:  # noqa: BLE001
+                pass
+
+        return {"chunks": chunks, "query": question, "k": k}

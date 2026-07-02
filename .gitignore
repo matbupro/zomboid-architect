@@ -44,6 +44,15 @@ data/quarantine/*
 # Logs
 *.log
 logs/
+!logs/.gitkeep
+
+# Backups (chromadb only; manual/scheduled snapshots may be tracked)
+backups/chromadb/
+!backups/chromadb/.gitkeep
+
+# DB (ChromaDB persistence)
+db/staging/
+db/production/
 
 # OS
 .DS_Store

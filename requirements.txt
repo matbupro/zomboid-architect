@@ -1,0 +1,44 @@
+# =============================================================================
+# requirements.txt — Dépendances du projet Zomboid_Architect
+# Installez les profils individuels au besoin :
+#   pip install -r requirements.txt           # toutes les dépendances
+#   pip install bot/requirements.txt          # bot Discord uniquement
+#   pip install ingestor/requirements.txt     # ingestion multi-format uniquement
+# =============================================================================
+
+# ------------------------------------------------------------------------------
+# Shared (utilisé par bot/ ET ingestor/)
+# ------------------------------------------------------------------------------
+httpx>=0.27.0              # HTTP async client
+pydantic>=2.0              # Validation dataclasses
+
+# ------------------------------------------------------------------------------
+# Bot Discord
+# ------------------------------------------------------------------------------
+discord.py[voice]>=2.3.0   # Bot Discord
+
+# aiohttp (optionnel — utilisé par engine_client si httpx manquant)
+aiohttp>=3.9.0             # HTTP async alternative
+
+# ------------------------------------------------------------------------------
+# Ingestion multi-format (ingestor/)
+# ------------------------------------------------------------------------------
+python-docx>=0.8.11        # Word .docx
+ebooklib>=0.18             # eBooks .epub
+pdfplumber>=0.10           # PDF texte extraction
+filetype>=1.2              # Détection MIME de fichier
+beautifulsoup4>=4.12       # Parsing HTML/XML
+lxml>=5.0                  # Parser XML/HTML rapide
+
+# OCR / Vision (optionnel : seulement si tu as des images/scans)
+easyocr>=1.7               # OCR multi-langue (FR/EN) — ~500MB d'install
+
+# Vidéo / Audio (optionnel : seulement si tu as des vidéos/audio)
+ffmpeg-python>=0.2         # Interface ffmpeg
+pydub>=0.25                # Manipulation audio
+openai-whisper>=20231117   # Transcription audio
+
+# Web browsing (prioritaire)
+playwright>=1.40           # Navigateur headless Chromium
+duckduckgo-search>=6.0     # Recherche DuckDuckGo (no API key needed)
+python-readability>=0.7    # Extraction contenu propre (port JS readability)

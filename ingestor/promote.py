@@ -26,9 +26,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from ingestor.game_version import get_current_game_version, GameVersion
-from ingestor.logger import get_logger
-from ingestor.lock import FileLock
+# ── Imports — governance via src/governance (partagé bot/ + ingestor/) ───────
+
+try:
+    from src.governance.game_version import get_current_game_version, GameVersion  # noqa: F401
+except ImportError:
+    from ingestor.game_version import get_current_game_version, GameVersion  # type: ignore[attr-defined]  # noqa: F401
+
+try:
+    from src.governance.logger import get_logger  # noqa: F401
+except ImportError:
+    from ingestor.logger import get_logger  # type: ignore[attr-defined]  # noqa: F401
+
+try:
+    from src.governance.lock import FileLock  # noqa: F401
+except ImportError:
+    from ingestor.lock import FileLock  # type: ignore[attr-defined]  # noqa: F401
 
 logger = get_logger(__name__)
 
@@ -132,8 +145,8 @@ def _run_golden_set(golden_path: Path) -> GateResult:
     recall_scores: list[float] = []
     failed_ids: list[str] = []
 
-    # Import lazy — appelle query_staging depuis l'engine (pas src.retrieval)
-    from ingestor.engine import query_staging
+    # Import lazy — utilise src/retrieval (ChromaDB staging) pour le golden set
+    from src.retrieval import query_staging  # noqa: F401
 
     game_version = get_current_game_version().value
 
