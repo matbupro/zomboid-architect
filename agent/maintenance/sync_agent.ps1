@@ -14,7 +14,10 @@
     .\agent\maintenance\sync_agent.ps1 "Fixed P0 bugs"
 #>
 
-param([string]$LastSessionNotes = "")
+param(
+    [string]$LastSessionNotes = "",
+    [switch]$Notion
+)
 
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
@@ -188,6 +191,21 @@ if ($LastSessionNotes) {
     }
 } else {
     Write-Host "    [SKIP] todo/memories/CHANGELOG - aucune note fournies" -ForegroundColor DarkGray
+}
+
+# ============ 4. Notion sync (optionnel) ============
+if ($Notion) {
+    $notionScript = Join-Path $ProjectRoot "notion_sync.py"
+    if (Test-Path $notionScript) {
+        try {
+            & python "$notionScript" --push 2>&1 | Out-Null
+            Write-Host "    [OK] Notion sync" -ForegroundColor Green
+        } catch {
+            Write-Host "    [WARN] Notion sync echoue : $_" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "    [SKIP] notion_sync.py non trouve" -ForegroundColor DarkGray
+    }
 }
 
 Write-Host ""

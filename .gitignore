@@ -25,6 +25,7 @@ env/
 # Environment files
 .env
 .env.local
+.env.*
 .env.*.local
 
 # Data directories (contain runtime/generated data)
