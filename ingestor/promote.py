@@ -28,21 +28,14 @@ from typing import Any, Optional
 
 # ── Imports — governance via src/governance (partagé bot/ + ingestor/) ───────
 
-try:
-    from src.governance.game_version import get_current_game_version, GameVersion  # noqa: F401
-except ImportError:
-    from ingestor.game_version import get_current_game_version, GameVersion  # type: ignore[attr-defined]  # noqa: F401
+from src.governance._import_compat import (  # type: ignore[import-not-found]
+    get_filelock,
+    get_game_version,
+    get_logger,
+)
 
-try:
-    from src.governance.logger import get_logger  # noqa: F401
-except ImportError:
-    from ingestor.logger import get_logger  # type: ignore[attr-defined]  # noqa: F401
-
-try:
-    from src.governance.lock import FileLock  # noqa: F401
-except ImportError:
-    from ingestor.lock import FileLock  # type: ignore[attr-defined]  # noqa: F401
-
+get_current_game_version, GameVersion = get_game_version()
+FileLock = get_filelock()
 logger = get_logger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────

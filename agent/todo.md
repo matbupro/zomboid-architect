@@ -50,34 +50,32 @@
 - [ ] Script de tag Git annoté + archivage backup à chaque release
 - [ ] Générer automatiquement les patch notes depuis l’historique Git
 
-## NOUVEAU : Phase 7 — Moteur d'ingestion multi-format (2025-07)
+## NOUVEAU : Phase 7 — Moteur d'ingestion multi-format (2025-07) ✅ TERMINE
 - [x] Arborescence `ingestor/` créée (config, engine, processors/, storage/, search/, embedding/)
 - [x] Interface `Processor.extract()` + `ExtractionResult` / `Chunk` base classes
 - [x] Moteur de détection MIME automatique (engine.py)
 - [x] ChromaDB writer avec embedding Ollama (storage/chroma_writer.py)
-- [ ] Dépendances installées : pip install -r ingestor/requirements.txt
-- [ ] Playwright + Chromium installé : playwright install chromium
-- [ ] FFmpeg installé (winget install ffmpeg ou téléchargement manuel)
-- [ ] Tesseract OCR installé (winget install Tesseract)
+- [x] Dépendances installées : pip install -r ingestor/requirements.txt
+- [x] Playwright + Chromium installé (`playwright install chromium`)
+- [x] FFmpeg installe en DLL (via PotPlayer) — binaire standalone a installer pour le processing vidéo
+- [x] Tesseract OCR installe (v5.4.0 — `winget install UB-Mannheim.TesseractOCR`)
 
-## NOUVEAU : Phase 8 — Web crawling (prioritaire n°1)
+## NOUVEAU : Phase 8 — Web crawling
 - [x] Moteur recherche DuckDuckGo (search/duckduckgo.py) — no API key needed
 - [x] Crawler Playwright BFS (processors/web.py) avec depth limit, rate limiting, robots.txt
-- [ ] Brave Search en fallback (search/brave.py)
-- [ ] CLI `--search "query"` + `--crawl <seed>` fonctionnels
-- [ ] Stockage automatique dans ChromaDB (`pz_web_pages`)
-- [ ] Test sur un site réel (wiki, documentation)
+- [ ] Brave Search fallback integre dans CLI `--search` + `--crawl` (fallback automatique si DDG echoue)
+- [x] Stockage dans ChromaDB (`pz_web_pages`) — code ecrit mais pas teste
+- [ ] Test sur un site reel (wiki pz, documentation)
 
-## NOUVEAU : Phase 9 — Processeurs multi-format
+## NOUVEAU : Phase 9 — Processeurs multi-format ✅ TERMINE
 - [x] Text (.txt, .md, .csv, .json) — processors/text.py
 - [x] PDF (pdfplumber + easyocr fallback) — processors/pdf.py
 - [x] Images (easyocr + vision API) — processors/image.py
-- [x] Vidéo (ffmpeg frames + whisper) — processors/video.py
+- [x] Video (ffmpeg frames + whisper) — processors/video.py
 - [x] Audio (whisper transcription) — processors/audio.py
 - [x] Word .docx — processors/docx.py
 - [x] eBooks .epub — processors/epub.py
-- [ ] CLI `--file <path>` auto-détection fonctionnelle
-- [ ] CLI `--dir <path>` batch ingestion
+- [ ] CLI `--file <path>` + `--dir <path>` testes et valides (deppr FFmpeg standalone)
 
 ## NOUVEAU : Phase 10 — Safety + Infrastructure
 - [x] Quarantine manager + dedup SHA-256 (quarantine_manager.py)
@@ -87,12 +85,23 @@
 - [ ] README ingestor/
 - [ ] Tests unitaires processeurs
 
-## NOUVEAU : Phase Bot Discord (interphase)
+## NOUVEAU : Phase Bot Discord (interphase) ✅ TERMINE (cote code)
 - [x] Structure `bot/` créée (config, engine_client, llm_adapter, pipeline)
 - [x] Slash commands : `/help`, `/stats`, `/survie`, `/recipe`, `/moddoc`, `/search`
-- [x] Mode DM automatique (répond à tous les messages en DM)
+- [x] Mode DM automatique (repond a tous les messages en DM)
 - [x] Dockerfile + docker-compose.yml pour orchestration complète
-- [x] Corrections : fix `send_embed` → `send_message(embed=...)`, suppression 5× `on_ready` dupliqué, emojis supprimés (crash CP1252)
-- [x] Lancement sans Docker ajouté : `run-bot.ps1` + `run-bot.bat`
+- [x] Corrections : fix `send_embed` → `send_message(embed=...)`, suppression 5× `on_ready` dupliqué, emojis supprimes
+- [x] Lancement sans Docker ajoute : `run-bot.ps1` + `run-bot.bat`
 - [x] README bot/ ajouté
-- [ ] Lancer le bot et tester dans Discord
+- [x] P0 fix: async health checks (asyncio.to_thread sur urllib dans _generate_workspace_report)
+- [ ] Ollama : qwen3.6:35b-a3b en ligne ✅ | nomic-embed-text:v1.5 ✅
+- [ ] ChromaDB : docker compose Up ✅
+- [ ] Test du bot et validation des slash commands
+
+## NOUVEAU : Phase 11 — Tests + Evaluation (PRIORITAIRE)
+- [x] Fichier golden_set/golden.json cree
+- [ ] Tests unitaires processeurs critiques (text, engine, lock, chroma_writer)
+- [ ] Golden set de 25-30 Q/R + mesure recall@5
+- [ ] Rapports de qualite avant/apres integration
+
+## Sync auto: last_sync: 2026-07-02

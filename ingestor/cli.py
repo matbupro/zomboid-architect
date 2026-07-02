@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--search", type=str, help="Recherche web + crawl (via DuckDuckGo)")
+    group.add_argument("--search", type=str, help="Recherche web + crawl (DDG en priorite, Brave fallback)")
     group.add_argument("--url", type=str, help="Ingestion d'une seule URL")
     group.add_argument("--crawl", type=str, help="Crawl BFS d'un site depuis une seed URL")
     group.add_argument("--file", type=str, help="Ingestion d'un fichier unique (auto-détection)")
@@ -84,8 +84,9 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--search-all", type=str, help="Recherche sur TOUTES les collections ChromaDB")
 
     # Options globales
-    parser.add_argument("--max-depth", type=int, default=5, help="Profondeur max de crawl (défaut: 5)")
-    parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/crawl (défaut: 20)")
+    parser.add_argument("--max-depth", type=int, default=5, help="Profondeur max de crawl (defaut: 5)")
+    parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/crawl (defaut: 20)")
+    parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG → Brave fallback")
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
 
     return parser
@@ -96,30 +97,61 @@ def build_parser() -> argparse.ArgumentParser:
 # ---------------------------------------------------------------------------
 
 async def handle_search(args: argparse.Namespace) -> None:
-    """Commande : --search <query>"""
+    """Commande : --search <query> + fallback Brave."""
+    import os as _os
+
     from .engine import IngestionEngine
     from .config import load_config
-    from .search.duckduckgo import search_and_crawl
+    from .search.duckduckgo import search as _ddg_search
+    from .search.brave import search as _brave_search, check_brave_installed as _check_brave
 
     config = load_config()
-    engine = IngestionEngine(config)
+    engine_obj = IngestionEngine(config)
 
-    logger.info("Recherche + crawl web : '%s'", args.search)
+    logger.info("Recherche web : '%s' (engine=%s)", args.search, args.engine)
 
-    # Phase 1 : recherche DDG + crawl simultané
-    start = time.time()
-    results = await search_and_crawl(
-        args.search,
-        max_results=min(args.max_pages, 10),
-        crawler=None,  # use default
-    )
-    elapsed = time.time() - start
+    # Resolution clef Brave depuis env si pas explicitement passe
+    brave_key = _os.getenv("BRAVE_API_KEY")
+
+    results: list | None = None
+    source = ""
+
+    # 1. Forced Brave ou DDG impossible → directement Brave
+    if args.engine == "brave":
+        logger.info("Brave Search force (engine=%s)", args.engine)
+        results = await _try_brave(_brave_search, args.search, min(args.max_pages, 10), brave_key)
+        source = "brave" if results else None
+
+    # 2. DDG en priorite (auto ou ddg force)
+    if not results and args.engine != "brave":
+        logger.info("Essai DuckDuckGo pour '%s'...", args.search)
+        try:
+            from .search.duckduckgo import search_and_crawl
+
+            raw_results = await _ddg_search(args.search, max_results=min(args.max_pages, 10))
+            if raw_results:
+                results = await search_and_crawl(
+                    args.search,
+                    max_results=min(args.max_pages, 10),
+                    crawler=None,
+                )
+                source = "ddg"
+            else:
+                logger.info("DDG → 0 resultats, tentative Brave fallback")
+        except Exception as exc:
+            logger.warning("DDG echoue (%s), tentative Brave fallback", exc)
+
+    # 3. Fallback Brave si DDG vide/echec + Brave key dispo
+    if not results and brave_key and _check_brave(brave_key):
+        logger.info("Brave Search fallback pour '%s'...", args.search)
+        results = await _try_brave(_brave_search, args.search, min(args.max_pages, 10), brave_key)
+        source = "brave"
 
     if not results:
         logger.warning("Aucun résultat trouvé pour '%s'", args.search)
         return
 
-    logger.info("Recherche + crawl terminé en %.1fs — %d pages extraites\n", elapsed, len(results))
+    logger.info("Source : %s — %d pages extraites", source, len(results))
 
     for i, r in enumerate(results, 1):
         title = (r.title or "Sans titre")[:60]
@@ -128,6 +160,7 @@ async def handle_search(args: argparse.Namespace) -> None:
         print(f"\n{'='*70}")
         print(f"#{i} {title}")
         print(f"   URL : {url}")
+        print(f"   Source : {source}")
         print(f"   Contenu : {body_len} chars, ~{body_len // 5} mots")
         print(f"   Description : {r.description[:200]}")
 
@@ -139,7 +172,6 @@ async def handle_search(args: argparse.Namespace) -> None:
             print(f"\n   Extrait :\n   {preview}")
 
     # Stocker dans ChromaDB (auto-accept si stdin pipé / non-terminal, sinon demande confirmation)
-    import os as _os
     _auto_accept = not sys.stdin.isatty()  # piped/CI → auto yes
     if _auto_accept:
         store = "y"
@@ -150,9 +182,9 @@ async def handle_search(args: argparse.Namespace) -> None:
             store = "y"  # pipe fermé → auto yes
     if store == "y":
         print(f"\nIngestion de {len(results)} pages dans ChromaDB...")
-        # Utiliser les résultats du crawl (pas engine.ingest(query) qui plante)
         from .processors.base import Chunk as BaseChunk
         from .storage.chroma_writer import write_chunks_to_chroma
+
         all_chunks = []
         for i, r in enumerate(results):
             if r.body:
@@ -162,11 +194,21 @@ async def handle_search(args: argparse.Namespace) -> None:
             source=args.search,
             content_type="web_search",
             collection="pz_web_pages",
-            metadata={"search_query": args.search},
+            metadata={"search_query": args.search, "search_engine": source},
         )
         print(f"ChromaDB : {'OK' if success else 'ÉCHEC'}")
     else:
         logger.info("Stockage ChromaDB ignoré par l'utilisateur.")
+
+
+async def _try_brave(brave_fn, query: str, max_results: int, api_key: str | None) -> list | None:
+    """Essayer Brave Search. Retourne liste ou None."""
+    try:
+        res = await brave_fn(query, max_results=min(max_results, 50), api_key=api_key)
+        return res if res else None
+    except Exception as exc:
+        logger.warning("Brave Search échoué : %s", exc)
+        return None
 
 
 async def handle_url(args: argparse.Namespace) -> None:
@@ -376,10 +418,11 @@ async def handle_search_all(args: argparse.Namespace) -> None:
     for i, r in enumerate(results, 1):
         col = getattr(r, "collection", "unknown")
         rid = getattr(r, "id", "?")
-        dist = getattr(r, "distance", "?")
+        dist = getattr(r, "distance", None)
         prose = getattr(r, "prose", "")[:200]
 
-        print(f"{i}. [{col}] {rid} (dist={dist:.3f})")
+        dist_str = f"{dist:.3f}" if isinstance(dist, (int, float)) else str(dist or "?")
+        print(f"{i}. [{col}] {rid} (dist={dist_str})")
         if prose:
             print(f"   {prose}")
         print()

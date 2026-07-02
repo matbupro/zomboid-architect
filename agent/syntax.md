@@ -1,51 +1,110 @@
-# État Actuel du Projet
+# Etat Actuel du Projet
 
-## Statut
-**Phase 1 complétée.** **Phase Bot Discord complétée.** Projet passe de l'état zéro à un bot Discord fonctionnel.
+## Status
+**Derniere MAJ agent/ : 2026-07-02 par sync_agent.ps1 automatique.**
 
-Dernière mise à jour : 2026-07-01 — Bot Discord codé, Dockerisé, prêt au déploiement.
+Dernier commit : 328f113
+Version moteur : 0.1.0-alpha (b41)
 
-## Structure du projet (à jour)
+## Arborescence (mise a jour auto)
 
 ```
-Zomboid_Architect/
-├── agent/                    # Ma mémoire interne (inviolée)
-│   ├── README.md             ← index des fichiers de mémoire
-│   ├── GOAL.md               ← objectif + créateur
-│   ├── rules.md              ← 12 commandements + règles d'or
-│   ├── todo.md               ← TODO list complète (mise à jour continue)
-│   ├── architecture.md       ← stack technique du knowledge engine
-│   ├── memories.md           ← souvenirs + astuces
-│   └── syntax.md             ← état actuel (ce fichier)
-├── bot/                      # Bot Discord Zomboid — NOUVEAU
-│   ├── main.py               ← point d'entrée, slash commands, DM handler
-│   ├── config.py             ← chargement .env + Settings dataclass
-│   ├── engine_client.py      ← client ChromaDB + fallback local (pz_get_item)
-│   ├── llm_adapter.py        ← adapter Ollama + Claude API (fallback)
-│   ├── pipeline.py           ← pipeline: message → route → engine → LLM → réponse
-│   ├── requirements.txt      ← dépendances Python
-│   ├── Dockerfile            ← image du bot
-│   └── .env.example          ← variables d'environnement à configurer
-├── docs/
-│   └── roadmap.md            # Roadmap maître (inviolée)
-├── docker-compose.yml        # Orchestration : bot + ollama + chromadb
-└── Zomboid_Architect.code-workspace
+.claude/
+├── scheduled_tasks.json      ← cron tasks Claude Code (session-only)
+├── scheduled_tasks.lock
+└── settings.local.json       ← permissions Claude Code
+.env.example                   ← template variable d'environnement
+.gitignore
+agent/
+├── .agent_memory.md          ← memoire interne (non decrit)
+├── GOAL.md                   ← objectif principal + createur
+├── architecture.md            ← stack technique, flux, MCP
+├── memories.md               ← souvenirs, infos utilisateur, astuces
+├── README.md                 ← index auto-des fichiers memoire
+├── rules.md                  ← 12 commandements + regles d'or
+├── syntax.md                 ← etat actuel du projet (ce fichier)
+├── todo.md                   ← TODO list completee (mise a jour continue)
+└── maintenance/
+    ├── README.md             ← doc infrastructure sync
+    └── sync_agent.ps1        ← moteur de sync agent/
+bot/                          ← Discord bot (discord.py)
+├── __init__.py
+├── cleanup_channels.py
+├── config.py
+├── Dockerfile
+├── engine_client.py          ← client HTTP vers le moteur de connaissance
+├── llm_adapter.py            └─ adaptation Ollama/LLM
+├── main.py                   ← point d'entree du bot Discord
+├── pipeline.py
+├── README.md
+└── requirements.txt
+CHANGELOG.md                  ← historique des versions (auto-genere)
+CLAUDE.md                     ← instructions persistantes Claude Code
+docker-compose.yml             ← orchestrant Ollama + ChromaDB
+ingestor/                     ← ingestion multi-format (text, pdf, docx, epub...)
+├── __init__.py
+├── cli.py                    ← interface en ligne de commande
+├── config.py
+├── Dockerfile
+├── engine.py                 ← moteur principal d'indexation + mapping collections
+├── promote.py                └─ promote des documents au statut "golden"
+├── quarantine_manager.py     ← gestion du contenu suspect
+├── README.md
+├── requirements.txt
+├── processors/               ← parseurs par format
+│   ├── __init__.py
+│   ├── audio.py, base.py, docx.py, epub.py
+│   ├── image.py, pdf.py, text.py
+│   ├── video.py, web.py
+├── search/                   └─ moteurs de recherche (Brave, DuckDuckGo)
+│   ├── __init__.py
+│   ├── brave.py, duckduckgo.py
+└── storage/
+    └── chroma_writer.py      ← ecriture ChromaDB
+Makefile                      ← commandes standard (build, test, lint...)
+README.md                     ← documentation principale
+requirements.txt              └─ dependances Python globales
+restore.py                    ← outils de restauration de donnees
+run-bot.bat / run-bot.ps1     ← lanceurs du bot Discord
+src/                          ← code noyau du moteur (governance + retrieval)
+├── __init__.py
+├── governance/               ← logique metier et regles
+│   ├── __init__.py
+│   ├── _import_compat.py     └─ imports centralises dual-layout (src/ingestor)
+│   ├── game_version.py       ← detection B41/B42
+│   ├── lock.py               ← FileLock avec heartbeat + stale detection
+│   ├── logger.py             ← logger centralise
+│   ├── parser.py             └─ parsing de fichiers governnance
+│   └── worker.py
+└── retrieval/                └─ couche de requete ChromaDB (RAG)
+    ├── __init__.py
+    └── chroma_client.py
+tests/golden_set/golden.json  ← ensemble de reference pour tests
+VERSION                       ← version SemVer du moteur
+VERSIONING.md                 ← politique de versioning
+Zomboid_Architect.code-workspace ← config workspace VSCode
 ```
 
-## Fichiers Mémoire Actifs
+## Fichiers Memoire Actifs
 
-| Fichier | Rôle |
+| Fichier | Role |
 |---------|------|
-| [GOAL.md](agent/GOAL.md) | Objectif principal du projet + créateur |
-| [rules.md](agent/rules.md) | 12 commandements + règles d'or |
-| [todo.md](agent/todo.md) | TODO list complète (mise à jour continue) |
-| [architecture.md](agent/architecture.md) | Stack technique, arborescence, flux, MCP |
-| [memories.md](agent/memories.md) | Souvenirs, infos utilisateur, astuces trouvées |
-| [syntax.md](agent/syntax.md) | État actuel du projet (ce fichier) |
+| [GOAL.md](GOAL.md) | Objectif principal du projet + createur |
+| [rules.md](rules.md) | 12 commandements + regles d'or |
+| [todo.md](todo.md) | TODO list completee (mise a jour continue) |
+| [architecture.md](architecture.md) | Stack technique, arborescence, flux, MCP |
+| [memories.md](memories.md) | Souvenirs, infos utilisateur, astuces trouvees |
+| [syntax.md](syntax.md) | Etat actuel du projet (ce fichier) |
 
 ## Contexte Technique
 
-- **Projet :** `f:\Antigravity DEV\Zomboid_Architect`
-- **Créateur :** ElChibros
-- **Clé du dossier mémoire :** `agent/` — accès libre pour organisation interne de l'agent
-- **Mémoire Claude Code native :** `~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/` (chargement automatique)
+- **Projet :** F:\Antigravity DEV\Zomboid_Architect
+- **Createur :** ElChibros
+- **Clef du dossier memoire :** agent/ - acces libre pour organisation interne de l'agent
+- **Memoire Claude Code native :** ~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/ (chargement automatique)
+
+## Historique des MAJ agent/
+
+| Date | Action | Detail |
+|------|--------|--------|
+| 2026-07-02 | sync_agent.ps1 | MAJ auto - tree, last commit, version |

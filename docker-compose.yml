@@ -75,15 +75,13 @@ services:
       - "F:/Antigravity DEV/Zomboid_Architect/data:/app/zomboid_data:rw"
       - "F:/Antigravity DEV/Zomboid_Architect/ingestor/.env:/app/ingestor/.env:ro"
     environment:
-      CHROMA_HOST: http://chromadb:8000
-      OLLAMA_BASE_URL: http://ollama:11434
+      CHROMA_HOST: http://host.docker.internal:8000
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
       EMBEDDING_MODEL: "nomic-embed-text"
       CLAUDE_API_KEY: ""       # optionnel : mettre la clé Claude pour vision API
     networks:
       - zomboid-net
-    depends_on:
-      - chromadb
-      - ollama
+    depends_on: [chromadb]
     deploy:
       resources:
         limits:

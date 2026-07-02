@@ -17,7 +17,8 @@ Création complète du moteur d'ingestion multi-modal : lecture de **tout format
 | `ingestor/cli.py` | Entrée CLI (`--search`, `--file`, `--dir`, `--crawl`, `--url`, `--list-collections`, `--search-all`) |
 | `ingestor/engine.py` | Router MIME → processeur, détection URL vs fichier |
 | `ingestor/config.py` | Settings centralisés (ChromaDB, Ollama, OCR, web) |
-| `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionResult` |
+| `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionRe
+sult` |
 | `ingestor/processors/text.py` | Processeur `.txt`, `.md`, `.csv`, `.json` |
 | `ingestor/processors/pdf.py` | PDF → texte (pdfplumber) + OCR fallback (easyocr) |
 | `ingestor/processors/image.py` | Images → OCR multi-langue + description vision API |
@@ -166,3 +167,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 - **chromadb 1.5.9** — SDK officiel avec auto-détection API v2
 - **playwright** + browsers Chromium
 - **easyocr**, **pdfplumber**, **python-docx**, **ebooklib**, **readability-lxml**, **httpx**, etc.
+
+### 2026-07-02 - commit 328f113
+
+**Changements :**
+- Restructure: move ElChibros files to root, new src/governance and src/retrieval layout

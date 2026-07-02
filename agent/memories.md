@@ -31,3 +31,6 @@
 - Quand l'utilisateur dit "fais ça", ne pas demander d'autorisation supplémentaire — agir directement.
 - Le fichier `.agent_memory.md` a été déplacé dans `agent/` puis découpé en fichiers spécialisés pour limiter les pertes et hallucinations de données.
 - La mémoire est divisée en 6 fichiers indépendants dans `agent/` : GOAL, rules, todo, architecture, memories, syntax.
+
+## Session du 2026-07-02
+P0 audit remediation: fixed collection mapping in engine.py, async health checks in bot/main.py, DRY imports via _import_compat.py, heartbeat + stale lock recovery in governance/lock.py

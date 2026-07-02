@@ -375,7 +375,7 @@ async def cmd_workspace(interaction: discord.Interaction):
         return
 
     try:
-        report = _generate_workspace_report()
+        report = await asyncio.to_thread(_generate_workspace_report)
         await target_ch.send(report)
         logger.info("Rapport workspace envoyé dans #%s", target_ch.name)
         await interaction.followup.send(

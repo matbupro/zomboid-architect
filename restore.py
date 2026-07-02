@@ -31,13 +31,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-try:
-    from src.governance.logger import get_logger  # noqa: F401
-except ImportError:
-    try:
-    from src.governance.logger import get_logger  # noqa: F401
-except ImportError:
-    from ingestor.logger import get_logger  # type: ignore[attr-defined]  # noqa: F401  # type: ignore[attr-defined]  # noqa: F401
+from src.governance._import_compat import get_logger  # noqa: F401
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 

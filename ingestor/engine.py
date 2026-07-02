@@ -218,13 +218,13 @@ class IngestionEngine:
             result = await processor.extract(source_str)
             # Sélection collection par défaut
             collection_map = {
-                "text": "pz_pdfs",
+                "text": "pz_text",
                 "pdf": "pz_pdfs",
                 "image": "pz_images",
                 "video": "pz_videos",
                 "audio": "pz_audios",
-                "docx": "pz_pdfs",
-                "epub": "pz_pdfs",
+                "docx": "pz_docx",
+                "epub": "pz_epub",
             }
             collection = collection or collection_map.get(processor_key, "pz_pdfs")
 
