@@ -22,6 +22,8 @@ class TextProcessor:
         ".txt", ".md", ".markdown", ".csv", ".json", ".jsonl",
         ".yml", ".yaml", ".toml", ".xml", ".html", ".htm",
         ".rst", ".org", ".adoc", ".tex",
+        # Scripts et configs de jeux (Zomboid / ArmA / etc.)
+        ".lua",
     }
 
     def __init__(self, config):

@@ -9,7 +9,13 @@ Commandes principales :
     --dir <path>               Ingestion de tout un dossier
     --list-collections         Liste les collections ChromaDB disponibles
     --search-all <query>       Recherche sur TOUTES les collections ChromaDB
-    --help                     Affiche cette aide
+
+Commandes Steam & Mods :
+    --steam-scan               Scanner Steam + decouvrir PZ install
+    --steamcmd-download-game   Telecharger PZ via steamcmd (anonymous)
+    --steamcmd-install-mod ID  Installer un mod workshop via steamcmd
+    --workshop-scan            Scanner les mods installes dans le Steam Workshop
+    --mod-ingest <dir>         Ingerer tous les mods d'un repertoire → ChromaDB
 
 Exemples :
     # Web search + crawl
@@ -18,11 +24,14 @@ Exemples :
     # Crawl d'un site complet (depth limité)
     python -m ingestor.cli --crawl "https://pzmods.net"
 
-    # Ingestion PDF
+    # Ingestion PDF / .pbo
     python -m ingestor.cli --file "C:/docs/manual_pz.pdf"
+    python -m ingestor.cli --file "C:/Mods/my_mod.pbo"
 
-    # Ingestion dossier complet
-    python -m ingestor.cli --dir "C:/my_documents/"
+    # Steam & Workshop
+    python -m ingestor.cli --steam-scan
+    python -m ingestor.cli --workshop-scan
+    python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 
     # Recherche dans la base de connaissances
     python -m ingestor.cli --search-all "comment fabriquer un feu de camp"
@@ -74,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
 """,
     )
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--search", type=str, help="Recherche web + crawl (DDG en priorite, Brave fallback)")
     group.add_argument("--url", type=str, help="Ingestion d'une seule URL")
     group.add_argument("--crawl", type=str, help="Crawl BFS d'un site depuis une seed URL")
@@ -88,6 +97,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/crawl (defaut: 20)")
     parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG → Brave fallback")
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
+
+    # Steam & Mod commands (groupse a part)
+    steam_group = parser.add_mutually_exclusive_group()
+    steam_group.add_argument("--steam-scan", action="store_true", help="Scanner Steam pour Project Zomboid (registry + bibliotheques)")
+    steam_group.add_argument("--steamcmd-download-game", type=str, metavar="DIR", help="Telecharger PZ via steamcmd")
+    steam_group.add_argument("--steamcmd-install-mod", type=int, metavar="MOD_ID", help="Installer un mod workshop via steamcmd")
+    steam_group.add_argument("--workshop-scan", action="store_true", help="Scanner les mods installés dans le Steam Workshop")
+    steam_group.add_argument("--mod-ingest", type=str, metavar="DIR", help="Ingerer tous les mods d'un repertoire (ex: workshop/content/1042170)")
 
     return parser
 
@@ -429,6 +446,144 @@ async def handle_search_all(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Steam & Mod handlers
+# ---------------------------------------------------------------------------
+
+async def handle_steam_scan(args: argparse.Namespace) -> None:
+    """Commande : --steam-scan"""
+    from .steam.path_discovery import discover_game_path, get_steamcmd_path
+
+    logger.info("Scan Steam...")
+    game_paths = discover_game_path()
+
+    print(f"\n{'='*70}")
+    print("=== Scan Steam ===")
+    print(f"  Repertoire Steam     : {game_paths.steam_install or 'Non trouve'}")
+    print(f"  Bibliotheques        : {len(game_paths.library_paths) if game_paths.library_paths else 0}")
+    for idx, lp in enumerate(game_paths.library_paths or [], 1):
+        status = "OK" if lp.exists() else "MISSING"
+        print(f"    [{idx}] {lp} ({status})")
+    print(f"  Project Zomboid      : {game_paths.game_path or 'Non trouve'}")
+    print(f"  Workshop content     : {game_paths.workshop_content_root or 'Non trouve'}")
+    print(f"  Decouverte valide    : {'OUI' if game_paths.discovered else 'NON'}")
+
+    # steamcmd detection
+    sc_cmd = get_steamcmd_path(game_paths.steam_install)
+    print(f"\n=== SteamCMD ===")
+    print(f"  Executable           : {sc_cmd or 'Non trouve'}")
+
+
+async def handle_steamcmd_download(args: argparse.Namespace) -> None:
+    """Commande : --steamcmd-download-game DIR"""
+    from .steam.steamcmd_client import SteamCMDClient
+    from .steam.path_discovery import find_steam_install_path
+
+    logger.info("Telechargement PZ via steamcmd...")
+    client = SteamCMDClient()
+
+    if client.steamcmd_exe is None:
+        logger.error("steamcmd.exe non trouve. Installer steamcmd standalone.")
+        return
+
+    target_dir = Path(args.steamcmd_download_game) if args.steamcmd_download_game else find_steam_install_path() / "steamapps" / "common"
+    result = await client.download_game(target_dir, validate=True)
+
+    print(f"\n{'='*70}")
+    print("=== SteamCMD Download ===")
+    print(f"  Succes               : {result.success}")
+    print(f"  Code sortie          : {result.exit_code}")
+    print(f"  Output (dernieres lignes):")
+    for line in result.lines[-10:]:
+        print(f"    {line}")
+
+
+async def handle_steamcmd_install_mod(args: argparse.Namespace) -> None:
+    """Commande : --steamcmd-install-mod MOD_ID"""
+    from .steam.steamcmd_client import SteamCMDClient
+
+    logger.info("Installation mod workshop #%d via steamcmd...", args.steamcmd_install_mod)
+    client = SteamCMDClient()
+
+    if client.steamcmd_exe is None:
+        logger.error("steamcmd.exe non trouve.")
+        return
+
+    result = await client.install_workshop_item(args.steamcmd_install_mod)
+
+    print(f"\n{'='*70}")
+    print(f"=== Installation Mod #{args.steamcmd_install_mod} ===")
+    print(f"  Succes               : {result.success}")
+    print(f"  Code sortie          : {result.exit_code}")
+    for line in result.lines[-10:]:
+        print(f"    {line}")
+
+
+async def handle_workshop_scan(args: argparse.Namespace) -> None:
+    """Commande : --workshop-scan"""
+    from pathlib import Path
+
+    from .steam.path_discovery import discover_game_path
+    from .steam.workshop_scanner import WorkshopScanner
+
+    game_paths = discover_game_path()
+
+    # Try to find workshop content root
+    content_root = None
+    if game_paths.workshop_content_root:
+        content_root = game_paths.workshop_content_root
+    else:
+        # Manual path or current directory
+        content_root = Path("steamapps/workshop/content/1042170")
+        if not content_root.exists():
+            logger.error("Root Workshop non trouve. Utiliser le chemin exact:")
+            print(f"\n  Utilisation : python -m ingestor.cli --workshop-scan --file \"C:/Steam/steamapps/workshop/content/1042170\"")
+            return
+
+    scanner = WorkshopScanner(content_root)
+    mods = await scanner.scan()
+
+    print(f"\n{'='*70}")
+    print(f"=== Mods Workshop ({len(mods)} decouverts) ===")
+    for mod in mods[:50]:  # max 50 pour l'affichage
+        author_str = f" par {mod.author}" if mod.author else ""
+        desc_preview = (mod.description[:80] + "...") if mod.description else "Aucune description"
+        print(f"  #{mod.mod_id:<10} {mod.name or 'Sans titre':<40}{author_str}")
+        print(f"         {desc_preview} ({mod.file_count} fichiers)")
+
+    if len(mods) > 50:
+        print(f"\n... et {len(mods) - 50} autres mods (affichages limites a 50).")
+
+
+async def handle_mod_ingest(args: argparse.Namespace) -> None:
+    """Commande : --mod-ingest DIR"""
+    from pathlib import Path
+    from .steam.mod_ingester import ingest_mods_from_directory
+    from .config import load_config
+
+    mod_dir = Path(args.mod_ingest)
+    if not mod_dir.is_dir():
+        logger.error("Repertoire de mods inexistant: %s", mod_dir)
+        return
+
+    logger.info("Ingestion des mods depuis : %s", mod_dir)
+    config = load_config()
+    results = await ingest_mods_from_directory(mod_dir, config=config)
+
+    print(f"\n{'='*70}")
+    print(f"=== Ingestion Mods ({len(results)} mods traites) ===")
+    total_chunks = 0
+    successes = 0
+    for r in results:
+        status = f"{r.chunks_written} chunks" if r.success else f"ERREUR: {r.errors}"
+        print(f"  Mod #{r.mod_id}: {status}")
+        total_chunks += r.chunks_written
+        if r.success:
+            successes += 1
+
+    print(f"\n  Total : {successes}/{len(results)} succes, {total_chunks} chunks ecrits")
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -445,7 +600,19 @@ async def main(args: argparse.Namespace) -> None:
     except ImportError:
         pass
 
-    if args.search:
+    # Steam & Mod commands (prioritaires)
+    if args.steam_scan:
+        await handle_steam_scan(args)
+    elif args.steamcmd_download_game is not None:
+        await handle_steamcmd_download(args)
+    elif args.steamcmd_install_mod is not None:
+        await handle_steamcmd_install_mod(args)
+    elif args.workshop_scan:
+        await handle_workshop_scan(args)
+    elif args.mod_ingest is not None:
+        await handle_mod_ingest(args)
+    # Standard commands
+    elif args.search:
         await handle_search(args)
     elif args.url:
         await handle_url(args)

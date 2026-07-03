@@ -172,3 +172,23 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - Restructure: move ElChibros files to root, new src/governance and src/retrieval layout
+
+### 2026-07-02 - commit f9acd93
+
+**Changements :**
+- fix: notion_client/api.py — correct API URL paths and parent type
+
+### 2026-07-02 - commit 63ce682
+
+**Changements :**
+- feat: add notion_sync module — push agent/todo.md vers Notion
+
+### 2026-07-02 - commit 1298527
+
+**Changements :**
+- feat: tests Phase 5+11 — golden set recall@5 (17) + chroma_writer unitaires (39), 53/53 total
+
+### 2026-07-02 - commit ba66597
+
+**Changements :**
+- feat: major restructuring — governance layer, sync automation, CLI expansion

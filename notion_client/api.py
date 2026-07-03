@@ -1,10 +1,10 @@
 """notion_client/api.py — Wrapper minimal de l'API Notion via httpx.
 
 Endpoints utilises :
-- GET  /databases/{id}         → schema des colonnes
-- POST /search                 → recherche dans la DB
-- POST /pages                  → creer une page (item de base)
-- PATCH /pages/{page_id}        → mettre a jour une page
+- GET  /databases/{id}         -> schema des colonnes
+- POST /search                 -> recherche dans la DB
+- POST /pages                  -> creer une page (item de base)
+- PATCH /pages/{page_id}        -> mettre a jour une page
 
 Toutes les URLs sont relatives au base_url = https://api.notion.com/v1.
 Le /v1 est donc UNIQUEMENT dans le base_url, jamais dans les URLs individuelles.
@@ -83,13 +83,12 @@ class NotionClient:
         """Charger le schema de la DB (cache au niveau instance)."""
         if self._schema is None:
             db_id = _get_config().database_id
-            # URL relative → base_url ajoute /v1 automatiquement
             self._schema = self._request("GET", f"/databases/{db_id}")
         return self._schema
 
     @property
     def _title_col(self) -> str:
-        """Nom de la colonne titre (souvent 'Name' ou 'Nom')."""
+        """Nom de la colonne titre."""
         schema = self._ensure_schema()
         for k, v in schema.get("properties", {}).items():
             if v.get("type") == "title":
@@ -98,12 +97,39 @@ class NotionClient:
 
     @property
     def _status_col(self) -> str:
-        """Nom de la colonne Status (souvent 'Status' ou 'Statut')."""
+        """Nom de la colonne Status (select contenant 'status')."""
         schema = self._ensure_schema()
         for k, v in schema.get("properties", {}).items():
             if v.get("type") == "select" and "status" in k.lower():
                 return k
         return "Status"
+
+    @property
+    def _phase_col(self) -> str | None:
+        """Nom de la colonne Phase (select contenant 'phase'), ou None."""
+        schema = self._ensure_schema()
+        for k, v in schema.get("properties", {}).items():
+            if v.get("type") == "select" and "phase" in k.lower():
+                return k
+        return None
+
+    @property
+    def _priority_col(self) -> str | None:
+        """Nom de la colonne Priority (select contenant 'priorit'), ou None."""
+        schema = self._ensure_schema()
+        for k, v in schema.get("properties", {}).items():
+            if v.get("type") == "select" and "priorit" in k.lower():
+                return k
+        return None
+
+    @property
+    def _source_col(self) -> str | None:
+        """Nom de la colonne Source (select contenant 'source'), ou None."""
+        schema = self._ensure_schema()
+        for k, v in schema.get("properties", {}).items():
+            if v.get("type") == "select" and "source" in k.lower():
+                return k
+        return None
 
     # -- low-level helpers ----------------------------------------------------
 
@@ -139,7 +165,6 @@ class NotionClient:
                 params["filter"] = filter_props
             if start_cursor is not None:
                 params["start_cursor"] = start_cursor
-            # URL relative → base_url ajoute /v1 automatiquement
             result = self._request("POST", f"/databases/{target}/query", json_body=params)
             items.extend(result.get("results", []))
             has_more = result.get("has_more", False)
@@ -156,37 +181,52 @@ class NotionClient:
         parent_db: str | None = None,
         name: str = "",
         phase: str = "",
-        status: str = "En Attente",
-        priority: str = "P2",
+        status: str = "Not Started",
+        priority: str = "P3",
         source: str = "local",
         extra_props: dict | None = None,
     ) -> str:
-        """Creer un item et renvoyer son page_id."""
-        title_col = self._title_col
-        status_col = self._status_col
-        schema = self._ensure_schema()
+        """Creer un item et renvoyer son page_id.
 
-        # Colonnes optionnelles disponibles dans le schema
-        properties: dict[str, Any] = {
-            title_col: {"title": [{"text": {"content": name}}]},
-        }
-        if "Phase" in schema.get("properties", {}):
-            properties["Phase"] = {"select": {"name": phase}}
-        if status_col in schema.get("properties", {}):
-            properties[status_col] = {"select": {"name": status}}
-        if "Priority" in schema.get("properties", {}):
-            properties["Priority"] = {"select": {"name": priority}}
-        if "Source" in schema.get("properties", {}):
-            properties["Source"] = {"select": {"name": source}}
+        Les colonnes sont detectees par leur type dans le schema :
+        - title -> colonne titre
+        - select "Phase" -> phase
+        - select "Status" (ou contenant "status") -> status
+        - select "Priority" (ou contenant "priorit") -> priority
+        - select "Source" (ou contenant "source") -> source
+        """
+        schema = self._ensure_schema()
+        props: dict[str, Any] = {}
+
+        # Titre
+        props[self._title_col] = {"title": [{"text": {"content": name}}]}
+
+        # Phase (detectee dynamiquement)
+        phase_col = self._phase_col
+        if phase_col and phase:
+            props[phase_col] = {"select": {"name": phase}}
+
+        # Status (detecte via "status" dans le nom)
+        if status and self._status_col:
+            props[self._status_col] = {"select": {"name": status}}
+
+        # Priority (detectee dynamiquement)
+        priority_col = self._priority_col
+        if priority_col and priority:
+            props[priority_col] = {"select": {"name": priority}}
+
+        # Source (detectee dynamiquement)
+        source_col = self._source_col
+        if source_col and source:
+            props[source_col] = {"select": {"name": source}}
 
         if extra_props:
-            properties.update(extra_props)
+            props.update(extra_props)
 
         parent = parent_db or _get_config().database_id
-        # URL relative → base_url ajoute /v1 automatiquement
         result = self._request(
             "POST", "/pages",
-            json_body={"parent": {"type": "database_id", "database_id": parent}, "properties": properties},
+            json_body={"parent": {"type": "database_id", "database_id": parent}, "properties": props},
         )
         return result["id"]
 
@@ -198,17 +238,14 @@ class NotionClient:
         extra_props: dict | None = None,
     ) -> str:
         """Mettre a jour un item. Renvoie le page_id mis a jour."""
-        title_col = self._title_col
-        status_col = self._status_col
         properties: dict[str, Any] = {}
         if name is not None:
-            properties[title_col] = {"title": [{"text": {"content": name}}]}
-        if status is not None and status_col in (self._ensure_schema().get("properties", {})):
-            properties[status_col] = {"select": {"name": status}}
+            properties[self._title_col] = {"title": [{"text": {"content": name}}]}
+        if status is not None and self._status_col:
+            properties[self._status_col] = {"select": {"name": status}}
         if extra_props:
             properties.update(extra_props)
 
-        # URL relative → base_url ajoute /v1 automatiquement
         self._request(
             "PATCH", f"/pages/{page_id}",
             json_body={"properties": properties},
@@ -224,7 +261,6 @@ class NotionClient:
             params["query"] = query
         if filter_db is not None:
             params["filter"] = filter_db
-        # URL relative → base_url ajoute /v1 automatiquement
         result = self._request("POST", "/search", json_body=params)
         return result.get("results", [])
 
@@ -274,7 +310,7 @@ class NotionClient:
                     "select": {
                         "options": [
                             {"name": "local", "color": "green"},
-                            {"name": "manual", "color": "blue"},
+                            {"name": "manuel", "color": "blue"},
                         ]
                     }
                 },

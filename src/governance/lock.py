@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Optional
 import contextlib
 
-from ingestor.logger import get_logger
+from src.governance._import_compat import get_logger  # type: ignore[import-not-found]
 
 logger = get_logger(__name__)
 

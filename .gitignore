@@ -55,6 +55,12 @@ backups/chromadb/
 db/staging/
 db/production/
 
+# Database brut — 10+ Go de donnees brutes, jamais committe
+database/
+
+# Database brut (source brute des donnees extraites — 10+ Go, jamais committe)
+database/
+
 # OS
 .DS_Store
 Thumbs.db

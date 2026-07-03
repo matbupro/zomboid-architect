@@ -88,7 +88,12 @@
       "PowerShell(python notion_sync.py --push)",
       "PowerShell(git rm --cached notion_client\\\\.env.notion 2>$null)",
       "PowerShell(git add agent\\\\maintenance\\\\sync_agent.ps1)",
-      "PowerShell(git add .)"
+      "PowerShell(git add .)",
+      "PowerShell(.\\\\agent\\\\maintenance\\\\sync_agent.ps1 \"continuation priorite - verification etat\")",
+      "PowerShell(python notion_sync.py --dry-run 2>&1)",
+      "PowerShell(python -c \"from notion_client import api; config = api.get_config\\(\\); client = api.NotionClient\\(config\\); items = client.query_items\\(\\); print\\('Total:', len\\(items\\)\\); props_list = list\\(client.get_schema\\(\\)['properties'].keys\\(\\)\\); print\\('Columns:', props_list\\); names = [i.get\\('properties', {}\\).get\\('Name', {}\\).get\\('title', [{}]\\)[0].get\\('text', {}\\).get\\('content', ''\\) for i in items[:3]]; print\\('Sample names:', names\\); client.close\\(\\)\")",
+      "PowerShell(python -c \"from notion_client import api; config = api.get_config\\(\\); client = api.NotionClient\\(config\\); items = client.query_items\\(\\); count_empty = 0; sample_names = []; col_types = {}; schema = client.get_schema\\(\\); props = schema['properties']; [col_types.update\\({k: v['type']} for k, v in props.items\\(\\)\\)]; print\\('Col types:', col_types\\); [print\\(f'  item[{i}] id={i[:8]}... phase={str\\(i.get\\(chr\\(112\\)+chr\\(114\\)+chr\\(111\\)+chr\\(112\\)+chr\\(101\\)+chr\\(114\\)+chr\\(116\\)+chr\\(105\\)+chr\\(101\\)+chr\\(115\\), {}\\).get\\(chr\\(80\\)+chr\\(104\\)+chr\\(97\\)+chr\\(115\\)+chr\\(101\\), {}\\)\\)[:30] if i.get\\(chr\\(112\\)+chr\\(114\\)+chr\\(111\\)+chr\\(112\\)+chr\\(101\\)+chr\\(114\\)+chr\\(116\\)+chr\\(105\\)+chr\\(101\\)+chr\\(115\\), {}\\).get\\(chr\\(80\\)+chr\\(104\\)+chr\\(97\\)+chr\\(115\\)+chr\\(101\\), {}\\) else \\\\\"N/A\\\\\"}'\\) for i in items[:3]]; client.close\\(\\)\" 2>&1)",
+      "PowerShell(python notion_diagnose.py 2>&1)"
     ]
   }
 }

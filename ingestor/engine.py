@@ -34,6 +34,12 @@ FORMAT_EXTENSIONS: dict[str, str] = {
     ".yml": "text/yaml",
     ".yaml": "text/yaml",
     ".toml": "text/toml",
+    # Scripts et configs de jeux (Zomboid / ArmA / etc.)
+    ".lua": "text/x-lua",
+    ".tile": "text/plain",      # PZ tile definitions
+    ".tiles": "text/plain",     # PZ tile definition tables
+    ".lotpack": "text/plain",   # PZ lot (land-on-table) data
+    ".lotheader": "text/plain", # PZ LOD texture header
     # Documents
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".doc": "application/msword",
@@ -64,7 +70,9 @@ FORMAT_EXTENSIONS: dict[str, str] = {
     ".webm": "video/webm",
     ".mov": "video/quicktime",
     ".wmv": "video/x-ms-wmv",
-    # Archive (détecté séparément)
+    # Archives
+    ".pbo": "application/x-pbo",          # ArmA packed archive (PZ Workshop)
+    ".pbosync": "application/x-pbosync",  # Synchronized .pbo variant
 }
 
 
@@ -137,6 +145,13 @@ def ext_to_mime(ext: str) -> str:
         ".mp4": "video/mp4",
         ".mkv": "video/x-matroska",
         ".webm": "video/webm",
+        ".pbo": "application/x-pbo",
+        ".pbosync": "application/x-pbosync",
+        # Scripts / configs de jeux (Zomboid / ArmA)
+        ".lua": "text/x-lua",
+        ".tiles": "text/plain",
+        ".lotpack": "text/plain",
+        ".lotheader": "text/plain",
     }
     return mapping.get(ext, "application/octet-stream")
 
@@ -159,6 +174,8 @@ def mime_to_processor(content_type: str) -> str | None:
         return "epub"
     if "html" in content_type:
         return "web"  # pages HTML standalone
+    if "pbo" in content_type:
+        return "pbo"
     return None
 
 
@@ -201,6 +218,8 @@ class IngestionEngine:
             content_type, processor_key = detect_type(p)
             logger.info("Ingestion fichier : %s (type=%s)", p.name, content_type)
 
+            from .processors import pbo as pbo_proc
+
             processors = {
                 "text": text.TextProcessor(self.config),
                 "pdf": pdf.PDFProcessor(self.config),
@@ -209,6 +228,7 @@ class IngestionEngine:
                 "audio": audio.AudioProcessor(self.config),
                 "docx": docx.DocxProcessor(self.config),
                 "epub": epub.EpubProcessor(self.config),
+                "pbo": pbo_proc.PBOProcessor(self.config),  # .pbo archive processing
             }
 
             processor = processors.get(processor_key)
@@ -225,6 +245,7 @@ class IngestionEngine:
                 "audio": "pz_audios",
                 "docx": "pz_docx",
                 "epub": "pz_epub",
+                "pbo": "pz_mod_configs",  # archive content → mod config collection
             }
             collection = collection or collection_map.get(processor_key, "pz_pdfs")
 

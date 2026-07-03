@@ -34,3 +34,15 @@
 
 ## Session du 2026-07-02
 P0 audit remediation: fixed collection mapping in engine.py, async health checks in bot/main.py, DRY imports via _import_compat.py, heartbeat + stale lock recovery in governance/lock.py
+
+## Session du 2026-07-02
+continuation priorite - verification etat
+
+## Session du 2026-07-02
+Golden set recall@5 test suite (17 tests) + lock.py import fix + notion scripts cleanup
+
+## Session du 2026-07-02
+Phase 5+11 tests : golden set recall@5 (17/17) + chroma_writer unitaires (39/39), commit 1298527
+
+## Session du 2026-07-02
+Phase Steam + workshop + .pbo : nouveau module steam/ (path_discovery, library_folders, workshop_scanner, steamcmd_client), processeur .pbo, mod_ingester, 4 nouvelles collections ChromaDB, commandes CLI --steam-scan/--workshop-scan/--mod-ingest, tests 12/12

@@ -1,0 +1,69 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-asyncio hypothesis pytest-cov py7zr
+          # Ingestor core deps (minimal pour les tests)
+          pip install -e ingestor/ 2>/dev/null || true
+
+      - name: Run tests (unit + integration mocks)
+        run: |
+          pytest -m "not e2e and not slow" \
+            --cov=ingestor/steam --cov=ingestor/processors/pbo.py \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            -v
+
+      - name: Run property-based tests (hypothesis)
+        run: |
+          pytest tests/test_workshop_scanner.py -m "" -k addoninfo --hypothesis-seed=42 -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # lancé manuellement uniquement
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run E2E tests (requires network)
+        run: |
+          pip install pytest pytest-asyncio
+          pytest -m e2e -v

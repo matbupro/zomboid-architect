@@ -58,7 +58,20 @@ class IngestorConfig:
         "pz_images",                  # nouvelles — images/OCR
         "pz_videos",                  # nouvelles — vidéos/transcriptions
         "pz_audios",                  # nouvelles — audio transcription
+        # Steam/mod collections (auto-crees a l'utilisation)
+        "pz_mods",                    # Metadata + description des mods
+        "pz_workshop_items",          # Registry workshop (ID, name, author, dates)
+        "pz_mod_lua_scripts",         # Scripts Lua extraits des mods/.pbo
+        "pz_mod_configs",             # Config files (.bin, .cfg) + contenu d'archives
     ])
+
+    # Steam / Workshop configuration
+    STEAM_INSTALL_PATH: str | None = None  # Auto-decouvert via winreg si absent
+    GAME_PATH: str | None = None           # Auto-decouvert vers PZ install
+    WORKSHOP_CONTENT_ROOT: Path | None = None  # steamapps/workshop/content/1042170
+    DEFAULT_STEAMCMD_DIR: str = "steamcmd"
+    STEAM_USER: str | None = None   # Pour login SteamCMD (mod downloads)
+    STEAM_PASS: str | None = None   # idem
 
     # Safety / Quarantine
     MAX_RETRIES: int = 3
@@ -79,6 +92,9 @@ def load_config() -> IngestorConfig:
                 os.environ.setdefault(key.strip(), value.strip())
 
     data_root_raw = os.getenv("DATA_ROOT", "data")
+    steam_path = os.getenv("STEAM_INSTALL_PATH")
+    game_path_str = os.getenv("GAME_PATH")
+    workshop_root_str = os.getenv("WORKSHOP_CONTENT_ROOT")
 
     return IngestorConfig(
         CHROMA_HOST=os.getenv("CHROMA_HOST", "http://host.docker.internal:8000"),
@@ -94,4 +110,9 @@ def load_config() -> IngestorConfig:
         WEB_RATE_LIMIT=int(os.getenv("WEB_RATE_LIMIT", "30")),
         USER_AGENT=os.getenv("USER_AGENT", "Zomboid Knowledge Engine (RAG multi-format)"),
         OCR_LANG=os.getenv("OCR_LANG", "fra+eng"),
+        STEAM_INSTALL_PATH=steam_path or None,
+        GAME_PATH=game_path_str or None,
+        WORKSHOP_CONTENT_ROOT=Path(workshop_root_str).resolve() if workshop_root_str else None,
+        STEAM_USER=os.getenv("STEAM_USER"),
+        STEAM_PASS=os.getenv("STEAM_PASS"),
     )

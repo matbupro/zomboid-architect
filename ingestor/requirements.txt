@@ -33,6 +33,11 @@ duckduckgo-search>=6.0     # Recherche DuckDuckGo (no API key needed)
 python-readability>=0.7    # Extraction contenu propre (port JS readability)
 
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Archives / Steam Workshop
+# ------------------------------------------------------------------------------
+py7zr>=0.21.0              # Extraction .pbo archives (LZMA compression)
+
 # HTTP & utilitaires
 # ------------------------------------------------------------------------------
 httpx>=0.27                # HTTP async client (shared avec bot/)

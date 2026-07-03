@@ -13,6 +13,7 @@ from .audio import AudioProcessor
 from .docx import DocxProcessor
 from .epub import EpubProcessor
 from .web import WebProcessor
+from .pbo import PBOProcessor
 
 __all__ = [
     "TextProcessor",
@@ -23,4 +24,5 @@ __all__ = [
     "DocxProcessor",
     "EpubProcessor",
     "WebProcessor",
+    "PBOProcessor",
 ]
