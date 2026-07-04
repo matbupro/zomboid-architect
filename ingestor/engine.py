@@ -7,8 +7,11 @@ Interface principale utilisée par cli.py pour orchestrer l'ingestion complète.
 
 from __future__ import annotations
 
+import hashlib
 import mimetypes
 import re
+import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -184,8 +187,52 @@ def mime_to_processor(content_type: str) -> str | None:
 # Router principal
 # ---------------------------------------------------------------------------
 
+class _HashIndex:
+    """Stocke/recharge les hashes SHA-256 des fichiers ingeres (fichier .seen_hashes).
+
+    Chaque entrée est : ``<sha256_hex>  <source_path>``.
+    Persisté dans ``data/quarantine/.seen_hashes`` pour traverser les sessions.
+    """
+
+    _PATH_KEY = ".seen_hashes"
+
+    @classmethod
+    def load(cls) -> dict[str, str]:
+        """Charge le fichier .seen_hashes → {hash: source}."""
+        from ingestor.quarantine_manager import get_quarantine_path
+
+        path = get_quarantine_path() / cls._PATH_KEY
+        index: dict[str, str] = {}
+        if path.exists():
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split(None, 1)
+                    if len(parts) == 2:
+                        index[parts[0]] = parts[1]
+        return index
+
+    @classmethod
+    def save(cls, index: dict[str, str]) -> None:
+        """Sauvegarde l'index sur disque (atomic write)."""
+        from ingestor.quarantine_manager import get_quarantine_path
+
+        path = get_quarantine_path() / cls._PATH_KEY
+        tmp = str(path) + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            for h, s in sorted(index.items()):
+                f.write(f"{h}  {s}\n")
+        shutil.move(tmp, str(path))
+
+
 class IngestionEngine:
-    """Orchestre l'ingestion : détection → processeur → embedding → storage."""
+    """Orchestre l'ingestion : détection → processeur → embedding → storage.
+
+    Supporte le mode incrementiel via ``hash_index`` : les fichiers déjà vus
+    avec le même SHA-256 sont ignores (skip) pour éviter de re-traiter le contenu.
+    """
 
     def __init__(self, config: IngestorConfig | None = None):
         self.config = config or load_config()
@@ -256,22 +303,63 @@ class IngestionEngine:
 
     # -- Ingestion en batch (dossier) --
 
+    @staticmethod
+    def _file_sha256(filepath: Path) -> str:
+        """Calcule le SHA-256 d'un fichier. Retourne '' si inaccessible."""
+        try:
+            h = hashlib.sha256()
+            with open(filepath, "rb") as f:
+                while True:
+                    block = f.read(65536)  # 64 Ko par bloc
+                    if not block:
+                        break
+                    h.update(block)
+            return h.hexdigest()
+        except OSError as exc:
+            logger.warning("Impossible de hash %s : %s", filepath.name, exc)
+            return ""
+
     async def ingest_directory(
         self, directory: str | Path, *, recursive: bool = True, collection: str | None = None
     ) -> list[ExtractionResult]:
         """Ingest tous les fichiers supportés d'un dossier.
 
-        Returns la liste des résultats d'extraction (les échecs sont loggerisés et ignorés).
+        En mode incrémentiel (par défaut) : chaque fichier est hashé avant
+        traitement. Si son SHA-256 correspond à une entrée dans le fichier
+        ``data/quarantine/.seen_hashes``, il est ignoré car inchangé.
+
+        Les fichiers échoués sont toujours re-traités (pas de skip par défaut sur erreur).
+        Après ingestion réussie, le hash est persisté dans ``.seen_hashes``.
+
+        Returns:
+            La liste des résultats d'extraction pour les fichiers traités.
         """
         from .quarantine_manager import quarantine_file
 
         dir_path = Path(directory) if isinstance(directory, str) else directory
         results: list[ExtractionResult] = []
 
+        # Charger l'index des hashes existants
+        seen_index = _HashIndex.load()
+        old_hashes_by_source = {s: h for h, s in seen_index.items()}
+
         pattern = "**/*" if recursive else "*"
         files = [f for f in dir_path.glob(pattern) if f.is_file()]
 
+        # 1. Identifier les fichiers inchangés (skip par hash)
+        to_skip: set[Path] = set()
         for filepath in files:
+            current_hash = self._file_sha256(filepath)
+            old_hash = old_hashes_by_source.get(str(filepath))
+            if current_hash and current_hash == old_hash:
+                logger.debug("Inchangé (hash OK) : %s", filepath.name)
+                to_skip.add(filepath)
+
+        # 2. Traiter uniquement les fichiers nouveaux/modifiés
+        for filepath in files:
+            if filepath in to_skip:
+                continue
+
             try:
                 content_type, processor_key = detect_type(filepath)
                 if processor_key is None:
@@ -279,9 +367,22 @@ class IngestionEngine:
                     continue
                 result = await self.ingest(str(filepath), collection=collection)
                 results.append(result)
+
+                # Persister le hash après ingestion réussie
+                current_hash = self._file_sha256(filepath)
+                if current_hash:
+                    seen_index[current_hash] = str(filepath)
             except Exception as exc:  # noqa: BLE001
                 logger.error("Échec ingestion %s : %s", filepath.name, exc)
                 quarantine_file(filepath, str(exc))
+
+        # Sauvegarder l'index mis à jour
+        _HashIndex.save(seen_index)
+
+        skipped_count = len(to_skip)
+        if skipped_count > 0:
+            logger.info("Ingestion dossier : %d/%d fichiers ignorés (inchangés)",
+                        skipped_count, len(files))
 
         return results
 
