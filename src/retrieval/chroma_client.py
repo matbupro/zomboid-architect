@@ -7,12 +7,13 @@ Si le serveur est injoignable, fallback sur dump JSON si disponible.
 from __future__ import annotations
 
 import json
-import logging
 import time
 from pathlib import Path
 from typing import Any, Optional
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ── Default paths ────────────────────────────────────────────────────────────────
 
@@ -48,11 +49,43 @@ class ChromaClient:
         root = Path(__file__).parent.parent.parent
         self._local_path = root / _DEFAULT_STAGING_PATH if stage == "staging" else root / _DEFAULT_PROD_PATH
 
-    def query(self, question: str, k: int = 5, filters: Optional[dict] = None) -> dict[str, Any]:
-        """Query ChromaDB and return results."""
+    def query(
+        self,
+        question: str,
+        k: int = 5,
+        filters: Optional[dict] = None,
+        game_version: Optional[str | "GameVersion"] = None,
+    ) -> dict[str, Any]:
+        """Query ChromaDB and return results.
+
+        Args:
+            question: Query text for vector search.
+            k: Number of results to return.
+            filters: Additional ChromaDB ``where`` filter conditions.
+            game_version: Optional game-version constraint (B41/B42). When
+                provided the query automatically adds a ``$and`` clause that
+                isolates the specified version.
+
+        Note:
+            Filters are composed via :func:`src.governance.game_version.build_version_and`
+            so both *filters* and *game_version* can coexist in a single $and.
+        """
+        # Import here to avoid circular imports (game_version ↔ chroma_client)
+        from src.governance.game_version import build_version_filter
+
+        combined: dict[str, Any] = {}
+        if filters:
+            combined.update(filters)
+
+        version_clause = build_version_filter(game_version)
+        if version_clause and combined:
+            combined = {"$and": [version_clause, combined]}
+        elif version_clause:
+            combined = version_clause
+
         # Try HTTP first
         if self._http is not None:
-            result = self._query_http(question, k, filters)
+            result = self._query_http(question, k, combined or None)
             if result.get("chunks"):
                 return result
 

@@ -8,11 +8,12 @@ de code Steam Guard manuel.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SteamQRAuthenticator:

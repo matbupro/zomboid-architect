@@ -7,13 +7,14 @@ Lit addoninfo.txt (format texte clair Valve) pour extraire metadata.
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 PZ_APP_ID: int = 1042170
 """Steam AppID pour Project Zomboid (utilisé comme clef dans workshop/content/<appid>/)."""

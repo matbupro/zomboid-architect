@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import os
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
@@ -151,3 +151,111 @@ def tag_chunk_with_version(chunk: dict) -> dict:
         chunk["metadata"] = {}
     chunk["metadata"]["game_version"] = gv.value
     return chunk
+
+
+# ─── ChromaDB filter builders ──────────────────────────────────────────────
+
+
+def build_version_filter(
+    game_version: GameVersion | str | None = None,
+) -> dict[str, Any] | None:
+    """Build a ChromaDB-compatible ``$and`` filter for game-version isolation.
+
+    ChromaDB's native query API supports MongoDB-style operators such as
+    ``$eq``, ``$and``, and ``$or``.  This helper constructs the minimal
+    expression needed to isolate a single game version:
+
+        {"game_version": {"$eq": "b41"}}
+
+    When *game_version* is ``None`` the caller should NOT pass a filter at all
+    (returning ``None`` tells callers to omit the filter entirely — ChromaDB
+    has no operator called "$any" that means "all values").
+
+    Args:
+        game_version: A ``GameVersion`` enum member, its value string ("b41"),
+            or ``None`` for unfiltered results.
+
+    Returns:
+        A dict ready to be slotted into ChromaDB's ``$and`` expression, or
+        ``None`` when no filtering is desired.
+
+    Examples:
+        >>> build_version_filter(GameVersion.B41)
+        {"game_version": {"$eq": "b41"}}
+        >>> build_version_filter(None)  # doctest: +SKIP
+        None
+        >>> build_version_filter("b42")
+        {"game_version": {"$eq": "b42"}}
+    """
+    if game_version is None:
+        return None
+
+    if isinstance(game_version, GameVersion):
+        value = game_version.value
+    else:
+        # Accept a raw string like "b41", normalize to lowercase
+        value = str(game_version).strip().lower()
+
+    return {"game_version": {"$eq": value}}
+
+
+def build_version_and(
+    *filters: dict[str, Any],
+    game_version: GameVersion | str | None = None,
+) -> dict[str, Any] | None:
+    """Compose a ChromaDB ``$and`` filter from multiple conditions.
+
+    This is the workhorse for queries that need to combine version isolation
+    with other constraints (e.g. type, collection).
+
+        {"$and": [
+            {"game_version": {"$eq": "b41"}},
+            {"type": "item"},
+        ]}
+
+    Args:
+        *filters: Additional top-level ChromaDB filter dicts to include in the
+            ``$and`` array.
+        game_version: Optional version constraint (see :func:`build_version_filter`).
+
+    Returns:
+        A complete ``{"$and": [...]}`` dict, or ``None`` when no constraints
+        were provided.
+    """
+    parts: list[dict[str, Any]] = []
+
+    if game_version is not None:
+        vf = build_version_filter(game_version)
+        if vf is not None:
+            parts.append(vf)
+
+    for f in filters:
+        if f:  # skip empty dicts
+            parts.append(f)
+
+    return {"$and": parts} if parts else None
+
+
+def build_version_not_filter(
+    game_version: GameVersion | str,
+) -> dict[str, Any] | None:
+    """Build a ChromaDB ``$ne`` (not-equal) filter to EXCLUDE a version.
+
+        {"game_version": {"$ne": "b41"}}
+
+    Args:
+        game_version: The version to exclude.
+
+    Returns:
+        A ``{"$and": [...]}`` expression with the ``$ne`` clause, or ``None``
+        if the argument was empty.
+    """
+    if game_version is None:
+        return None
+
+    if isinstance(game_version, GameVersion):
+        value = game_version.value
+    else:
+        value = str(game_version).strip().lower()
+
+    return {"game_version": {"$ne": value}}

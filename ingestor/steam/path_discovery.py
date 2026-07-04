@@ -9,7 +9,6 @@ Chemin standard: C:\\Program Files (x86)\\Steam\\steamapps\\common\\ProjectZombo
 
 from __future__ import annotations
 
-import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,7 +35,9 @@ else:
 if TYPE_CHECKING:
     from .library_folders import find_pz_game_path  # noqa: F401
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

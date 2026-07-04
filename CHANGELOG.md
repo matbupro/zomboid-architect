@@ -4,6 +4,62 @@ Toutes les modifications notables, organisées par session de développement.
 
 ---
 
+## [v0.3.0-alpha] — 2026-07-04
+
+### Phase 6 : Filtrage B41/B42 natif dans le pipeline de requete
+
+Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$and` natifs de ChromaDB.
+
+#### Fichiers modifies
+
+| Fichier | Changement |
+|---------|-----------|
+| `src/governance/game_version.py` | +3 fonctions : `build_version_filter()`, `build_version_and()`, `build_version_not_filter()` |
+| `src/retrieval/chroma_client.py` | `query()` accepte `game_version` — compose automatiquement $and avec filters existants |
+| `bot/engine_client.py` | `search()`, `get_by_id()`, `query_staging()` propagent tous `game_version` via $and |
+| `bot/pipeline.py` | `enrich_context()` et `process_message()` passent `game_version` au moteur |
+| `bot/main.py` | Resolution de PZ_GAME_VERSION au demarrage + propagation dans le pipeline bot |
+| `bot/config.py` | Ajout de `PZ_GAME_VERSION` dans Settings + resolution depuis .env |
+
+#### Fichiers testes
+
+| Fichier | Tests |
+|---------|-------|
+| `tests/test_game_version_filtering.py` | 24 tests (filter builders, tag_chunk, integration chroma_client/engine_client) |
+
+### Moteur de generation de mods (`src/modgen/`) — nouvelle (Phase 12)
+
+Generation de mods Project Zomboid valides a partir d'une description textuelle.
+
+#### Fichiers cres
+
+| Fichier | Role |
+|---------|------|
+| `src/modgen/__init__.py` | Module init + exports publics |
+| `src/modgen/schema.py` | Dataclasses: ModSpec, GeneratedModManifest, ModFile, ModType |
+| `src/modgen/generator.py` | Moteur principal (ModGenerator class) |
+| `src/modgen/config.py` | Config du generateur (ModGenConfig + load_modgen_config) |
+| `src/modgen/__main__.py` | CLI (`generate`, `list-templates`, `validate`) |
+| `src/modgen/templates/*.j2` | 7 templates Jinja2 (mod.info, init.lua, descriptors, README) |
+| `tests/test_modgen.py` | **32 tests unitaires** — schema, generation, validation, CLI, ZIP |
+
+#### Fonctionnalites
+
+- **CLI** : `python -m src.modgen generate "Une epée" --name "MySword"`
+- **Bot Discord** : `/modgen "Ajouter une arme furtive"` → generation auto + retour fichiers
+- **Templates PZ valides** : mod.info JSON, init.lua avec hooks, ZomboidModDescriptor.txt
+- **Packaging** : `make mod-build MOD_NAME=MyMod` → ZIP dans `mods/`
+- **Validation** : `python -m src.modgen validate /path/to/mod/`
+
+#### Slash commands ajoutes
+
+| Commande | Description |
+|----------|-------------|
+| `/modgen <description>` | Genere un mod PZ depuis une description textuelle |
+| `/help` | Mis a jour avec /modgen dans la liste |
+
+---
+
 ## [v0.2.0-alpha] — 2026-07-02
 
 ### Moteur d'ingestion multi-format (`ingestor/`) — nouveau
@@ -192,3 +248,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat: major restructuring — governance layer, sync automation, CLI expansion
+
+### 2026-07-04 - commit 3c447fe
+
+**Changements :**
+- feat: mod scan (959 PZ workshop mods), steam API multiplayer detection, tests, ingestor modules

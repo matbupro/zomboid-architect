@@ -10,7 +10,6 @@ Orchestre:
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -20,7 +19,9 @@ from ..storage.chroma_writer import ChromaWriter
 from .workshop_scanner import WorkshopScanner, WorkshopModInfo
 from ..processors.pbo import PBOProcessor
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

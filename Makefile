@@ -1,4 +1,4 @@
-# Makefile — Orchestrateur complet du projet RAG Zomboid
+﻿# Makefile — Orchestrateur complet du projet RAG Zomboid
 # NOTE: nécessite Git Bash ou WSL2 (bash). Pas compatible CMD/PowerShell natif.
 #
 # Usage principal :
@@ -16,7 +16,7 @@
 
 SHELL := /usr/bin/env bash
 PYTHON := python3
-.PHONY: help install-hooks ingest test promote promote-force backup restore rollback-latest tag serve version clean logs
+.PHONY: help install-hooks ingest test promote promote-force backup restore rollback-latest tag serve version clean logs env-init mod-build mod-validate
 
 # ── Variables ──────────────────────────────────────────────────────────────────
 ROOT        := $(shell pwd)
@@ -35,6 +35,7 @@ BACKUP_ID ?=
 help:
 	@echo "  =====  Projet RAG Zomboid — Makefile  ====="
 	@echo ""
+	@echo "  env-init        Initialise .env (copie depuis .env.example si absent)"
 	@echo "  install-hooks   Copie commit-msg hook → .git/hooks/"
 	@echo "  ingest          Lance ingestor/engine.py ingest"
 	@echo "  test            python -m ingestor.promote --dry-run"
@@ -48,6 +49,40 @@ help:
 	@echo "  version         Afficher le contenu de VERSION"
 	@echo "  clean           Supprimer db/staging/ et logs/"
 	@echo ""
+	@echo "  ===== Variables d'environnement (voir .env.example) ====="
+	@echo "  [REQUIS]        DISCORD_TOKEN — sans ce .env, le bot ne démarre pas"
+	@echo "  [DEFAUT]        OLLAMA_BASE_URL=http://host.docker.internal:11434"
+	@echo "  [DEFAUT]        CHROMA_HOST=http://host.docker.internal:8000"
+	@echo "  [OPTIONNEL]     CLAUDE_API_KEY — fallback LLM si Ollama indisponible"
+	@echo "  [OPTIONNEL]     WORKSPACE_CHANNEL_ID — résolu auto si absent"
+	@echo ""
+
+env-init:
+	@echo "  → Vérification de l'environnement..."
+	@if [ ! -f "$(ROOT)/.env" ]; then \
+		echo "  📋 .env inexistant → copie depuis .env.example"; \
+		cp "$(ROOT)/.env.example" "$(ROOT)/.env"; \
+	else \
+		echo "  ✅ .env déjà présent"; \
+	fi
+	@if [ ! -f "$(ROOT)/bot/.env" ]; then \
+		echo "  ⚠️  bot/.env manquant → créer un .env dans bot/ avec DISCORD_TOKEN"; \
+	else \
+		echo "  ✅ bot/.env présent"; \
+	fi
+	@if [ ! -f "$(ROOT)/ingestor/.env" ]; then \
+		echo "  ⚠️  ingestor/.env manquant → nécessaire pour SteamCMD / mod downloads"; \
+	else \
+		echo "  ✅ ingestor/.env présent"; \
+	fi
+	@if [ ! -f "$(ROOT)/notion_client/.env.notion" ]; then \
+		echo "  ⚠️  notion_client/.env.notion manquant → nécessaire pour sync Notion"; \
+	else \
+		echo "  ✅ notion_client/.env.notion présent"; \
+	fi
+	@echo ""
+	@echo "  📌 Voir .env.example pour la liste complète des variables."
+	@echo "  📌 DISCORD_TOKEN est REQUIS — sans lui, le bot ne démarre pas."
 
 install-hooks:
 	@echo "  → Installation des git hooks..."
@@ -118,9 +153,23 @@ clean:
 	@echo "  ✅ db/staging/ et logs/ supprimés."
 
 logs:
+.PHONY: mod-build mod-validate
+
+# ── Packaging de mods (Phase 12) ────────────────────────────────────────────
+
+mod-build:
+	@if [ -z "$(MOD_NAME)" ]; then echo "  Usage: make mod-build MOD_NAME=my-mod"; exit 1; fi
+	@echo "  → Packaging du mod $(MOD_NAME) en ZIP..."
+	@cd $(MOD_NAME) && zip -r ../mods/$(MOD_NAME).zip . && cd ..
+	@echo "  ✅ ZIP cree: mods/$(MOD_NAME).zip"
+
+mod-validate:
+	@if [ -z "$(MOD_DIR)" ]; then echo "  Usage: make mod-validate MOD_DIR=path/to/mod"; exit 1; fi
+	@python -m src.modgen validate $(MOD_DIR)
 	@echo "  ===== Logs ====="
 	@echo "  promote:"
 	@tail -30 "$(ROOT)/logs/promote.log" 2>/dev/null || echo "  (vide)"
 	@echo ""
 	@echo "  restore:"
 	@tail -30 "$(ROOT)/logs/restore.log" 2>/dev/null || echo "  (vide)"
+

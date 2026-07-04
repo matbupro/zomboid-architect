@@ -9,13 +9,14 @@ Flux :
 
 from __future__ import annotations
 
-import logging
 import time
 from pathlib import Path
 
 from .base import Chunk, ExtractionResult
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ImageProcessor:

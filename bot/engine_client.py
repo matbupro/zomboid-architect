@@ -7,11 +7,12 @@ Fournit un wrapper unique devant le moteur (MCP, Chroma direct, ou fallback).
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -50,14 +51,41 @@ class _ChromaClient:
         embedding: list[float] | None = None,
         where: dict[str, Any] | None = None,
         n_results: int = 5,
+        game_version: str | None = None,
     ) -> list[SearchResult]:
-        """Requête vectorielle vers ChromaDB."""
+        """Requête vectorielle vers ChromaDB, avec isolement optionnel par version.
+
+        Args:
+            collection: Nom de la collection ChromaDB.
+            query_text: Texte de requête pour la recherche vectorielle.
+            embedding: Embedding optionnel (sinon le texte est envoyé tel quel).
+            where: Conditions supplémentaires (``where``) passées à ChromaDB.
+            n_results: Nombre maximal de résultats retournés.
+            game_version: Contrainte de version du jeu ("b41", "b42", ou ``None``).
+                Quand présente, un filtre ``$and`` est compose automatiquement avec
+                *where* pour isoler la version cible.
+        """
         http = self._get_http()
         url = f"{self._host}/api/v1/query"
+
+        # Compose the where clause with optional version filter
+        if game_version:
+            from src.governance.game_version import build_version_filter
+
+            version_clause = build_version_filter(game_version)
+            if where and version_clause:
+                final_where = {"$and": [version_clause, where]}
+            elif version_clause:
+                final_where = version_clause
+            else:
+                final_where = where or {}
+        else:
+            final_where = where or {}
+
         payload: dict[str, Any] = {
             "query_texts": [query_text],
             "n_results": n_results,
-            "where": where or {},
+            "where": final_where,
         }
         if embedding is not None:
             payload["queries"] = [embedding]
@@ -102,10 +130,13 @@ class _LocalFallback:
 
     # Fournit les mêmes méthodes que _ChromaClient pour transparent fallback.
     def query(
-        self, collection: str, query_text: str,
+        self,
+        collection: str,
+        query_text: str,
         embedding: list[float] | None = None,
         where: dict[str, Any] | None = None,
         n_results: int = 5,
+        game_version: str | None = None,
     ) -> list[SearchResult]:
         logger.warning("ChromaDB indisponible → fallback local activé pour '%s'", collection)
         return []
@@ -151,32 +182,63 @@ class KnowledgeEngineClient:
 
     # -- Recherche sémantique multi-collection --
 
-    def search(self, queries: list[tuple[str, str]], n_results: int = 5) -> list[SearchResult]:
+    def search(
+        self,
+        queries: list[tuple[str, str]],
+        n_results: int = 5,
+        game_version: str | None = None,
+    ) -> list[SearchResult]:
         """Exécute des recherches dans chaque collection pertinente.
 
         Args:
             queries: liste de (collection, query_text)
             n_results: résultats par requête
+            game_version: Optionnel. Si fourni, chaque requête est filtrée
+                pour ne retourner que les chunks taggés avec cette version PZ.
         """
         all_results: list[SearchResult] = []
         for collection, query_text in queries:
             if collection not in self.COLLECTIONS:
                 logger.warning("Collection inconnue: %s", collection)
                 continue
-            results = self._backend.query(collection, query_text, n_results=n_results)
+            results = self._backend.query(
+                collection, query_text, n_results=n_results, game_version=game_version,
+            )
             all_results.extend(results)
             logger.debug("Recherche '%s' dans %s → %d résultats", query_text, collection, len(results))
         return sorted(all_results, key=lambda r: getattr(r, "distance", 0))
 
     # -- Lookup déterministe par ID (pz_get_item) --
 
-    def get_by_id(self, item_id: str, collection: str = "pz_items") -> SearchResult | None:
-        """Récupère une entité exacte par son identifiant. Jamais de vectoriel."""
+    def get_by_id(
+        self,
+        item_id: str,
+        collection: str = "pz_items",
+        game_version: str | None = None,
+    ) -> SearchResult | None:
+        """Récupère une entité exacte par son identifiant.
+
+        Args:
+            item_id: Identifiant déterministe de l'entité (ex: ``Base.Axe``).
+            collection: Collection ChromaDB à interroger.
+            game_version: Optionnel — filtre la recherche sur une version PZ.
+        """
         http = self._backend._get_http()  # pylint: disable=protected-access
+
+        # Compose where clause with optional version filter
+        base_where: dict[str, Any] = {"id": item_id}
+        if game_version:
+            from src.governance.game_version import build_version_filter
+
+            version_clause = build_version_filter(game_version)
+            final_where: dict[str, Any] = {"$and": [version_clause, base_where]} if version_clause else base_where
+        else:
+            final_where = base_where
+
         try:
             resp = http.get(
                 f"{self._backend._host}/api/v1/collections/{collection}/query",  # type: ignore[attr-defined]
-                json={"namespace": collection, "where": {"id": item_id}, "n_results": 1},
+                json={"namespace": collection, "where": final_where, "n_results": 1},
             )
             resp.raise_for_status()
             data = resp.json()
@@ -215,25 +277,50 @@ class KnowledgeEngineClient:
         question: str,
         k: int = 5,
         filters: dict[str, Any] | None = None,
+        game_version: str | None = None,
     ) -> dict[str, Any]:
         """Interroge ChromaDB staging pour le golden set gate.
 
         Utilisé par promote.py pour calculer le recall@5.
         Fallback local si ChromaDB injoignable.
+
+        Args:
+            question: Query text for vector search.
+            k: Number of results to return.
+            filters: Additional ``where`` conditions for ChromaDB.
+            game_version: Optional game-version constraint (B41/B42).
         """
         chunks: list[dict[str, Any]] = []
+
+        # Compose where clause with optional version filter
+        if game_version and filters:
+            from src.governance.game_version import build_version_filter
+
+            version_clause = build_version_filter(game_version)
+            final_where: dict[str, Any] | None = {"$and": [version_clause, filters]} if version_clause else (filters or {})
+        elif game_version:
+            from src.governance.game_version import build_version_filter
+
+            version_clause = build_version_filter(game_version)
+            final_where = version_clause
+        else:
+            final_where = filters
 
         # Essaie d'abord via l'API HTTP ChromaDB
         if hasattr(self._backend, "_http") and self._backend._http is not None:  # type: ignore[attr-defined]
             http = self._backend._http
             try:
+                post_payload: dict[str, Any] = {
+                    "namespace": "pz_staging",
+                    "queries": [question],
+                    "n_results": k,
+                }
+                if final_where:
+                    post_payload["where"] = final_where
+
                 resp = http.post(
                     f"{self._backend._host}/api/v1/query",  # type: ignore[attr-defined]
-                    json={
-                        "namespace": "pz_staging",
-                        "queries": [question],
-                        "n_results": k,
-                    },
+                    json=post_payload,
                 )
                 resp.raise_for_status()
                 data = resp.json()

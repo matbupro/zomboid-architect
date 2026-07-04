@@ -46,3 +46,9 @@ Phase 5+11 tests : golden set recall@5 (17/17) + chroma_writer unitaires (39/39)
 
 ## Session du 2026-07-02
 Phase Steam + workshop + .pbo : nouveau module steam/ (path_discovery, library_folders, workshop_scanner, steamcmd_client), processeur .pbo, mod_ingester, 4 nouvelles collections ChromaDB, commandes CLI --steam-scan/--workshop-scan/--mod-ingest, tests 12/12
+
+## Session du 2026-07-04
+Phase 12 ajoutée : pipeline de génération de mods + sanity check cohérence projet
+
+## Session du 2026-07-04
+Phase 6: Filtrage B41/B42 natif — game_version filtering avec ChromaDB , integre dans chroma_client, engine_client, pipeline, et bot main.py. 24 nouveaux tests, 84 tests total.

@@ -6,13 +6,14 @@ Extraction directe du contenu + chunking intelligent par paragraphes.
 
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any
 
 from .base import Chunk, ExtractionResult
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class TextProcessor:

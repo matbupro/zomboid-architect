@@ -14,7 +14,6 @@ Priorité n°1 de l'utilisateur : capacité de naviguer le web.
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -25,7 +24,9 @@ from urllib.robotparser import RobotFileParser
 
 from .base import Chunk, ExtractionResult, Processor
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

@@ -44,24 +44,20 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from pathlib import Path
 import logging
 import sys
 import time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%H:%M:%S",
-)
-
-# Windows CMD / PowerShell : forcer UTF-8 sur stdout/stderr (évite charmap encode errors sur emojis)
 import sys as _sys
 if hasattr(_sys.stdout, "reconfigure"):
     _sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(_sys.stderr, "reconfigure"):
     _sys.stderr.reconfigure(encoding="utf-8")
 
-logger = logging.getLogger("ingestor.cli")
+from src.governance.logger import get_logger
+
+logger = get_logger("ingestor.cli")
 
 
 # ---------------------------------------------------------------------------

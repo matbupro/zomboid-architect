@@ -16,13 +16,14 @@ Schéma de données : chaque document Chroma stocke :
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

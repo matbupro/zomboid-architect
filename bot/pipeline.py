@@ -12,7 +12,6 @@ Flux :
 
 from __future__ import annotations
 
-import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -20,7 +19,9 @@ from typing import Any
 from .engine_client import KnowledgeEngineClient, SearchResult
 from .llm_adapter import LLMProvider, OllamaProvider, ClaudeProvider
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -92,15 +93,24 @@ def enrich_context(
     command_type: str,
     query_text: str,
     n_results: int = 5,
+    game_version: str | None = None,
 ) -> list[SearchResult]:
-    """Récupère le contexte pertinent depuis le knowledge engine."""
+    """Récupère le contexte pertinent depuis le knowledge engine.
+
+    Args:
+        client: KnowledgeEngineClient instance.
+        command_type: Type de commande détecté (stats, survie, etc.).
+        query_text: Texte de la requête utilisateur.
+        n_results: Nombre maximal de résultats.
+        game_version: Optionnel — filtre les résultats par version PZ (b41/b42).
+    """
     collections = COLLECTION_ROUTES.get(command_type, ["pz_items"])
 
     # Pour /stats : essayer d'abord un lookup déterministe par ID
     if command_type == "stats":
         item_id = _extract_item_id(query_text)
         if item_id:
-            result = client.get_by_id(item_id, collection="pz_items")
+            result = client.get_by_id(item_id, collection="pz_items", game_version=game_version)
             if result:
                 return [result]
 
@@ -108,6 +118,7 @@ def enrich_context(
     results = client.search(
         queries=[(col, query_text) for col in collections],
         n_results=n_results,
+        game_version=game_version,
     )
     return results
 
@@ -235,16 +246,27 @@ async def process_message(
     temperature: float = 0.7,
     max_tokens: int = 4096,
     n_results: int = 5,
+    game_version: str | None = None,
 ) -> PromptResult:
     """Pipeline complet : message Discord → recherche engine → prompt → LLM → réponse.
 
-    Returns un PromptResult avec le contexte brut et la réponse formatée.
+    Args:
+        message: Message utilisateur brut.
+        engine: KnowledgeEngineClient instance.
+        llm: LLMProvider instance (Ollama/Claude).
+        system_prompt: Prompt système de l'assistant.
+        temperature: Température du LLM [0.0-1.0].
+        max_tokens: Limite de tokens pour la réponse.
+        n_results: Nombre maximal de résultats du moteur de recherche.
+        game_version: Optionnel — filtre les requêtes par version PZ (b41/b42).
+            La valeur est résolue automatiquement depuis ``src/governance/game_version``
+            si ``None`` est passé explicitement.
     """
     # 1. Router l'intention
     command_type, query_text = detect_intent(message)
 
-    # 2. Enrichir le contexte
-    context = enrich_context(engine, command_type, query_text, n_results=n_results)
+    # 2. Enrichir le contexte (avec filtre version si spécifié)
+    context = enrich_context(engine, command_type, query_text, n_results=n_results, game_version=game_version)
     logger.info("Message → commande=%s, query=%q, results=%d", command_type, query_text, len(context))
 
     # 3. Construire le prompt

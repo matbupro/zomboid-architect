@@ -6,10 +6,11 @@ Le plan gratuit donne 2000 requêtes/mois. Si pas de clé Brave, on retourne une
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

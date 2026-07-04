@@ -7,7 +7,6 @@ Interface principale utilisée par cli.py pour orchestrer l'ingestion complète.
 
 from __future__ import annotations
 
-import logging
 import mimetypes
 import re
 from pathlib import Path
@@ -16,7 +15,9 @@ from typing import Any
 from .config import IngestorConfig, load_config
 from .processors.base import Chunk, ExtractionResult
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

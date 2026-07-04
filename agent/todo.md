@@ -44,7 +44,7 @@
 - [ ] Générer le rapport de version (recall, nb entités, quarantaine)
 
 ## PHASE 6 : Maintenance & Build 42
-- [ ] Filtrage $and natif pour isoler B41 / B42
+- [x] Filtrage $and natif pour isoler B41 / B42 (24 tests, integre dans chroma_client + engine_client + pipeline + main)
 - [ ] Mise à jour incrémentale Chroma (par hash), sans tout réindexer
 - [ ] Détection de patch cassant : rejouer le golden set après chaque MAJ du jeu
 - [ ] Script de tag Git annoté + archivage backup à chaque release
@@ -63,7 +63,7 @@
 ## NOUVEAU : Phase 8 — Web crawling
 - [x] Moteur recherche DuckDuckGo (search/duckduckgo.py) — no API key needed
 - [x] Crawler Playwright BFS (processors/web.py) avec depth limit, rate limiting, robots.txt
-- [ ] Brave Search fallback integre dans CLI `--search` + `--crawl` (fallback automatique si DDG echoue)
+- [x] Brave Search fallback integre dans CLI `--search` + `--crawl` (fallback automatique si DDG echoue) — code + 7 tests unitaires
 - [x] Stockage dans ChromaDB (`pz_web_pages`) — code ecrit mais pas teste
 - [ ] Test sur un site reel (wiki pz, documentation)
 
@@ -82,8 +82,8 @@
 - [x] Circuit breaker anti-crash
 - [x] Disk space monitoring
 - [ ] Docker service ingestor dans docker-compose.yml
-- [ ] README ingestor/
-- [ ] Tests unitaires processeurs
+- [x] README ingestor/ ✅ termine (17 sections : quickstart, architecture, CLI ref, config, Steam, Brave, depannage…)
+- [x] Tests unitaires processeurs — 45 tests (engine detection, MIME mapping, chunking, compute_hash, text extraction)
 
 ## NOUVEAU : Phase Bot Discord (interphase) ✅ TERMINE (cote code)
 - [x] Structure `bot/` créée (config, engine_client, llm_adapter, pipeline)
@@ -104,8 +104,65 @@
 - [x] Golden set de 25-30 Q/R + mesure recall@5 (`tests/test_golden_set.py`, 17 tests mock, 17/17 passant)
 - [x] Rapports de qualite avant/apres integration (test_chroma_writer.py 39/39, test_golden_set.py 17/17)
 
-## Sync auto: last_sync: 2026-07-02
+## NOUVEAU : Phase 13 — Hardening (post-sanity-check 2026-07-04) ✅ TERMINE
+- [x] `.env` manquant = bot ne démarre pas → `make env-init` + `.env.example` complet refactorisé (.env.example, Makefile, README mis à jour)
+- [x] README : tableau des variables d'environnement avec requis/non-requis/defaults/utilisé par
 
-## Sync auto: last_sync: 2026-07-02
+## Dernier sync : 2026-07-04 — hardening post-sanity-check (Phase 13) ✅ TERMINE
 
-## Sync auto: last_sync: 2026-07-02
+## SANITY CHECK : Cohérence & Fonctionnalité (hors downloads / database)
+
+### État des composants vérifiés
+
+| Domaine | Points vérifiés | Observations |
+|---------|----------------|-------------|
+| **Bot** (`bot/`) | main.py, engine_client.py, llm_adapter.py, slash commands | Toutes commandes (/stats, /survie, /recipe, /moddoc, /search, /workspace) reliées à `process_message`. `.env` requis (DISCORD_TOKEN, OLLAMA_BASE_URL, etc.). |
+| **Ingestor** (`ingestor/`) | cli.py, processors/, storage/, engine.py | CLI (`--file`, `--search`, `--crawl`, `--dir`) partage le meme pipeline que le bot. Verrou `src/governance/lock.py` — répertoire de verrouillage à créer (`src/governance/data/workspace/`). |
+| **Gouvernance** (`src/governance/`) | logger.py, parser.py, game_version.py, worker.py | Rotation fichiers + audit JSON. `parser.py` lit `agent/todo.md`. Pas d'erreur d'importation. |
+| **Code partagé** (`src/`) | retrieval/, governance/ | Imports mutuels bot↔ingestor fonctionnent. Aucune import circulaire. |
+| **Data / BDD** (`data/`, `db/`) | Staging, production, sync utils | Workspace report interroge santé ChromaDB + Ollama avec fallbacks élégants. |
+| **Tests** (`tests/`) | pytest conf, unitaires | Ingestion, PBO parsing, SteamCMD, golden set — `make test` devrait passer (Ollama accessible requis). |
+| **Docs / README** | README, diagramme architecture | Clair, mais source docs pour `/moddoc` (API Lua/Java) non incluse. |
+| **CI / Makefile** | install-hooks, ingest, test, promote, backup | Toutes cibles présentes. |
+
+### Points de friction potentiels
+1. **Répertoire de verrouillage manquant** : `src/governance/data/workspace/` — à créer ou droits écriture vérifiés.
+2. **Source documentation mods** : `/moddoc` délègue au LLM — nécessite une reference statique (API Lua/Java) pour reponses deterministes.
+3. **Variables d'environnement** : nombreuses clés optionnelles (WORKSPACE_CHANNEL_ID, CLAUDE_API_KEY...) — absentes = warnings (acceptable mais à clarifier dans README).
+4. **Tests CI externes** : Ollama/ChromaDB doivent être mockés pour builds stables.
+
+---
+
+## NOUVEAU : Phase 12 — Pipeline de Génération de Mods ✅ TERMINE
+
+### 12.1 Framework de génération de mods (Scaffolding) ✅
+- [x] Module `src/modgen/` cree (schema.py, generator.py, config.py, __init__.py, __main__.py)
+- [x] Accepte description haute-niveau → ModSpec structuree
+- [x] Genere structure dossier valide PZ (mod.info, init.lua, media/lua/*/, ZomboidModDescriptor.txt)
+- [x] Templates Jinja2 (7 fichiers: mod.info, init.lua, descriptors, scripts lua, README)
+- [x] CLI : `python -m src.modgen generate/list-templates/validate`
+- [x] Commande slash `/modgen` dans bot Discord
+
+### 12.3 Pipeline Build & Packaging ✅
+- [x] Cible `make mod-build MOD_NAME=my-mod` → ZIP dans mods/
+- [x] Cible `make mod-validate MOD_DIR=path/to/mod`
+
+### 12.5 Sauvegarde des mods generes ✅
+- [x] Repertoire `mods/` cree (.gitkeep)
+
+### 12.6 Configuration & Documentation
+- [x] Extension `.env.example` : MOD_TEMPLATES_PATH, MOD_OUTPUT_PATH (dejais fait)
+- [x] Documenter flux de travail dans README.md (section "Generation de mods" avec examples, workflow, templates)
+
+### 12.7 Tests & CI
+- [x] Unitaires du generateur — 32 tests existants (test_modgen.py)
+- [x] Test d'integration : description → zip → validation manifeste — 15 tests (test_modgen_integration.py)
+- [x] CI : execution tests modgen dans .github/workflows/tests.yml
+
+### 12.8 Facultatif : publication Steam Workshop
+- [ ] Integrer SteamCMD (deja present dans `tools/steamcmd`) pour upload direct
+- [ ] Commande `/modpublish` declenchant tache CI ou script local via API Web Steam
+
+## Sync auto: last_sync: 2026-07-04
+
+## Sync auto: last_sync: 2026-07-04

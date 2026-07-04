@@ -8,12 +8,13 @@ Le multi-modal (images, vidéo, audio) est transformé en texte via OCR/transcri
 from __future__ import annotations
 
 import hashlib
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

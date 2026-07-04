@@ -11,14 +11,15 @@ Les archives BOSS (chiffrees) ne sont pas supportees — celles-ci sont rares da
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

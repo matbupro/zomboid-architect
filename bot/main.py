@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import os
 import subprocess
 import sys
@@ -26,16 +25,10 @@ from typing import Any
 import discord
 from discord.ext import commands
 
-# ---------------------------------------------------------------------------
-# Logging (format JSON pour ingestion machine)
-# ---------------------------------------------------------------------------
+# Logging centralisé via src.governance.logger
+from src.governance.logger import get_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logger = logging.getLogger("bot")
+logger = get_logger("bot")
 
 # ---------------------------------------------------------------------------
 # Initialisation du bot
@@ -46,7 +39,20 @@ from .engine_client import KnowledgeEngineClient  # noqa: E402
 from .llm_adapter import create_providers, LLMProvider  # noqa: E402
 from .pipeline import process_message  # noqa: E402
 
+# Game version auto-resolve (B41/B42) — héritée de src/governance/game_version.py
+from src.governance.game_version import get_current_game_version  # noqa: E402
+
 settings = load_settings()
+
+# Résoudre la version du jeu cible (B41/B42) au démarrage
+_current_game_version: str | None = None
+try:
+    gv = get_current_game_version()
+    _current_game_version = gv.value  # "b41" ou "b42"
+except ValueError:
+    logger.warning("Impossible de résoudre PZ_GAME_VERSION — aucun filtrage de version")
+    _current_game_version = None
+
 if not settings.DISCORD_TOKEN:
     logger.error("DISCORD_TOKEN est vide. Copie .env.example → .env et configure-le.")
     sys.exit(1)
@@ -150,7 +156,8 @@ async def cmd_help(interaction: discord.Interaction):
         "/survie <scenario> — Conseil de survie hardcore\n"
         "/recipe <ingredient> — Recettes d'artisanat\n"
         "/moddoc <api> — Documentation modding Lua/Java\n"
-        "/search <query> — Recherche sémantique libre\n\n"
+        "/search <query> — Recherche sémantique libre\n"
+        "/modgen <desc> — Genere un mod Project Zomboid a partir d'une description\n\n"
         "**DM** — Envoie-moi un message en DM, je réponds automatiquement !"
     )
 
@@ -173,6 +180,7 @@ async def _run_llm_command(interaction: discord.Interaction, cmd_type: str, quer
                 f"/{cmd_type} {query_text}",
                 engine=engine, llm=llm,
                 system_prompt=settings.DEFAULT_SYSTEM_PROMPT,
+                game_version=_current_game_version,
             )
         )
     except asyncio.TimeoutError:
@@ -227,6 +235,81 @@ async def cmd_moddoc(interaction: discord.Interaction, api: str):
 async def cmd_search(interaction: discord.Interaction, query: str):
     """Commande /search — recherche libre."""
     await _run_llm_command(interaction, "search", query)
+
+
+# ---------------------------------------------------------------------------
+# Commande /modgen — generation de mods Project Zomboid
+# ---------------------------------------------------------------------------
+
+async def _handle_modgen_command(interaction: discord.Interaction, description: str):
+    """Genere un mod a partir d'une description utilisateur."""
+    await interaction.response.defer()
+
+    try:
+        from pathlib import Path as P
+        from src.modgen import (
+            ModGenerator,
+            ModSpec,
+            ModType,
+            generate_mod_from_description,
+        )
+
+        # Parse la description en un type de mod + features structurees
+        manifest = await asyncio.wait_for(
+            generate_mod_from_description(
+                description=description,
+                mod_type="item",  # Defaut: on peut ameliorer avec LLM
+                name=None,  # Auto-extrait depuis la description
+                author=settings.DEFAULT_SYSTEM_PROMPT.split("Zomboid Knowledge Engine")[0].strip() if "Zomboid Knowledge Engine" in settings.DEFAULT_SYSTEM_PROMPT else "Zomboid Architect",
+                output_dir=P(settings.MOD_OUTPUT_PATH) if hasattr(settings, "MOD_OUTPUT_PATH") and settings.MOD_OUTPUT_PATH else None,
+            ),
+            timeout=120.0,  # Peut prendre ~60s pour LLM + generation
+        )
+
+        # Retourne les infos du mod genere
+        files_list = []
+        for f in sorted(manifest.mod_root.rglob("*")):
+            if f.is_file():
+                rel = f.relative_to(manifest.output_path)
+                files_list.append(f"  - {rel}")
+
+        response_parts = _trunc_string(
+            (f"**Mod genere avec succes !**\n\n"
+             f"- **Nom** : `{manifest.name}`\n"
+             f"- **ID** : `{manifest.id}`\n"
+             f"- **Chemin** : `{manifest.output_path}`\n"
+             f"- **Fichiers ecrits** : {manifest.file_count}\n\n"
+             "**Fichiers du mod :**\n```" + "\n".join(files_list) + "```"),
+            settings.MAX_RESPONSE_LENGTH,
+        )
+        for i, part in enumerate(response_parts):
+            if i == 0:
+                embed = discord.Embed(
+                    title="Zomboid Architect — Mod genere",
+                    description=part[:3800],
+                    color=discord.Color.dark_green(),
+                )
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send(part)
+
+    except asyncio.TimeoutError:
+        logger.exception("cmd_modgen(%q) timeout", description[:50])
+        await interaction.followup.send(
+            "⏳ Le generateur met du temps. Verifie les logs si le mod n'apparait pas dans `mods/`."
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("cmd_modgen(%q) echoue", description[:50])
+        await interaction.followup.send(f"⚠️ Erreur lors de la generation du mod : {exc}")
+
+
+@bot.tree.command(name="modgen", description="Genere un mod Project Zomboid a partir d'une description")
+@discord.app_commands.describe(
+    description="Description haute-niveau du mod (ex: 'Ajouter une epée avec 45 degats')",
+)
+async def cmd_modgen(interaction: discord.Interaction, description: str):
+    """Commande /modgen — generation d'un mod Zomboid via LLM + engine."""
+    await _handle_modgen_command(interaction, description)
 
 
 # ---------------------------------------------------------------------------
@@ -509,6 +592,7 @@ async def on_message(message: discord.Message):
                 content,
                 engine=engine, llm=llm,
                 system_prompt=settings.DEFAULT_SYSTEM_PROMPT,
+                game_version=_current_game_version,
             )
         )
     except asyncio.TimeoutError:

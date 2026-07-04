@@ -6,12 +6,13 @@ Extraction du texte des chapitres + metadata (titre, auteur, etc.).
 
 from __future__ import annotations
 
-import logging
 import time
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class EpubProcessor:

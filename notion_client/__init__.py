@@ -1,18 +1,25 @@
-"""notion_client — Sync agent/todo.md vers une base de donn&#233;es Notion.
+"""notion_client — Sync agent/todo.md vers une base de données Notion.
 
-Flux :
-    parse     → lit agent/todo.md et extrait les phases/t&#226;ches
-    sync      compare local vs remote, upsert les items manquants
-    push      cr&#233;e ou met &#224; jour chaque t&#226;che dans Notion
+Sub-modules :
+  notion_client.api    → NotionClient (httpx wrapper), get_config, NotionConfig
+  notion_client.parser → parse_todo, format_tasks_as_md, get_total_stats, Task, Phase
+  notion_client.sync   → sync(dry_run) → list[SyncAction]
+  notion_client.cli    → cmd_push, cmd_stats, main()
 
-Usage :
-    python notion_sync.py --push          # push tout vers Notion
-    python notion_sync.py --dry-run       # montre ce qui changera sans toucher
-    python notion_sync.py --schema        # imprime le sch&#233;ma de la DB actuelle
-    python notion_sync.py --create-schema # cr&#233;e une DB "Zomboid Tasks" avec le bon sch&#233;ma
+Usage CLI :
+    python -m notion_client --push          # push les tâches vers Notion
+    python -m notion_client --dry-run       # prévisualiser sans modifier
+    python -m notion_client --schema        # imprimer le schéma de la DB
+    python -m notion_client --stats         # stats des phases
 
-Config : charger notion_client/.env.notion (variables NOTION_API_KEY + NOTION_DATABASE_ID).
-        Un template est disponible dans .env.notion.example.
+Config : charger notion_client/.env.notion (NOTION_API_KEY + NOTION_DATABASE_ID).
+         Un template est disponible dans .env.notion.example.
 """
 
-__all__ = ["api", "parser", "sync"]
+__all__ = ["api", "parser", "sync", "cli"]
+
+from .api import NotionClient, get_config, NotionConfig
+from .parser import parse_todo, Task, Phase, format_tasks_as_md, get_total_stats
+from .sync import sync as sync_remote
+
+__version__ = "1.0.0"

@@ -17,11 +17,12 @@ Structure typique:
 
 from __future__ import annotations
 
-import logging
 import struct
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from src.governance.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Magic bytes du format VDF binaire (Valve Data Format)
 VDF_MAGIC = b"VDF\x0A"

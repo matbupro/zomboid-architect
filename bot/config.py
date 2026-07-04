@@ -1,4 +1,4 @@
-"""
+﻿"""
 Config — chargement .env et settings du bot Discord Zomboid.
 Variables d'environnement requises (voir .env.example) :
   DISCORD_TOKEN      — token du bot Discord
@@ -66,6 +66,12 @@ class Settings:
 
     # Commandes internes (pour sync workspace depuis Docker)
     SYNC_HOOK_URL: str | None = None         # Si un serveur web écoute ici, on POST le rapport
+    
+    # Generation de mods (Phase 12)
+    MOD_OUTPUT_PATH: str = "mods"             # Repertoire de sortie des mods generes
+
+    # Game version (B41/B42) — héritée de src/governance/game_version.py
+    PZ_GAME_VERSION: str | None = None         # "b41", "b42", ou None (auto-resolve par VERSION file)
 
 
 def load_settings() -> Settings:
@@ -86,4 +92,8 @@ def load_settings() -> Settings:
         WORKSPACE_CHANNEL_ID=int(os.getenv("WORKSPACE_CHANNEL_ID")) if os.getenv("WORKSPACE_CHANNEL_ID") else None,
         DISCORD_GUILD_ID=int(os.getenv("DISCORD_GUILD_ID")) if os.getenv("DISCORD_GUILD_ID") else None,
         SYNC_HOOK_URL=os.getenv("SYNC_HOOK_URL"),
+        MOD_OUTPUT_PATH=os.getenv("MOD_OUTPUT_PATH", "mods"),
+        PZ_GAME_VERSION=os.getenv("PZ_GAME_VERSION") or None,
     )
+
+
