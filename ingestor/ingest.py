@@ -32,7 +32,7 @@ from typing import Any, Optional, Generator
 
 # ── Logger ---
 
-from .logger import get_logger
+from src.governance.logger import get_logger
 
 logger = get_logger(__name__)
 
