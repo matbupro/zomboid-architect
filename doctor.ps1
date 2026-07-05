@@ -178,16 +178,21 @@ Write-Host "|  Diagnostic du Knowledge Engine                       |" -Foregrou
 Write-Host "+------------------------------------------------------+" -ForegroundColor $Purple
 
 # ---- Helpers --------------------------------------------------------
+# Test-Cmd : verifie qu'une commande CLI existe dans le PATH (wrapper propre de Get-Command)
 function Test-Cmd { param($Name) return (Get-Command $Name -ErrorAction SilentlyContinue) }
 
+# $checks : accumulateur de resultats [ok, warn, fail, total] utilise pour le pourcentage final
 $checks = @{ ok=0; warn=0; fail=0; total=0 }
 
+# AddCheck : incrémente un compteur de resultat et le global total (script-scoped)
 function AddCheck {
     param($status)
     $script:checks.$status++
     $script:checks.total++
 }
 
+# Write-Row : affiche une ligne formatée [OK|!!|XX] name -- detail optionnel sur la ligne suivante.
+#             Utilise l'icone et la couleur correspondant au status pour le rendu visuel.
 function Write-Row {
     param($name, $status, $detail = "")
 
@@ -207,10 +212,11 @@ function Write-Row {
 }
 
 # ---- Sections -------------------------------------------------------
+# DrawSectionHeader : affiche un separateur de section dans la palette violet du projet.
 function DrawSectionHeader { param($name) Write-Host "`n  --- $($name)" -ForegroundColor $Purple }
 
 DrawSectionHeader "Systeme"
-
+# Verifier que les dependances CLI de base sont disponibles (Python 3.14, Git)
 if(Test-Cmd python){
     $ver = & python --version 2>&1 | Out-String | ForEach-Object { $_.Trim() }
     Write-Row "Python" "ok" $ver; AddCheck "ok"
@@ -222,7 +228,7 @@ if(Test-Cmd git){
 }else{ Write-Row "Git" "fail"; AddCheck "fail" }
 
 DrawSectionHeader "Deps Python"
-
+# Verifier que chaque sous-module a ses dependances Python installees (import testable)
 $deps = @(
     @{ name="notion_client"; mod="notion_client.api";  req="notion_client/pyproject.toml" },
     @{ name="ingestor";      mod="ingestor.engine";    req="ingestor/requirements.txt" },
@@ -241,7 +247,7 @@ foreach($d in $deps){
 }
 
 DrawSectionHeader "Services Docker"
-
+# Verifier que Docker daemon tourne et chaque container (postgres, chromadb) est Up/Exited/Dead
 if(Test-Cmd docker){
     try{
         $ver = (docker --version 2>&1 | Out-String).Trim()

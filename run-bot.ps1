@@ -1,5 +1,5 @@
 # =============================================================================
-# run-bot.ps1 — Lance le bot Zomboid Knowledge Engine en local (sans Docker)
+# run-bot.ps1 - Lance le bot Zomboid Knowledge Engine en local (sans Docker)
 # =============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -9,7 +9,7 @@ $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BotDir      = Join-Path $ProjectRoot "bot"
 $EnvFile     = Join-Path $BotDir ".env"
 
-Write-Host "=== Zomboid Knowledge Engine — Bot Discord ===" -ForegroundColor Cyan
+Write-Host "=== Zomboid Knowledge Engine -- Bot Discord ===" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Vérifier .env -----------------------------------------------------------
@@ -23,7 +23,7 @@ if (-not (Test-Path $EnvFile)) {
 Get-Content $EnvFile | Where-Object { $_ -and (-not $_.Trim().StartsWith("#")) } | ForEach-Object {
     $key, $value = $_ -split "=", 2
     if ($key -and $value) {
-        $env:$key = $value.Trim()
+        [Environment]::SetEnvironmentVariable($key.Trim(), $value.Trim())
     }
 }
 

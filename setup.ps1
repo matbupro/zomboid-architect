@@ -39,12 +39,13 @@ function Install-WithWinget {
     param(
         [string]$PackageId,
         [string]$DisplayName,
-        [string]$CommandName = $null   # FIX #5 : nom de commande réel à tester (ex: "git"), distinct de l'ID winget
+        [string]$CommandName = $null   # parametre optionnel: le nom de la commande a verifier apres installation
+                                   # (ex: winget utilise "Git.Git" mais la CLI est "git")
     )
 
     if ($CommandName -and (Get-Command $CommandName -ErrorAction SilentlyContinue)) { return $true }
 
-    # FIX #6 : recherche fiable par ID exact
+    # Verification installation existante avec --exact (plus fiable que search approximatif)
     $wingetList = winget list --id $PackageId --exact 2>&1
     if ($LASTEXITCODE -eq 0 -and $wingetList -match [regex]::Escape($PackageId)) { return $true }
 
@@ -54,7 +55,7 @@ function Install-WithWinget {
             -ArgumentList "install", "$PackageId", "--accept-package-agreements", "--accept-source-agreements", "-s", "winget" `
             -Wait -PassThru -NoNewWindow
 
-        # FIX #1 : le if est désormais bien séparé du bloc Start-Process
+        # Verifier le code de retour (ne pas fusionner avec Start-Process)
         if ($result.ExitCode -eq 0 -or $null -eq $result.ExitCode) {
             Write-Ok "  $DisplayName installe (redemarrer le terminal pour que PATH soit mis a jour)"
             return $true
@@ -108,7 +109,7 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 
 Write-Host "`n--- Etape 1 : Dependances Python ---`n" -ForegroundColor Magenta
 
-# FIX #3 : distinction requirements.txt (pip -r) vs pyproject.toml (pip install .)
+# Distinguer pyproject.toml (pip install -e) de requirements.txt (pip install -r)
 $requirementsFiles = @(
     @{ "path"="notion_client/pyproject.toml";  "label"="notion_client"; "type"="pyproject" },
     @{ "path"="ingestor/requirements.txt";     "label"="ingestor";      "type"="requirements" },
@@ -126,7 +127,7 @@ foreach ($req in $requirementsFiles) {
             & pip install -r $fullPath 2>&1 | Out-Null
         }
 
-        # FIX #4 : vérification réelle du succès via LASTEXITCODE
+        # Verification reelle du succes (LASTEXITCODE est plus fiable que $? pour pip)
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "  $($req.label) installe"
         } else {
@@ -148,10 +149,12 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
     if ($LASTEXITCODE -eq 0) {
         Write-Ok "  Docker trouve : $dockerVersion"
     } else {
-        Write-Warn "  Docker lance mais echoue -- REDEMARRER le PC pour que le service démarre."
+        Write-Warn "  Docker installe mais echoue -- REDEMARRER le PC pour que le service démarre."
         Write-Host "      Puis relancer : docker compose up -d`n" -ForegroundColor Yellow
     }
 } else {
+    Install-WithWinget "Docker.DockerDesktop" "Docker Desktop" -CommandName "docker" | Out-Null
+    Write-Warn "  Docker installe -- REDEMARRER le PC pour que le service démarre."
     Write-Host "      Puis relancer : docker compose up -d`n" -ForegroundColor Yellow
 }
 
@@ -243,7 +246,7 @@ foreach ($t in $envTemplates) {
     $srcPath  = Join-Path $ProjectRoot $t.src
     $destPath = Join-Path $ProjectRoot $t.dest
 
-    # FIX #2 : parenthésage correct des conditions booléennes
+    # Parentheses obligatoires pour la negation PS (-not dans une condition composee)
     if ((Test-Path $srcPath) -and (-not (Test-Path $destPath))) {
         Copy-Item $srcPath $destPath -Force
         Write-Ok "  $($t.desc) : .env cree"
