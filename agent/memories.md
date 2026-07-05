@@ -73,3 +73,9 @@ golden set aligné + promote.py passe a 0.933 recall (promotion reussie) + guard
 
 ## Session du 2026-07-05
 todo update: architecture decision SQLite/pgvector + guard/backup complete + golden set 0.933 recall
+
+## Session du 2026-07-05
+Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires
+
+## Session du 2026-07-05
+Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires + rate limiting

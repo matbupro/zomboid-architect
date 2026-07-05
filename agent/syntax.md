@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-05 par sync_agent.ps1 automatique.**
 
-Dernier commit : a4a7033
+Dernier commit : cdd4a29
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -23,6 +23,7 @@ Version moteur : 0.3.0-alpha
   |-- agent/rules.md
   |-- agent/syntax.md
   |-- agent/todo.md
+  |-- agent-autonome-mods-pz.md
   |-- bot/__init__.py
   |-- bot/cleanup_channels.py
   |-- bot/config.py

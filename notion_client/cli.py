@@ -10,7 +10,6 @@ Exporte :
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -33,7 +32,6 @@ def _print_actions(actions: list[sync.SyncAction]) -> None:
     if created:
         print(f"\n  [+ {len(created)} créée(s) :")
         for a in created[:15]:
-            phase_short = re.sub(r"^Phase\s+\d+\s*:\s*", "", a.phase).strip() if hasattr(a, 'phase') else a.phase
             print(f"      - [{a.phase}] {a.task_text[:60]}")
         if len(created) > 15:
             print(f"      ... et {len(created) - 15} autres")
@@ -41,7 +39,6 @@ def _print_actions(actions: list[sync.SyncAction]) -> None:
     if updated:
         print(f"\n  [~ {len(updated)} statut mis à jour :")
         for a in updated[:10]:
-            phase_short = re.sub(r"^Phase\s+\d+\s*:\s*", "", a.phase).strip() if hasattr(a, 'phase') else a.phase
             print(f"      - [{a.phase}] {a.task_text[:60]}")
         if len(updated) > 10:
             print(f"      ... et {len(updated) - 10} autres")

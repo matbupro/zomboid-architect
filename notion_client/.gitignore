@@ -1,0 +1,57 @@
+# ============================================================================
+# Notion Client — Secrets & Configuration (JAMAIS committe)
+# ============================================================================
+
+# Inverser d'abord le pattern racine (.env.*), puis exclure les fichiers secrets
+!.env.notion.example
+.env.notion
+.env.local
+*.pem
+*.key
+*.secret
+
+# ============================================================================
+# Python
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================================================
+# IDE & OS
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# Testing & Coverage
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/

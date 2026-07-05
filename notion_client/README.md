@@ -42,6 +42,28 @@ client = NotionClient(config)
 items = client.query_items()
 ```
 
+## 🔒 Sécurité
+
+### Gestion des secrets
+
+- **`.env.notion` est PRIVÉ** : jamais committe (voir `.gitignore`)
+- **`.env.notion.example` est PUBLIC** : template à jour dans Git pour l'onboarding
+- **En cas de fuite du token** :
+  1. Aller sur https://notion.so/my-integrations
+  2. Cliquer sur l'intégration affectée
+  3. Régénérer le token immédiatement
+  4. Mettre à jour `.env.notion` localement
+  5. Vérifier l'historique Git si le fichier a été commité
+
+### Contrôle d'accès Notion
+
+L'intégration Notion doit avoir **permissions minimales** :
+- ✅ Lecture/Écriture sur la database spécifique uniquement
+- ❌ Pas d'accès à d'autres pages / workspaces
+- ❌ Pas d'accès Admin workspace-wide
+
+Pour plus de détails, voir [GOVERNANCE.md](GOVERNANCE.md).
+
 ## Architecture
 
 ```

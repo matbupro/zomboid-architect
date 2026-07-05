@@ -288,3 +288,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - docs: update todo with architecture decision (SQLite/pgvector migration plan + guard/backup complete)
+
+### 2026-07-05 - commit cdd4a29
+
+**Changements :**
+- chore: auto-sync agent docs (syntax, README, memories, todo, changelog)

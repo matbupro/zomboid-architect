@@ -11,9 +11,19 @@ Le /v1 est donc UNIQUEMENT dans le base_url, jamais dans les URLs individuelles.
 """
 
 import httpx
+import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting — retry strategy pour le rate limiting Notion (429)
+# ---------------------------------------------------------------------------
+
+MAX_RETRIES: int = 3
+INITIAL_BACKOFF: float = 1.0  # secondes, exponential backoff
 
 
 # ---------------------------------------------------------------------------
@@ -133,13 +143,40 @@ class NotionClient:
 
     # -- low-level helpers ----------------------------------------------------
 
-    def _request(self, method: str, url: str, json_body: dict | None = None) -> Any:
-        resp = self._client.request(method, url, json=json_body)
-        if resp.status_code >= 400:
-            raise RuntimeError(
-                f"Notion API {resp.status_code}: {resp.text!r}"
-            )
-        return resp.json()
+    def _request(
+        self,
+        method: str,
+        url: str,
+        json_body: dict | None = None,
+        retry_count: int = 0,
+    ) -> Any:
+        """Effectuer une requête HTTP vers Notion API avec gestion du rate limiting.
+
+        En cas de 429 (Too Many Requests), attend et réessaye
+        jusqu'à MAX_RETRIES avec exponential backoff.
+        """
+        try:
+            resp = self._client.request(method, url, json=json_body)
+
+            # Rate limiting — retry exponentiel
+            if resp.status_code == 429 and retry_count < MAX_RETRIES:
+                backoff = INITIAL_BACKOFF * (2 ** retry_count)
+                print(
+                    f"⚠️  Rate limited. Attente {backoff}s "
+                    f"(réessay {retry_count + 1}/{MAX_RETRIES}...)",
+                    file=sys.stderr,
+                )
+                time.sleep(backoff)
+                return self._request(method, url, json_body, retry_count + 1)
+
+            if resp.status_code >= 400:
+                raise RuntimeError(
+                    f"Notion API {resp.status_code}: {resp.text!r}"
+                )
+            return resp.json()
+
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Notion API error ({method} {url}): {e}") from e
 
     # -- database ------------------------------------------------------------
 

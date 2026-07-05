@@ -101,7 +101,9 @@
       "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\"; git status --short | Select-Object -First 5; echo \"---\"; Write-Output \".commit_msg.txt exists: $\\(Test-Path .commit_msg.txt\\)\")",
       "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8000/api/v2/heartbeat\" -TimeoutSec 3; echo \"ChromaDB UP: $\\($r.StatusCode\\)\" } catch { echo \"ChromaDB DOWN: $_\" })",
       "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File agent/maintenance/sync_agent.ps1 \"golden set aligné + promote.py passe a 0.933 recall \\(promotion reussie\\) + guard production + backup pre-ingest\")",
-      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File agent/maintenance/sync_agent.ps1 \"todo update: architecture decision SQLite/pgvector + guard/backup complete + golden set 0.933 recall\")"
+      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File agent/maintenance/sync_agent.ps1 \"todo update: architecture decision SQLite/pgvector + guard/backup complete + golden set 0.933 recall\")",
+      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File .\\\\agent\\\\maintenance\\\\sync_agent.ps1 \"Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires\" 2>&1)",
+      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File .\\\\agent\\\\maintenance\\\\sync_agent.ps1 \"Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires + rate limiting\" 2>&1)"
     ]
   }
 }
