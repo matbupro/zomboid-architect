@@ -13,11 +13,108 @@ Le sync est *idempotent* : relancer deux fois produit le meme resultat.
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from . import api, parser
+
+
+# ---------------------------------------------------------------------------
+# Normalisation / fuzzy matching pour la correspondance local↔Notion
+# ---------------------------------------------------------------------------
+
+
+def _normalize_text(text: str) -> str:
+    """Normaliser un texte de tâche pour comparaison fuzzy.
+
+    Etapes :
+    1. Decompose accents/accents composes (NFD) → supprime les marques diacritiques
+    2. Remplace tirets/em-dashes par des espaces (uniformise "a-b" / "ab" / "a b")
+    3. Retire les apostrophes/quotes simples
+    4. Collapse espaces multiples + strip
+    """
+    # Decompose accents (é → e + ́) puis supprime les marques de diacritique
+    nfkd = unicodedata.normalize("NFKD", text)
+    stripped_accents = "".join(c for c in nfkd if not unicodedata.combining(c))
+    # Tirets, em-dashes, en-dashes → espaces
+    s = re.sub(r"[–—―\-]", " ", stripped_accents)
+    # Apostrophes et quotes droits/gauches -> espace
+    s = re.sub(r"\x27", " ", s)
+    # Collapse espaces multiples + strip
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def _fuzzy_match(
+    local_text: str, remote_texts: list[str], threshold: float = 0.85
+) -> str | None:
+    """Determiner si une tâche locale correspond à une tâche Notion existante.
+
+    Retourne le texte distant matche (si trouvé), sinon None.
+
+    La comparaison se fait sur des textes normalisés (sans accents, sans ponctuation).
+    threshold : seuil de similarité Levenshtein (0.0-1.0). Par défaut 0.85.
+    """
+
+    local_norm = _normalize_text(local_text)
+    if not local_norm:
+        return None
+
+    best_match: str | None = None
+    best_score = 0.0
+
+    for remote_text in remote_texts:
+        remote_norm = _normalize_text(remote_text)
+        if not remote_norm:
+            continue
+
+        # Correspondance exacte sur textes normalisés → score maximal
+        if local_norm == remote_norm:
+            return remote_text
+
+        # Similarité Levenshtein pour les cas approximatifs
+        score = _levenshtein_similarity(local_norm, remote_norm)
+        if score > best_score:
+            best_score = score
+            best_match = remote_text
+
+    # On ne retourne un match que si le score dépasse le threshold
+    return best_match if best_score >= threshold else None
+
+
+def _levenshtein_similarity(a: str, b: str) -> float:
+    """Calculer la similarité Levenshtein entre deux chaines (0.0-1.0).
+
+    1.0 = identiques, 0.0 = aucune similarite.
+    Optimise pour les petites chaines (<500 chars) typiques des libelles de tâches.
+    """
+    if a == b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+
+    len_a, len_b = len(a), len(b)
+    if len_a > len_b:
+        a, b = b, a
+        len_a, len_b = len_b, len_a
+
+    # Distances de Levenshtein optimisée en memoire (2 colonnes)
+    current_row = list(range(len_a + 1))
+    for i, char_b in enumerate(b, start=1):
+        prev_row = current_row
+        current_row = [i] + [0] * len_a
+        for j, char_a in enumerate(a, start=1):
+            cost = 0 if char_a == char_b else 1
+            current_row[j] = min(
+                prev_row[j] + 1,      # insertion
+                current_row[j - 1] + 1, # suppression
+                prev_row[j - 1] + cost, # substitution
+            )
+
+    edit_distance = current_row[len_a]
+    max_len = max(len_a, len_b)
+    return 1.0 - (edit_distance / max_len) if max_len > 0 else 1.0
 
 
 @dataclass
@@ -106,6 +203,11 @@ def sync(
             if name_val and phase_val:
                 remote_index[(phase_val.strip(), name_val.strip())] = item
 
+        # Indexer les textes distants par phase pour fuzzy matching (sans le dict item)
+        remote_texts_by_phase: dict[str, list[str]] = {}
+        for (r_phase, r_text), _ in remote_index.items():
+            remote_texts_by_phase.setdefault(r_phase, []).append(r_text)
+
         # 3. Parcourir les phases et tâches locales
         actions: list[SyncAction] = []
         for phase in phases:
@@ -127,14 +229,35 @@ def sync(
                 continue
 
             for task in phase.tasks:
-                # Chercher un match dans Notion (par texte + approx de nom de phase)
+                # Chercher un match dans Notion (par texte normalisé + fuzzy)
                 remote_match = None
-                for (r_phase, r_text), item in list(remote_index.items()):
-                    if r_text.lower().replace("-", " ").strip() == task.text.lower().replace("-", " ").strip():
-                        # Comparaison souple : ignorer la numérotation de phase
-                        local_num = re.search(r"Phase\s+(\d+)", phase.name)
+                # Collecter les textes distants de la phase courante (et phases similaires)
+                phase_texts_for_match: list[str] = []
+                phase_num_local = re.search(r"Phase\s+(\d+)", phase.name)
+                for r_phase, texts in remote_texts_by_phase.items():
+                    if _normalize_text(phase_name) in _normalize_text(r_phase):
+                        phase_texts_for_match.extend(texts)
+                    else:
+                        # Comparer numéros de phase pour tolerantiser "Phase 3" vs "Phase 3.5"
                         remote_num = re.search(r"Phase\s+(\d+)", r_phase)
-                        if not local_num or not remote_num or local_num.group(1) == remote_num.group(1):
+                        if (
+                            not phase_num_local
+                            or not remote_num
+                            or phase_num_local.group(1) == remote_num.group(1)
+                        ):
+                            phase_texts_for_match.extend(texts)
+
+                # Fuzzy match : si aucun texte dans cette phase, chercher partout
+                all_texts = list(remote_index.keys())
+                if not phase_texts_for_match:
+                    all_texts = [(r, t) for r, t in remote_index.keys()]
+                    phase_texts_for_match = [t for _, t in all_texts]
+
+                matched_text = _fuzzy_match(task.text, phase_texts_for_match) if phase_texts_for_match else None
+                if matched_text:
+                    # Retrouver l'item dans remote_index (parsing de la clé)
+                    for (r_phase, r_text), item in remote_index.items():
+                        if _normalize_text(r_text) == _normalize_text(matched_text):
                             remote_match = item
                             break
 

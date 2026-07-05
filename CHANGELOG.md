@@ -293,3 +293,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore: auto-sync agent docs (syntax, README, memories, todo, changelog)
+
+### 2026-07-05 - commit 4ec4120
+
+**Changements :**
+- fix(notion_client): sécurité + robustesse + 67 tests unitaires
