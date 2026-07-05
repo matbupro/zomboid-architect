@@ -273,3 +273,13 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - fix(ingest/promote): metadata loss, filter mapping, ChromaDB SDK migration
+
+### 2026-07-05 - commit c6fa309
+
+**Changements :**
+- feat(guard/backup): production write guard + pre-ingest backup avec rollback
+
+### 2026-07-05 - commit ca1de16
+
+**Changements :**
+- fix(golden/set): aligner expected_ids aux donnees reellement ingerees (15 paires realistes)

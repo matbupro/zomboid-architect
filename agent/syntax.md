@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-05 par sync_agent.ps1 automatique.**
 
-Dernier commit : b37baee
+Dernier commit : ca1de16
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -76,29 +76,16 @@ Version moteur : 0.3.0-alpha
   |-- ingestor/storage/chroma_writer.py
   |-- ingestor/tag_release.py
   |-- Makefile
-  |-- notion_clean_priority.py
-  |-- notion_clean_remaining.py
-  |-- notion_cleanup.py
-  |-- notion_cleanup2.py
+  |-- mods/.gitkeep
   |-- notion_client/.env.notion.example
   |-- notion_client/__init__.py
   |-- notion_client/__main__.py
   |-- notion_client/api.py
   |-- notion_client/cli.py
   |-- notion_client/parser.py
+  |-- notion_client/README.md
   |-- notion_client/sync.py
-  |-- notion_db_check.py
-  |-- notion_db_check2.py
-  |-- notion_diagnose.py
-  |-- notion_fix_p10_items.py
-  |-- notion_force_fix.py
-  |-- notion_ids_check.py
-  |-- notion_priority_check.py
-  |-- notion_redistribute_p20.py
-  |-- notion_resync_priorities.py
   |-- notion_sync.py
-  |-- notion_update_schema.py
-  |-- notion_verify_clean.py
   |-- pytest.ini
   |-- README.md
   |-- requirements.txt
@@ -112,6 +99,7 @@ Version moteur : 0.3.0-alpha
   |-- src/governance/lock.py
   |-- src/governance/logger.py
   |-- src/governance/parser.py
+  |-- src/governance/production_guard.py
   |-- src/governance/worker.py
   |-- src/modgen/__init__.py
   |-- src/modgen/__main__.py
@@ -147,6 +135,7 @@ Version moteur : 0.3.0-alpha
   |-- tests/test_steamcmd_client.py
   |-- tests/test_tag_release.py
   |-- tests/test_workshop_scanner.py
+  |-- tools/steamcmd/.crash
   |-- tools/steamcmd/appcache/appinfo.vdf
   |-- tools/steamcmd/appcache/packageinfo.vdf
   |-- tools/steamcmd/bin/steamservice.dll
@@ -156,6 +145,7 @@ Version moteur : 0.3.0-alpha
   |-- tools/steamcmd/crashhandler.dll
   |-- tools/steamcmd/crashhandler.dll.old
   |-- tools/steamcmd/crashhandler64.dll
+  |-- tools/steamcmd/libraryfolder.vdf
   |-- tools/steamcmd/package/steam_cmd_win32.installed
   |-- tools/steamcmd/package/steam_cmd_win32.manifest
   |-- tools/steamcmd/package/steam_cmd_win64.installed
@@ -322,7 +312,10 @@ Version moteur : 0.3.0-alpha
   |-- tools/steamcmd/siteserverui/win32/vcruntime140.dll
   |-- tools/steamcmd/steam.dll
   |-- tools/steamcmd/steamapps/libraryfolders.vdf
+  |-- tools/steamcmd/steamapps/steamapps/workshop/appworkshop_1042170.acf
+  |-- tools/steamcmd/steamapps/steamapps/workshop/appworkshop_294100.acf
   |-- tools/steamcmd/steamapps/workshop/appworkshop_1042170.acf
+  |-- tools/steamcmd/steamapps/workshop/content/294100/steamapps/workshop/appworkshop_1042170.acf
   |-- tools/steamcmd/steamclient.dll
   |-- tools/steamcmd/steamclient64.dll
   |-- tools/steamcmd/steamcmd.exe
@@ -336,6 +329,7 @@ Version moteur : 0.3.0-alpha
   |-- tools/steamcmd/tier0_s.dll
   |-- tools/steamcmd/tier0_s64.dll
   |-- tools/steamcmd/update_hosts_cached.vdf
+  |-- tools/steamcmd/userdata/2126532732/ugcmsgcache/267a193e5599e041185c06bdac61a8efee2125e5.cachedmsg
   |-- tools/steamcmd/userdata/29754331/7/remote/serverbrowser_hist.vdf
   |-- tools/steamcmd/userdata/29754331/7/remote/sharedconfig.vdf
   |-- tools/steamcmd/userdata/29754331/7/remotecache.vdf

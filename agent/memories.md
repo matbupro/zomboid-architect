@@ -64,3 +64,9 @@ Phase 3: ingest.py global ingestion script, 8 objects B41, recipes, mechanics, s
 
 ## Session du 2026-07-05
 Phase 3.1: ingest.py metadata fix + promote.py golden set gate + chroma_client SDK migration
+
+## Session du 2026-07-05
+guard production + pre-ingest backup + rollback + CI security gate
+
+## Session du 2026-07-05
+golden set aligné + promote.py passe a 0.933 recall (promotion reussie) + guard production + backup pre-ingest

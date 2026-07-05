@@ -98,7 +98,9 @@
       "PowerShell($routes = \\(Invoke-WebRequest -Uri \"http://localhost:8000/api/v1\" -UseBasicParsing\\).Content; echo $routes)",
       "PowerShell($paths = @\\(\"/api/heartbeat\", \"/api/v2/heartbeat\", \"/api/v1/collections\", \"/docs\"\\); foreach \\($p in $paths\\) { try { $r = Invoke-WebRequest -Uri \"http://localhost:8000$p\" -Method GET -UseBasicParsing; echo \"$p OK $\\($r.Content.Substring\\(0, [Math]::Min\\(120, $r.Content.Length\\)\\)\\)\" } catch { echo \"$p FAILED $_\" } })",
       "PowerShell(python -c \"import chromadb; print\\(chromadb.__version__\\)\")",
-      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\"; git status --short | Select-Object -First 5; echo \"---\"; Write-Output \".commit_msg.txt exists: $\\(Test-Path .commit_msg.txt\\)\")"
+      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\"; git status --short | Select-Object -First 5; echo \"---\"; Write-Output \".commit_msg.txt exists: $\\(Test-Path .commit_msg.txt\\)\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8000/api/v2/heartbeat\" -TimeoutSec 3; echo \"ChromaDB UP: $\\($r.StatusCode\\)\" } catch { echo \"ChromaDB DOWN: $_\" })",
+      "PowerShell(cd \"f:\\\\Antigravity DEV\\\\Zomboid_Architect\" ; powershell -ExecutionPolicy Bypass -File agent/maintenance/sync_agent.ps1 \"golden set aligné + promote.py passe a 0.933 recall \\(promotion reussie\\) + guard production + backup pre-ingest\")"
     ]
   }
 }
