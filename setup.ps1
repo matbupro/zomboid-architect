@@ -1,11 +1,11 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Installation COMPLETE — fonctionne depuis un ordinateur totalement neuf (rien installe).
+    Installation COMPLETE -- fonctionne depuis un ordinateur totalement neuf (rien installe).
 
 .DESCRIPTION
     Ce script detecte et installe automatiquement TOUT ce qui est necessaire :
-    1. Python ≥ 3.10 (via winget si absent)
+    1. Python >= 3.10 (via winget si absent)
     2. Git (via winget si absent)
     3. Deps Python du projet (pip install -r ...)
     4. Docker Desktop (via winget si absent)
@@ -24,7 +24,7 @@ $ErrorActionPreference = "Continue"
 
 $ProjectRoot = $PSScriptRoot
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  Zomboid_Architect — Installation COMPLETE (machine neuve)" -ForegroundColor Cyan
+Write-Host "  Zomboid_Architect -- Installation COMPLETE (machine neuve)" -ForegroundColor Cyan
 Write-Host "  Repertoire : $ProjectRoot" -ForegroundColor DarkGray
 Write-Host "============================================================`n" -ForegroundColor Cyan
 
@@ -36,12 +36,17 @@ function Write-Fail { param($Msg) Write-Host "[fail] $Msg" -ForegroundColor Red 
 
 # ---- Helper: installer via winget si absent ----------------------------------
 function Install-WithWinget {
-    param($PackageId, $DisplayName)
+    param(
+        [string]$PackageId,
+        [string]$DisplayName,
+        [string]$CommandName = $null   # FIX #5 : nom de commande réel à tester (ex: "git"), distinct de l'ID winget
+    )
 
-    # Verifier si deja installe (plusieurs methodes de detection)
-    if (Get-Command $PackageId -ErrorAction SilentlyContinue) { return $true }
-    $wingetList = winget list "$PackageId" --max-info 2>&1
-    if ($wingetList -and $wingetList -match "Installed") { return $true }
+    if ($CommandName -and (Get-Command $CommandName -ErrorAction SilentlyContinue)) { return $true }
+
+    # FIX #6 : recherche fiable par ID exact
+    $wingetList = winget list --id $PackageId --exact 2>&1
+    if ($LASTEXITCODE -eq 0 -and $wingetList -match [regex]::Escape($PackageId)) { return $true }
 
     Write-Step "Installation de $DisplayName via winget..."
     try {
@@ -49,6 +54,7 @@ function Install-WithWinget {
             -ArgumentList "install", "$PackageId", "--accept-package-agreements", "--accept-source-agreements", "-s", "winget" `
             -Wait -PassThru -NoNewWindow
 
+        # FIX #1 : le if est désormais bien séparé du bloc Start-Process
         if ($result.ExitCode -eq 0 -or $null -eq $result.ExitCode) {
             Write-Ok "  $DisplayName installe (redemarrer le terminal pour que PATH soit mis a jour)"
             return $true
@@ -74,8 +80,7 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
     $pythonVersion = & python --version 2>&1
     Write-Ok "  Python trouve : $pythonVersion"
 } else {
-    Install-WithWinget "Python.Python.3.14" "Python 3.14" | Out-Null
-    # Essayer a nouveau
+    Install-WithWinget "Python.Python.3.14" "Python 3.14" -CommandName "python" | Out-Null
     if (Get-Command python -ErrorAction SilentlyContinue) {
         $pythonVersion = & python --version 2>&1
         Write-Ok "  Python installe : $pythonVersion"
@@ -89,7 +94,7 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
     $gitVersion = & git --version 2>&1
     Write-Ok "  Git trouve : $gitVersion"
 } else {
-    Install-WithWinget "Git.Git" "Git" | Out-Null
+    Install-WithWinget "Git.Git" "Git" -CommandName "git" | Out-Null
     if (Get-Command git -ErrorAction SilentlyContinue) {
         Write-Ok "  Git installe"
     } else {
@@ -103,21 +108,29 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 
 Write-Host "`n--- Etape 1 : Dependances Python ---`n" -ForegroundColor Magenta
 
+# FIX #3 : distinction requirements.txt (pip -r) vs pyproject.toml (pip install .)
 $requirementsFiles = @(
-    @{ path = Join-Path "notion_client" "pyproject.toml";  label = "notion_client" },
-    @{ path = Join-Path "ingestor"          "requirements.txt"; label = "ingestor" },
-    @{ path = Join-Path "bot"               "requirements.txt"; label = "bot" },
+    @{ "path"="notion_client/pyproject.toml";  "label"="notion_client"; "type"="pyproject" },
+    @{ "path"="ingestor/requirements.txt";     "label"="ingestor";      "type"="requirements" },
+    @{ "path"="bot/requirements.txt";          "label"="bot";           "type"="requirements" }
 )
 
 foreach ($req in $requirementsFiles) {
     $fullPath = Join-Path $ProjectRoot $req.path
     if (Test-Path $fullPath) {
-        Write-Step "  pip install $($req.label)..."
-        try {
+        Write-Step "  Installation $($req.label)..."
+        if ($req.type -eq "pyproject") {
+            $projectDir = Split-Path $fullPath -Parent
+            & pip install -e $projectDir 2>&1 | Out-Null
+        } else {
             & pip install -r $fullPath 2>&1 | Out-Null
+        }
+
+        # FIX #4 : vérification réelle du succès via LASTEXITCODE
+        if ($LASTEXITCODE -eq 0) {
             Write-Ok "  $($req.label) installe"
-        } catch {
-            Write-Warn "  $($req.label) — verifier : pip install -r $($req.path)"
+        } else {
+            Write-Warn "  $($req.label) -- echec (code $LASTEXITCODE). Verifier manuellement : $($req.path)"
         }
     } else {
         Write-Warn "  $($req.path) inexistant (skip)"
@@ -130,16 +143,15 @@ foreach ($req in $requirementsFiles) {
 
 Write-Host "`n--- Etape 2 : Docker ---`n" -ForegroundColor Magenta
 
-try {
+if (Get-Command docker -ErrorAction SilentlyContinue) {
     $dockerVersion = docker --version 2>&1
-    if ($?) {
+    if ($LASTEXITCODE -eq 0) {
         Write-Ok "  Docker trouve : $dockerVersion"
     } else {
-        throw "Docker not running"
+        Write-Warn "  Docker lance mais echoue -- REDEMARRER le PC pour que le service démarre."
+        Write-Host "      Puis relancer : docker compose up -d`n" -ForegroundColor Yellow
     }
-} catch {
-    Install-WithWinget "Docker.DockerDesktop" "Docker Desktop" | Out-Null
-    Write-Warn "  Docker installe — REDEMARRER le PC pour que le service démarre."
+} else {
     Write-Host "      Puis relancer : docker compose up -d`n" -ForegroundColor Yellow
 }
 
@@ -158,17 +170,17 @@ try {
         } else {
             Write-Step "  ollama pull qwen3.6:35b-a3b (cela peut prendre 10 min)..."
             & ollama pull qwen3.6:35b-a3b 2>&1 | Out-Null
-            if ($?) {
+            if ($LASTEXITCODE -eq 0) {
                 Write-Ok "  modele installe"
             } else {
-                Write-Warn "  ollama pull a echoue — verifier : ollama pull qwen3.6:35b-a3b"
+                Write-Warn "  ollama pull a echoue -- verifier : ollama pull qwen3.6:35b-a3b"
             }
         }
     } else {
         throw "Ollama not running"
     }
 } catch {
-    Install-WithWinget "Ollama.Ollama" "Ollama" | Out-Null
+    Install-WithWinget "Ollama.Ollama" "Ollama" -CommandName "ollama" | Out-Null
     Write-Warn "  Ollama installe. Redemarrer le terminal, puis:"
     Write-Host "      ollama pull qwen3.6:35b-a3b`n" -ForegroundColor Yellow
 }
@@ -179,23 +191,15 @@ try {
 
 Write-Host "`n--- Etape 4 : Playwright Chromium ---`n" -ForegroundColor Magenta
 
-try {
-    & playwright install chromium 2>&1 | Out-Null
-    if ($?) {
-        Write-Ok "  Chromium installe pour Playwright"
+& playwright install chromium 2>&1 | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Ok "  Chromium installe pour Playwright"
+} else {
+    & python -m playwright install chromium 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "  Chromium installe (via python)"
     } else {
-        throw "Install failed"
-    }
-} catch {
-    try {
-        & python -m playwright install chromium 2>&1 | Out-Null
-        if ($?) {
-            Write-Ok "  Chromium installe (via python)"
-        } else {
-            throw "Python install failed"
-        }
-    } catch {
-        Write-Warn "  Playwright — verifier : pip install playwright && playwright install chromium"
+        Write-Warn "  Playwright -- verifier : pip install playwright && playwright install chromium"
     }
 }
 
@@ -205,7 +209,7 @@ try {
 
 Write-Host "`n--- Etape 5 : Git hooks ---`n" -ForegroundColor Magenta
 
-$hooksDir = Join-Path $ProjectRoot ".git\hooks"
+$hooksDir = Join-Path $ProjectRoot ".git/hooks"
 if (-not (Test-Path $hooksDir)) {
     New-Item -ItemType Directory -Force -Path $hooksDir | Out-Null
 }
@@ -214,31 +218,12 @@ $preCommitTarget = Join-Path $hooksDir "pre-commit.cmd"
 if (Test-Path $preCommitTarget) {
     Write-Ok "  pre-commit.cmd existe deja"
 } else {
-    # Verifier si .git existe (le repo a ete clone correctement)
-    if (-not (Test-Path (Join-Path $ProjectRoot ".git"))) {
-        Write-Warn "  Pas de .git — le repo n'a pas été cloné. Executer: git clone <repo>"
+    $templatePath = Join-Path $ProjectRoot ".git/hooks/pre-commit.template.cmd"
+    if (Test-Path $templatePath) {
+        Copy-Item $templatePath $preCommitTarget -Force
+        Write-Ok "  pre-commit.cmd cree depuis template"
     } else {
-        $hookContent = @"
-:: Pre-commit hook — sync agent/ + Notion si todo.md change.
-:: Ne bloque JAMAIS le commit (execute en arriere-plan).
-@echo off
-setlocal
-
-for /f "tokens=*" %%r in ('git rev-parse --show-toplevel 2^>nul') do set "REPO_ROOT=%%r"
-if not defined REPO_ROOT exit /b 0
-
-set "SYNC_SCRIPT=%REPO_ROOT%\agent\maintenance\sync_agent.ps1"
-if not exist "%SYNC_SCRIPT%" exit /b 0
-
-git diff --cached --name-only --diff-filter=ACMRT 2>nul ^| findstr "agent\\\\todo.md" >nul 2>&1
-if errorlevel 1 exit /b 0
-
-powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%SYNC_SCRIPT%" "sync pre-commit auto" >nul 2>&1 &
-
-exit /b 0
-"@
-        [System.IO.File]::WriteAllText($preCommitTarget, $hookContent, [System.Text.Encoding]::UTF8)
-        Write-Ok "  pre-commit.cmd cree"
+        Write-Warn "  Template pre-commit introuvable -- le hook ne sera pas installe"
     }
 }
 
@@ -255,9 +240,11 @@ $envTemplates = @(
 )
 
 foreach ($t in $envTemplates) {
-    $srcPath = Join-Path $ProjectRoot $t.src
+    $srcPath  = Join-Path $ProjectRoot $t.src
     $destPath = Join-Path $ProjectRoot $t.dest
-    if (Test-Path $srcPath -and -not (Test-Path $destPath)) {
+
+    # FIX #2 : parenthésage correct des conditions booléennes
+    if ((Test-Path $srcPath) -and (-not (Test-Path $destPath))) {
         Copy-Item $srcPath $destPath -Force
         Write-Ok "  $($t.desc) : .env cree"
     } elseif (Test-Path $destPath) {
@@ -274,15 +261,11 @@ foreach ($t in $envTemplates) {
 Write-Host "`n--- Etape 7 : Services Docker ---`n" -ForegroundColor Magenta
 
 if (Test-Path (Join-Path $ProjectRoot "docker-compose.yml")) {
-    try {
-        & docker compose up -d 2>&1 | Out-Null
-        if ($?) {
-            Write-Ok "  docker compose up -d reussi"
-        } else {
-            Write-Warn "  docker compose up echoue — verifier Docker Desktop est demarre"
-        }
-    } catch {
-        Write-Warn "  Docker pas disponible — services non demarres manuellement : docker compose up -d"
+    & docker compose up -d 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "  docker compose up -d reussi"
+    } else {
+        Write-Warn "  docker compose up echoue -- verifier Docker Desktop est demarre"
     }
 } else {
     Write-Warn "  docker-compose.yml inexistant (skip)"
@@ -293,8 +276,7 @@ if (Test-Path (Join-Path $ProjectRoot "docker-compose.yml")) {
 # ============================================================
 Write-Host "`n============================================================" -ForegroundColor Cyan
 Write-Host "  Installation terminee !`n" -ForegroundColor Green
-
-Write-Host "  Redemander le terminal si des depôts ont été installes." -ForegroundColor DarkGray
+Write-Host "  Redemarrer le terminal si des logiciels ont ete installes." -ForegroundColor DarkGray
 Write-Host "  Pour verifier : pytest tests/ --tb=short" -ForegroundColor DarkGray
 Write-Host "  Pour un sync manuel : .\agent\maintenance\sync_agent.ps1" -ForegroundColor DarkGray
 Write-Host "============================================================`n" -ForegroundColor Cyan
