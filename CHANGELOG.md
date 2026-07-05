@@ -298,3 +298,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - fix(notion_client): sécurité + robustesse + 67 tests unitaires
+
+### 2026-07-05 - commit f213931
+
+**Changements :**
+- feat(sync): fuzzy matching local↔Notion (accents, apostrophes, tirets)

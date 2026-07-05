@@ -15,6 +15,11 @@ Cela met à jour automatiquement :
 - `agent/README.md` → index auto-des fichiers memoire
 - `CHANGELOG.md` → dernier commit non-liste (si notes fournies)
 - `agent/memories.md` → resume de session (si notes fournies)
+- **Notion DB** → sync avec `python -m notion_client --push` (toujours actif)
+
+### Regle d'or : todo.md → Notion
+**Chaque modification de `agent/todo.md` DOIT etre synchronisee vers Notion.**
+Le pre-commit hook le fait automatiquement quand un commit touche `todo.md`.
 
 ### Automatisation configurée
 

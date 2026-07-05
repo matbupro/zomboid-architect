@@ -10,9 +10,11 @@ Toutes les URLs sont relatives au base_url = https://api.notion.com/v1.
 Le /v1 est donc UNIQUEMENT dans le base_url, jamais dans les URLs individuelles.
 """
 
-import httpx
+import os
 import sys
 import time
+
+import httpx
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -45,7 +47,7 @@ def _load_env_vars() -> dict[str, str]:
     # Les vraies variables d'environnement priment sur .env.notion
     for key in ("NOTION_API_KEY", "NOTION_DATABASE_ID"):
         if key not in env:
-            env[key] = ""  # laisser vide si non defini - le caller gere
+            env[key] = os.environ.get(key, "")  # fallback vers le systeme
     return env
 
 
@@ -305,12 +307,17 @@ class NotionClient:
 
     @staticmethod
     def create_database_schema(name: str = "Zomboid Tasks") -> dict[str, Any]:
-        """Renvoyer le body API pour creer une DB avec le schema recommande.
+        """Renvoyer la definition du schema pour creer une DB Notion.
 
-        Pour l'utiliser :
-            client.create_page(parent={"type": "page_id", "page_id": "<parent_page_id>"}, properties={...})
+        Ce dict est destine a etre copier-coller manuellement dans l'API REST Notion :
+            POST /databases
+            {
+              "parent": {"type": "workspace"},
+              "title": [...],
+              "properties": {...}
+            }
 
-        Ou copier-coller manuellement dans Notion.
+        Ou visualiser avec `python -m notion_client --create-schema`.
         """
         return {
             "parent": {"type": "database"},  # le caller doit ajouter page_id ou parent_db

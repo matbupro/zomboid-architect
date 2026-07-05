@@ -3,13 +3,14 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-05 par sync_agent.ps1 automatique.**
 
-Dernier commit : 4ec4120
+Dernier commit : f213931
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
+  |-- .coverage
   |-- .env.example
   |-- .github/workflows/tests.yml
   |-- .gitignore
@@ -37,6 +38,7 @@ Version moteur : 0.3.0-alpha
   |-- CHANGELOG.md
   |-- CLAUDE.md
   |-- docker-compose.yml
+  |-- doctor.ps1
   |-- downloads/steamcli_auth.whl
   |-- downloads/steamcmd_doc.html
   |-- downloads/steamcmd_wiki.html
@@ -76,6 +78,7 @@ Version moteur : 0.3.0-alpha
   |-- ingestor/steam/workshop_scanner.py
   |-- ingestor/storage/chroma_writer.py
   |-- ingestor/tag_release.py
+  |-- INSTALL.md
   |-- Makefile
   |-- mods/.gitkeep
   |-- notion_client/.env.notion.example
@@ -102,6 +105,7 @@ Version moteur : 0.3.0-alpha
   |-- restore.py
   |-- run-bot.bat
   |-- run-bot.ps1
+  |-- setup.ps1
   |-- src/__init__.py
   |-- src/governance/__init__.py
   |-- src/governance/_import_compat.py

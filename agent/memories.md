@@ -82,3 +82,9 @@ Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires +
 
 ## Session du 2026-07-05
 Fuzzy matching sync : normalisation accents/apostrophes/tirets + Levenshtein + _fuzzy_match() + 24 nouveaux tests
+
+## Session du 2026-07-05
+todo.md sync Notion automatique
+
+## Session du 2026-07-05
+doctor repair mode + setup fresh machine install
