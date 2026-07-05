@@ -39,6 +39,11 @@ jobs:
             --cov-report=xml \
             -v
 
+      - name: Run modgen integration tests
+        run: |
+          pip install jinja2
+          pytest tests/test_modgen_integration.py -m "" -v
+
       - name: Run property-based tests (hypothesis)
         run: |
           pytest tests/test_workshop_scanner.py -m "" -k addoninfo --hypothesis-seed=42 -v
@@ -49,6 +54,60 @@ jobs:
         with:
           file: coverage.xml
           fail_ci_if_error: false
+
+  # ── Gate CI : bloquer ecriture directe en production/ ---
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # necessaire pour le diff complet
+
+      - name: Check no direct writes to production/
+        run: |
+          # Pour un push, comparer HEAD^ → HEAD. Pour PR, base → head.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          else
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          fi
+
+          # Lister les fichiers modifies dans production/ (exclure .gitkeep)
+          PROD_FILES=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null \
+            | grep "^data/production/" | grep -v "\.gitkeep$" || true)
+
+          if [ -z "$PROD_FILES" ]; then
+            echo "OK: aucun fichier production/ modifie"
+            exit 0
+          fi
+
+          # Verifier si promote.py ou tag_release.py ont ete modifies aussi
+          PROMOTE_CHANGED=$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null \
+            | grep -E "^ingestor/(promote|tag_release)\.py$" || true)
+
+          if [ -n "$PROMOTE_CHANGED" ]; then
+            echo "OK: production/ modifie accompagne de promote.py/tag_release.py"
+            exit 0
+          fi
+
+          # Sinon — bloquer !
+          echo "::error::Ecriture directe en production/ detectée : ${PROD_FILES}"
+          echo "Seul promote.py ou tag_release.py peuvent modifier production/."
+          echo "Utilisez : python -m ingestor.promote"
+          exit 1
+
+      - name: Verify production_guard integrity
+        run: |
+          # Verifier que le guard existe et contient les auteurs autorises
+          GUARD="src/governance/production_guard.py"
+          if ! grep -q "AUTHORIZED_WRITERS.*promote" "$GUARD"; then
+            echo "::error::production_guard.py ne refere pas promote dans AUTHORIZED_WRITERS"
+            exit 1
+          fi
+          echo "OK: production_guard.py intact"
 
   e2e:
     runs-on: ubuntu-latest

@@ -253,3 +253,23 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat: mod scan (959 PZ workshop mods), steam API multiplayer detection, tests, ingestor modules
+
+### 2026-07-04 - commit 5b27f6b
+
+**Changements :**
+- feat: incremental ingestion via SHA-256 hash index + 17 tests (Phase 6 item #2)
+
+### 2026-07-05 - commit 9523c05
+
+**Changements :**
+- feat: golden set regression tester + release tagging (Phase 6 complet)
+
+### 2026-07-05 - commit 2c08251
+
+**Changements :**
+- feat: script d'ingestion globale (Phase 3) — ingest.py
+
+### 2026-07-05 - commit b37baee
+
+**Changements :**
+- fix(ingest/promote): metadata loss, filter mapping, ChromaDB SDK migration

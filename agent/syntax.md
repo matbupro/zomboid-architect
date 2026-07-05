@@ -1,16 +1,17 @@
 # Etat Actuel du Projet
 
 ## Status
-**Derniere MAJ agent/ : 2026-07-03 par sync_agent.ps1 automatique.**
+**Derniere MAJ agent/ : 2026-07-05 par sync_agent.ps1 automatique.**
 
-Dernier commit : 1298527
-Version moteur : 0.1.0-alpha (b41)
+Dernier commit : b37baee
+Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
   |-- .env.example
+  |-- .github/workflows/tests.yml
   |-- .gitignore
   |-- agent/.agent_memory.md
   |-- agent/architecture.md
@@ -35,11 +36,16 @@ Version moteur : 0.1.0-alpha (b41)
   |-- CHANGELOG.md
   |-- CLAUDE.md
   |-- docker-compose.yml
+  |-- downloads/steamcli_auth.whl
+  |-- downloads/steamcmd_doc.html
+  |-- downloads/steamcmd_wiki.html
+  |-- downloads/Steam-QR-Code-Login
   |-- ingestor/__init__.py
   |-- ingestor/cli.py
   |-- ingestor/config.py
   |-- ingestor/Dockerfile
   |-- ingestor/engine.py
+  |-- ingestor/ingest.py
   |-- ingestor/processors/__init__.py
   |-- ingestor/processors/audio.py
   |-- ingestor/processors/base.py
@@ -52,8 +58,10 @@ Version moteur : 0.1.0-alpha (b41)
   |-- ingestor/processors/video.py
   |-- ingestor/processors/web.py
   |-- ingestor/promote.py
+  |-- ingestor/pz_game_ingester.py
   |-- ingestor/quarantine_manager.py
   |-- ingestor/README.md
+  |-- ingestor/regression.py
   |-- ingestor/requirements.txt
   |-- ingestor/search/__init__.py
   |-- ingestor/search/brave.py
@@ -62,9 +70,11 @@ Version moteur : 0.1.0-alpha (b41)
   |-- ingestor/steam/library_folders.py
   |-- ingestor/steam/mod_ingester.py
   |-- ingestor/steam/path_discovery.py
+  |-- ingestor/steam/qr_auth.py
   |-- ingestor/steam/steamcmd_client.py
   |-- ingestor/steam/workshop_scanner.py
   |-- ingestor/storage/chroma_writer.py
+  |-- ingestor/tag_release.py
   |-- Makefile
   |-- notion_clean_priority.py
   |-- notion_clean_remaining.py
@@ -72,7 +82,9 @@ Version moteur : 0.1.0-alpha (b41)
   |-- notion_cleanup2.py
   |-- notion_client/.env.notion.example
   |-- notion_client/__init__.py
+  |-- notion_client/__main__.py
   |-- notion_client/api.py
+  |-- notion_client/cli.py
   |-- notion_client/parser.py
   |-- notion_client/sync.py
   |-- notion_db_check.py
@@ -87,6 +99,7 @@ Version moteur : 0.1.0-alpha (b41)
   |-- notion_sync.py
   |-- notion_update_schema.py
   |-- notion_verify_clean.py
+  |-- pytest.ini
   |-- README.md
   |-- requirements.txt
   |-- restore.py
@@ -100,13 +113,237 @@ Version moteur : 0.1.0-alpha (b41)
   |-- src/governance/logger.py
   |-- src/governance/parser.py
   |-- src/governance/worker.py
+  |-- src/modgen/__init__.py
+  |-- src/modgen/__main__.py
+  |-- src/modgen/config.py
+  |-- src/modgen/generator.py
+  |-- src/modgen/schema.py
+  |-- src/modgen/templates/client_script.lua.j2
+  |-- src/modgen/templates/init.lua.j2
+  |-- src/modgen/templates/mod.info.j2
+  |-- src/modgen/templates/README.md.j2
+  |-- src/modgen/templates/server_script.lua.j2
+  |-- src/modgen/templates/shared_script.lua.j2
+  |-- src/modgen/templates/ZomboidModDescriptor.txt.j2
   |-- src/retrieval/__init__.py
   |-- src/retrieval/chroma_client.py
+  |-- tests/conftest.py
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
+  |-- tests/test_brave_search.py
   |-- tests/test_chroma_writer.py
+  |-- tests/test_cli.py
+  |-- tests/test_game_version_filtering.py
   |-- tests/test_golden_set.py
-  |-- tests/test_steam_integration.py
+  |-- tests/test_incremental_ingest.py
+  |-- tests/test_ingest.py
+  |-- tests/test_ingestor_processors.py
+  |-- tests/test_library_folders.py
+  |-- tests/test_mod_ingester.py
+  |-- tests/test_modgen.py
+  |-- tests/test_modgen_integration.py
+  |-- tests/test_pbo_processor.py
+  |-- tests/test_regression.py
+  |-- tests/test_steamcmd_client.py
+  |-- tests/test_tag_release.py
+  |-- tests/test_workshop_scanner.py
+  |-- tools/steamcmd/appcache/appinfo.vdf
+  |-- tools/steamcmd/appcache/packageinfo.vdf
+  |-- tools/steamcmd/bin/steamservice.dll
+  |-- tools/steamcmd/bin/steamservice.exe
+  |-- tools/steamcmd/config/config.vdf
+  |-- tools/steamcmd/config/libraryfolders.vdf
+  |-- tools/steamcmd/crashhandler.dll
+  |-- tools/steamcmd/crashhandler.dll.old
+  |-- tools/steamcmd/crashhandler64.dll
+  |-- tools/steamcmd/package/steam_cmd_win32.installed
+  |-- tools/steamcmd/package/steam_cmd_win32.manifest
+  |-- tools/steamcmd/package/steam_cmd_win64.installed
+  |-- tools/steamcmd/package/steam_cmd_win64.manifest
+  |-- tools/steamcmd/package/steamcmd_bins_win64.zip.vz.6413d517c6bcbd071ed21ca574eb6c3138ec6b69_15146892
+  |-- tools/steamcmd/package/steamcmd_public_all.zip.9acb456879ee932518117972e2b09b938f19063b
+  |-- tools/steamcmd/package/steamcmd_siteserverui_win64.zip.vz.15f6f4e151fcf23f1d3dcbde73bc4a87de8396e2_10883856
+  |-- tools/steamcmd/package/steamcmd_steamerrorreporter_win64.zip.aa0e323b0f2b1538237bdad2c72ea5dae6c6a46b
+  |-- tools/steamcmd/package/steamcmd_steamservice_win64.zip.vz.73a9c30ec1bd8fd98f9cf6a8e3cb41d34f9bf3c1_2035886
+  |-- tools/steamcmd/package/steamcmd_win64.zip.vz.b7fb11f080d7d8bb04f8bad1fa31872e07be2d04_2028100
+  |-- tools/steamcmd/public/steambootstrapper_brazilian.txt
+  |-- tools/steamcmd/public/steambootstrapper_bulgarian.txt
+  |-- tools/steamcmd/public/steambootstrapper_czech.txt
+  |-- tools/steamcmd/public/steambootstrapper_danish.txt
+  |-- tools/steamcmd/public/steambootstrapper_dutch.txt
+  |-- tools/steamcmd/public/steambootstrapper_english.txt
+  |-- tools/steamcmd/public/steambootstrapper_finnish.txt
+  |-- tools/steamcmd/public/steambootstrapper_french.txt
+  |-- tools/steamcmd/public/steambootstrapper_german.txt
+  |-- tools/steamcmd/public/steambootstrapper_greek.txt
+  |-- tools/steamcmd/public/steambootstrapper_hungarian.txt
+  |-- tools/steamcmd/public/steambootstrapper_indonesian.txt
+  |-- tools/steamcmd/public/steambootstrapper_italian.txt
+  |-- tools/steamcmd/public/steambootstrapper_japanese.txt
+  |-- tools/steamcmd/public/steambootstrapper_korean.txt
+  |-- tools/steamcmd/public/steambootstrapper_koreana.txt
+  |-- tools/steamcmd/public/steambootstrapper_latam.txt
+  |-- tools/steamcmd/public/steambootstrapper_malay.txt
+  |-- tools/steamcmd/public/steambootstrapper_norwegian.txt
+  |-- tools/steamcmd/public/steambootstrapper_polish.txt
+  |-- tools/steamcmd/public/steambootstrapper_portuguese.txt
+  |-- tools/steamcmd/public/steambootstrapper_romanian.txt
+  |-- tools/steamcmd/public/steambootstrapper_russian.txt
+  |-- tools/steamcmd/public/steambootstrapper_schinese.txt
+  |-- tools/steamcmd/public/steambootstrapper_spanish.txt
+  |-- tools/steamcmd/public/steambootstrapper_swedish.txt
+  |-- tools/steamcmd/public/steambootstrapper_tchinese.txt
+  |-- tools/steamcmd/public/steambootstrapper_thai.txt
+  |-- tools/steamcmd/public/steambootstrapper_turkish.txt
+  |-- tools/steamcmd/public/steambootstrapper_ukrainian.txt
+  |-- tools/steamcmd/public/steambootstrapper_vietnamese.txt
+  |-- tools/steamcmd/siteserverui/css/main.css
+  |-- tools/steamcmd/siteserverui/images/icon_errorwarning.png
+  |-- tools/steamcmd/siteserverui/images/maximize_icon.png
+  |-- tools/steamcmd/siteserverui/images/minimize_icon.png
+  |-- tools/steamcmd/siteserverui/images/steam_spinner.png
+  |-- tools/steamcmd/siteserverui/images/SteamLogo.png
+  |-- tools/steamcmd/siteserverui/images/x_close_icon.png
+  |-- tools/steamcmd/siteserverui/index.html
+  |-- tools/steamcmd/siteserverui/js/1136.js
+  |-- tools/steamcmd/siteserverui/js/1151.js
+  |-- tools/steamcmd/siteserverui/js/1498.js
+  |-- tools/steamcmd/siteserverui/js/1595.js
+  |-- tools/steamcmd/siteserverui/js/1864.js
+  |-- tools/steamcmd/siteserverui/js/1891.js
+  |-- tools/steamcmd/siteserverui/js/1939.js
+  |-- tools/steamcmd/siteserverui/js/196.js
+  |-- tools/steamcmd/siteserverui/js/200.js
+  |-- tools/steamcmd/siteserverui/js/2165.js
+  |-- tools/steamcmd/siteserverui/js/2269.js
+  |-- tools/steamcmd/siteserverui/js/2889.js
+  |-- tools/steamcmd/siteserverui/js/295.js
+  |-- tools/steamcmd/siteserverui/js/3092.js
+  |-- tools/steamcmd/siteserverui/js/3380.js
+  |-- tools/steamcmd/siteserverui/js/3518.js
+  |-- tools/steamcmd/siteserverui/js/3723.js
+  |-- tools/steamcmd/siteserverui/js/3789.js
+  |-- tools/steamcmd/siteserverui/js/3800.js
+  |-- tools/steamcmd/siteserverui/js/3907.js
+  |-- tools/steamcmd/siteserverui/js/4111.js
+  |-- tools/steamcmd/siteserverui/js/4230.js
+  |-- tools/steamcmd/siteserverui/js/4289.js
+  |-- tools/steamcmd/siteserverui/js/4419.js
+  |-- tools/steamcmd/siteserverui/js/4468.js
+  |-- tools/steamcmd/siteserverui/js/4625.js
+  |-- tools/steamcmd/siteserverui/js/465.js
+  |-- tools/steamcmd/siteserverui/js/4725.js
+  |-- tools/steamcmd/siteserverui/js/4732.js
+  |-- tools/steamcmd/siteserverui/js/4750.js
+  |-- tools/steamcmd/siteserverui/js/4792.js
+  |-- tools/steamcmd/siteserverui/js/488.js
+  |-- tools/steamcmd/siteserverui/js/4955.js
+  |-- tools/steamcmd/siteserverui/js/4978.js
+  |-- tools/steamcmd/siteserverui/js/5040.js
+  |-- tools/steamcmd/siteserverui/js/5088.js
+  |-- tools/steamcmd/siteserverui/js/5191.js
+  |-- tools/steamcmd/siteserverui/js/5233.js
+  |-- tools/steamcmd/siteserverui/js/5291.js
+  |-- tools/steamcmd/siteserverui/js/5436.js
+  |-- tools/steamcmd/siteserverui/js/559.js
+  |-- tools/steamcmd/siteserverui/js/5777.js
+  |-- tools/steamcmd/siteserverui/js/5802.js
+  |-- tools/steamcmd/siteserverui/js/6512.js
+  |-- tools/steamcmd/siteserverui/js/6556.js
+  |-- tools/steamcmd/siteserverui/js/6736.js
+  |-- tools/steamcmd/siteserverui/js/6752.js
+  |-- tools/steamcmd/siteserverui/js/7246.js
+  |-- tools/steamcmd/siteserverui/js/7263.js
+  |-- tools/steamcmd/siteserverui/js/7885.js
+  |-- tools/steamcmd/siteserverui/js/815.js
+  |-- tools/steamcmd/siteserverui/js/8476.js
+  |-- tools/steamcmd/siteserverui/js/8499.js
+  |-- tools/steamcmd/siteserverui/js/8564.js
+  |-- tools/steamcmd/siteserverui/js/8765.js
+  |-- tools/steamcmd/siteserverui/js/8876.js
+  |-- tools/steamcmd/siteserverui/js/9274.js
+  |-- tools/steamcmd/siteserverui/js/9574.js
+  |-- tools/steamcmd/siteserverui/js/9668.js
+  |-- tools/steamcmd/siteserverui/js/9745.js
+  |-- tools/steamcmd/siteserverui/js/9845.js
+  |-- tools/steamcmd/siteserverui/js/9850.js
+  |-- tools/steamcmd/siteserverui/js/9863.js
+  |-- tools/steamcmd/siteserverui/js/libraries~b28b7af69.js
+  |-- tools/steamcmd/siteserverui/js/licenses.txt
+  |-- tools/steamcmd/siteserverui/js/main.js
+  |-- tools/steamcmd/siteserverui/js/manifest.js
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-console-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-datetime-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-debug-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-errorhandling-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-file-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-file-l1-2-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-file-l2-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-handle-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-heap-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-interlocked-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-libraryloader-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-localization-l1-2-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-memory-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-namedpipe-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-processenvironment-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-processthreads-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-processthreads-l1-1-1.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-profile-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-rtlsupport-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-string-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-synch-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-synch-l1-2-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-sysinfo-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-timezone-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-core-util-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-conio-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-convert-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-environment-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-filesystem-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-heap-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-locale-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-math-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-multibyte-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-private-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-process-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-runtime-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-stdio-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-string-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-time-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/api-ms-win-crt-utility-l1-1-0.dll
+  |-- tools/steamcmd/siteserverui/win32/d3dcompiler_47.dll
+  |-- tools/steamcmd/siteserverui/win32/ffmpeg.dll
+  |-- tools/steamcmd/siteserverui/win32/libEGL.dll
+  |-- tools/steamcmd/siteserverui/win32/libGLESv2.dll
+  |-- tools/steamcmd/siteserverui/win32/msvcp140.dll
+  |-- tools/steamcmd/siteserverui/win32/node.dll
+  |-- tools/steamcmd/siteserverui/win32/ucrtbase.dll
+  |-- tools/steamcmd/siteserverui/win32/vcruntime140.dll
+  |-- tools/steamcmd/steam.dll
+  |-- tools/steamcmd/steamapps/libraryfolders.vdf
+  |-- tools/steamcmd/steamapps/workshop/appworkshop_1042170.acf
+  |-- tools/steamcmd/steamclient.dll
+  |-- tools/steamcmd/steamclient64.dll
+  |-- tools/steamcmd/steamcmd.exe
+  |-- tools/steamcmd/steamcmd.exe.1.delete
+  |-- tools/steamcmd/steamcmd.exe.old
+  |-- tools/steamcmd/steamcmd.zip
+  |-- tools/steamcmd/steamcmd_win32.zip
+  |-- tools/steamcmd/steamconsole.dll
+  |-- tools/steamcmd/steamconsole64.dll
+  |-- tools/steamcmd/steamerrorreporter.exe
+  |-- tools/steamcmd/tier0_s.dll
+  |-- tools/steamcmd/tier0_s64.dll
+  |-- tools/steamcmd/update_hosts_cached.vdf
+  |-- tools/steamcmd/userdata/29754331/7/remote/serverbrowser_hist.vdf
+  |-- tools/steamcmd/userdata/29754331/7/remote/sharedconfig.vdf
+  |-- tools/steamcmd/userdata/29754331/7/remotecache.vdf
+  |-- tools/steamcmd/userdata/29754331/config/licensecache
+  |-- tools/steamcmd/userdata/29754331/config/localconfig.vdf
+  |-- tools/steamcmd/userdata/anonymous/config/localconfig.vdf
+  |-- tools/steamcmd/vstdlib_s.dll
+  |-- tools/steamcmd/vstdlib_s64.dll
   |-- VERSION
   |-- VERSIONING.md
   |-- Zomboid_Architect.code-workspace
@@ -134,4 +371,4 @@ Version moteur : 0.1.0-alpha (b41)
 
 | Date | Action | Detail |
 |------|--------|--------|
-| 2026-07-03 | sync_agent.ps1 | MAJ auto - tree, last commit, version |
+| 2026-07-05 | sync_agent.ps1 | MAJ auto - tree, last commit, version |

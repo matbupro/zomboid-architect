@@ -3,10 +3,6 @@
 		{
 			"name": "Zomboid_Architect",
 			"path": "."
-		},
-		{
-			"name": "Steam",
-			"path": "../../Games/Steam"
 		}
 	],
 	"settings": {}

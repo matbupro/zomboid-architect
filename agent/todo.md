@@ -15,12 +15,12 @@
 - [ ] Validation Pydantic stricte des entités
 - [ ] Générer identifiants uniques complexes (Base.Axe) anti-collisions mods
 
-## PHASE 3 : Ingestion ChromaDB
-- [ ] Coder le script d’ingestion globale (`ingest.py`)
-- [ ] Injecter objets textualisés avec métadonnées strictes (version: b41, type: item)
-- [ ] Injecter recettes, API Java et guides Markdown
-- [ ] Implémenter batch adaptatif + checkpoints anti-OOM
-- [ ] Écrire `promote.py` (staging → production, gated par golden set)
+## PHASE 3 : Ingestion ChromaDB ✅ TERMINE (corrigé Phase 3.1)
+- [x] Coder le script d’ingestion globale (`ingest.py`)
+- [x] Injecter objets textualisés avec métadonnées strictes (version: b41, type: item)
+- [x] Injecter recettes, API Java et guides Markdown
+- [x] Implémenter batch adaptatif + checkpoints anti-OOM
+- [x] Écrire `promote.py` (staging → production, gated par golden set)
 - [ ] Interdire toute écriture directe en `production/`
 - [ ] Backup DB + rotation avant chaque ré-ingestion majeure
 
@@ -84,6 +84,14 @@
 - [ ] Docker service ingestor dans docker-compose.yml
 - [x] README ingestor/ ✅ termine (17 sections : quickstart, architecture, CLI ref, config, Steam, Brave, depannage…)
 - [x] Tests unitaires processeurs — 45 tests (engine detection, MIME mapping, chunking, compute_hash, text extraction)
+
+## NOUVEAU : Phase 3.1 — Ingestion structuree corigee (2026-07-05) ✅ TERMINE
+- [x] Chunk metadata perdue : `_flush_batch` passait meta dans `write_chunks_to_chroma()` mais pas dans `Chunk.metadata` → 0 hits golden set
+- [x] Fix : `Chunk(text=..., metadata=meta)` maintenant stocke base_id/item_type en ChromaDB
+- [x] Golden set gate fonctionne : b41-axe-pickup = 1.0 (Base.Axe trouve)
+- [x] Filtres promote.py maps correctement vers $and/$eq ChromaDB SDK
+- [x] src/retrieval/chroma_client.py migré vers chromadb SDK (plus de raw HTTP cassé)
+- [x] Multi-collection search (pz_items+pz_recipes+pz_mechanics)
 
 ## NOUVEAU : Phase Bot Discord (interphase) ✅ TERMINE (cote code)
 - [x] Structure `bot/` créée (config, engine_client, llm_adapter, pipeline)
@@ -168,3 +176,9 @@
 ## Sync auto: last_sync: 2026-07-04
 
 ## Sync auto: last_sync: 2026-07-04
+
+## Sync auto: last_sync: 2026-07-05
+
+## Sync auto: last_sync: 2026-07-05
+
+## Sync auto: last_sync: 2026-07-05

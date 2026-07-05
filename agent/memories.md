@@ -52,3 +52,15 @@ Phase 12 ajoutée : pipeline de génération de mods + sanity check cohérence p
 
 ## Session du 2026-07-04
 Phase 6: Filtrage B41/B42 natif — game_version filtering avec ChromaDB , integre dans chroma_client, engine_client, pipeline, et bot main.py. 24 nouveaux tests, 84 tests total.
+
+## Session du 2026-07-04
+feat: incremental ingestion via SHA-256 hash index — 17 tests, tous passant. FIX test isolation : _quarantine_patch pour patcher get_quarantine_path() directement (monkeypatch.setenv ignoré car la fonction ne lit PAS les env vars).
+
+## Session du 2026-07-05
+Phase 6 complet: regression tester + release tagging, 36 nouveaux tests
+
+## Session du 2026-07-05
+Phase 3: ingest.py global ingestion script, 8 objects B41, recipes, mechanics, strict metadata validation, batch anti-OOM, 24 tests
+
+## Session du 2026-07-05
+Phase 3.1: ingest.py metadata fix + promote.py golden set gate + chroma_client SDK migration

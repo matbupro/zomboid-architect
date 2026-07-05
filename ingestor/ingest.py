@@ -18,12 +18,23 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
+import shutil
 import sys
+import tarfile
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Generator
+
+# ── Logger ---
+
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ── Configuration par défaut ────────────────────────────────────────────────────
@@ -345,6 +356,68 @@ def _resolve_collection(constraint: MetadataConstraint) -> str:
     return mapping.get(cat, "pz_items")
 
 
+# ── Backup pre-ingest + rollback ---
+
+_BACKUP_DIR = Path("backups") / "ingest"  # backups de staging avant ingestion
+
+_MAX_STAGING_BACKUPS = 5
+
+
+def _pre_ingest_backup() -> Optional[Path]:
+    """Sauvegarde staging/ AVANT ingestion pour rollback en cas de crash.
+
+    Returns:
+        Chemin du snapshot TAR, ou None si staging/ est vide/inexistant.
+    """
+    if not STAGING_DIR.exists():
+        return None
+
+    _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
+    snapshot_path = _BACKUP_DIR / f"staging_backup_{stamp}.tar.gz"
+
+    with tarfile.open(snapshot_path, "w:gz") as tar:
+        # Ne pas sauvegarder les fichiers de lock ChromaDB
+        for root, dirs, files in os.walk(STAGING_DIR):
+            for fname in files:
+                fpath = Path(root) / fname
+                if ".lock" not in fpath.name and "chroma.sqlite3-shm" not in fpath.name:
+                    tar.add(fpath, arcname=fpath.relative_to(STAGING_DIR))
+
+    logger.info(f"[Backup] Pre-ingest staging backup: {snapshot_path}")
+    _rotate_staging_backups()
+    return snapshot_path
+
+
+def _rollback_from_backup(backup_path: Path) -> None:
+    """Restaurer staging/ depuis un backup pre-ingest."""
+    if not backup_path.exists():
+        logger.warning(f"[Rollback] Backup introuvable: {backup_path}")
+        return
+
+    # Nettoyer staging actuel
+    for item in STAGING_DIR.iterdir():
+        if item.is_file() or item.is_symlink():
+            item.unlink()
+        elif item.is_dir():
+            shutil.rmtree(item)
+
+    with tarfile.open(backup_path, "r:gz") as tar:
+        tar.extractall(STAGING_DIR)
+
+    logger.info(f"[Rollback] staging restaure depuis {backup_path.name}")
+
+
+def _rotate_staging_backups() -> None:
+    """Supprimer les snapshots les plus anciens au-dela de _MAX_STAGING_BACKUPS."""
+    if not _BACKUP_DIR.exists():
+        return
+    backups = sorted(_BACKUP_DIR.glob("staging_backup_*.tar.gz"), reverse=True)
+    for old in backups[_MAX_STAGING_BACKUPS:]:
+        old.unlink(missing_ok=True)
+        logger.info(f"[Backup] Rotate out old backup: {old.name}")
+
+
 # ── Ingestion structurée (cœur de Phase 3) ─────────────────────────────────────
 
 @dataclass
@@ -356,6 +429,7 @@ class IngestSummary:
     validations_failed: int = 0
     errors: list[str] = field(default_factory=list)
     batches_created: int = 0
+    backup_path: Optional[str] = None  # snapshot pre-ingest pour rollback
 
 
 async def ingest_structured_data(
@@ -366,10 +440,41 @@ async def ingest_structured_data(
 ) -> IngestSummary:
     """Ingest des données structurées PZ dans staging ChromaDB.
 
-    Retourne un resume complet de l'operation.
+    Protection : backup pre-ingest + rollback automatique en cas de crash.
     """
-    from .storage.chroma_writer import ChromaWriter
+    # ── Pre-ingest backup (rollback safe) ---
+    backup_path = _pre_ingest_backup()
+    summary = IngestSummary(backup_path=str(backup_path) if backup_path else None)
 
+    try:
+        impl_summary = await _ingest_structured_data_impl(items, recipes, mechanics, b42_diffs)
+        # Merge inner results into outer summary (conserve backup_path)
+        summary.objects_ingested += impl_summary.objects_ingested
+        summary.chunks_written += impl_summary.chunks_written
+        summary.validations_passed += impl_summary.validations_passed
+        summary.validations_failed += impl_summary.validations_failed
+        summary.batches_created += impl_summary.batches_created
+        summary.errors.extend(impl_summary.errors)
+        return summary
+    except Exception as exc:
+        # Rollback : restaurer staging/ depuis le backup pre-ingest
+        if backup_path and backup_path.exists():
+            logger.error(
+                f"[Ingest] Erreur critique — rollback depuis {backup_path.name}",
+                exc_info=True,
+            )
+            _rollback_from_backup(backup_path)
+        summary.errors.append(f"CRASH: {exc}")
+        raise
+
+
+async def _ingest_structured_data_impl(
+    items: Optional[list[MetadataConstraint]] = None,
+    recipes: Optional[list[MetadataConstraint]] = None,
+    mechanics: Optional[list[MetadataConstraint]] = None,
+    b42_diffs: Optional[list[MetadataConstraint]] = None,
+) -> IngestSummary:
+    """Implementation interne de ingest_structured_data (sans gestion d'erreurs)."""
     summary = IngestSummary()
     objects: list[MetadataConstraint] = []
     if items:

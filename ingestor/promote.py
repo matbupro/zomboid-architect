@@ -33,6 +33,7 @@ from src.governance._import_compat import (  # type: ignore[import-not-found]
     get_game_version,
     get_logger,
 )
+from src.governance.production_guard import validate_prod_write, DirectWriteError  # noqa: F401
 
 get_current_game_version, GameVersion = get_game_version()
 FileLock = get_filelock()
@@ -236,10 +237,15 @@ def _backup_production(prod_dir: Path, backup_dir: Path) -> Path:
 def _promote_atomic(staging_dir: Path, prod_dir: Path) -> None:
     """Swap staging → production via .incoming (atomic guarantee).
 
+    Protected by production_guard — only this function may write to PROD_DIR.
+
     Stratégie :
       1. Copie staging dans .incoming/
       2. Atomic rename .incoming/ → prod/ (ou move + rm si rename échoue)
     """
+    # Validate: guard against direct writes from non-promote code
+    validate_prod_write("promote")
+
     incoming_dir = prod_dir.parent / f"{prod_dir.name}.incoming"
 
     # Nettoyage d'un .incoming précédent

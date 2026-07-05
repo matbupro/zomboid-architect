@@ -11,13 +11,13 @@ Usage :
 from __future__ import annotations
 
 import asyncio
-import logging
 import sys
 
 import discord
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-logger = logging.getLogger("cleanup")
+from src.governance.logger import get_logger
+
+logger = get_logger("cleanup")
 
 
 def load_token() -> str:
