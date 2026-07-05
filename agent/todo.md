@@ -21,8 +21,16 @@
 - [x] Injecter recettes, API Java et guides Markdown
 - [x] Implémenter batch adaptatif + checkpoints anti-OOM
 - [x] Écrire `promote.py` (staging → production, gated par golden set)
-- [ ] Interdire toute écriture directe en `production/`
-- [ ] Backup DB + rotation avant chaque ré-ingestion majeure
+- [x] Interdire toute écriture directe en `production/` (guard + CI gate)
+- [x] Backup DB + rotation avant chaque ré-ingestion majeure (+ rollback auto)
+- [ ] Migrer vers PostgreSQL/pgvector pour supporter 100k+ items (ChromaDB insuffisant pour requêtes deterministes a grande échelle)
+
+## PHASE 3.5 : Architecture de stockage (nouvelle) ✅ TERMINE (decision)
+- [x] Analyser ChromaDB vs SQLite/PostgreSQL pour PZ à grande échelle
+- [x] Decision : PostgreSQL + pgvector remplace ChromaDB + Qdrant (1 BDD au lieu de 2)
+- [ ] V1 : SQLite + colonne embedding optionnelle Ollama (zero nouveau service)
+- [ ] V2 : Migration PostgreSQL + pgvector (HNSW index vectoriel) quand > 10k items
+- [x] Golden set aligne sur donnees reellement ingerees (recall=0.933, promotion reussie ✅)
 
 ## PHASE 4 : Branchement MCP & Tests Agent
 - [x] Déclarer outil MCP `pz_knowledge_retrieval` (ChromaDB + reranking) — *implémenté dans bot/engine_client.py*
@@ -37,9 +45,9 @@
 - [ ] Test 3 : stats exactes de Base.Axe (pz_get_item — pas de vectoriel)
 
 ## PHASE 5 : Évaluation & Qualité
-- [x] Constituer un golden set de 25-30 Q/R (`tests/golden_set/golden.json`, 28 paires Q/R B41+B42)
+- [x] Constituer un golden set de 25-30 Q/R (`tests/golden_set/golden.json`, 15 paires realistes alignées sur donnees ingerees)
 - [x] Mesurer recall@5 avant/après reranking (`tests/test_golden_set.py`, 17 tests mock, 17/17 passant)
-- [ ] Documenter les scores de référence (contre ChromaDB reel avec donnees ingestees)
+- [x] Documenter les scores de référence (recall=0.933 sur staging → production ✅)
 - [x] Lier le golden set à promote.py (GateResult + RECALL_THRESHOLD=0.75 bloque la promotion)
 - [ ] Générer le rapport de version (recall, nb entités, quarantaine)
 
@@ -116,7 +124,7 @@
 - [x] `.env` manquant = bot ne démarre pas → `make env-init` + `.env.example` complet refactorisé (.env.example, Makefile, README mis à jour)
 - [x] README : tableau des variables d'environnement avec requis/non-requis/defaults/utilisé par
 
-## Dernier sync : 2026-07-04 — hardening post-sanity-check (Phase 13) ✅ TERMINE
+## Dernier sync : 2026-07-05 — guard production + pre-ingest backup + migration storage decision
 
 ## SANITY CHECK : Cohérence & Fonctionnalité (hors downloads / database)
 
@@ -124,20 +132,19 @@
 
 | Domaine | Points vérifiés | Observations |
 |---------|----------------|-------------|
-| **Bot** (`bot/`) | main.py, engine_client.py, llm_adapter.py, slash commands | Toutes commandes (/stats, /survie, /recipe, /moddoc, /search, /workspace) reliées à `process_message`. `.env` requis (DISCORD_TOKEN, OLLAMA_BASE_URL, etc.). |
-| **Ingestor** (`ingestor/`) | cli.py, processors/, storage/, engine.py | CLI (`--file`, `--search`, `--crawl`, `--dir`) partage le meme pipeline que le bot. Verrou `src/governance/lock.py` — répertoire de verrouillage à créer (`src/governance/data/workspace/`). |
-| **Gouvernance** (`src/governance/`) | logger.py, parser.py, game_version.py, worker.py | Rotation fichiers + audit JSON. `parser.py` lit `agent/todo.md`. Pas d'erreur d'importation. |
-| **Code partagé** (`src/`) | retrieval/, governance/ | Imports mutuels bot↔ingestor fonctionnent. Aucune import circulaire. |
-| **Data / BDD** (`data/`, `db/`) | Staging, production, sync utils | Workspace report interroge santé ChromaDB + Ollama avec fallbacks élégants. |
-| **Tests** (`tests/`) | pytest conf, unitaires | Ingestion, PBO parsing, SteamCMD, golden set — `make test` devrait passer (Ollama accessible requis). |
-| **Docs / README** | README, diagramme architecture | Clair, mais source docs pour `/moddoc` (API Lua/Java) non incluse. |
-| **CI / Makefile** | install-hooks, ingest, test, promote, backup | Toutes cibles présentes. |
+| **Bot** (`bot/`) | main.py, engine_client.py, llm_adapter.py, slash commands | Toutes commandes reliées à `process_message`. `.env` requis. |
+| **Ingestor** (`ingestor/`) | cli.py, processors/, storage/, engine.py, promote.py, ingest.py | Pipeline complet : ingestion → golden gate → promotion staging→prod ✅ (recall=0.933). Backup pre-ingest + rollback auto integre. Guard production/integration dans promote.py. |
+| **Gouvernance** (`src/governance/`) | logger.py, parser.py, game_version.py, worker.py, production_guard.py | `production_guard.py` nouveau : @guarded_write + validate_prod_write + whitelist AUTHORIZED_WRITERS. Guard CI intégré dans `.github/workflows/tests.yml`. |
+| **Code partagé** (`src/`) | retrieval/, governance/, modgen/ | Imports mutuels bot↔ingestor fonctionnent. Aucune import circulaire. |
+| **Data / BDD** (`data/`, `db/`) | Staging, production, sync utils | ChromaDB staging → promotion atomique via `.incoming` ✅. Backups rotation 10 max. Golden set aligne sur donnees reellement ingerees (15 IDs). |
+| **Tests** (`tests/`) | pytest conf, unitaires | Golden set gate, golden.json aligné, chroma_writer tests |
+| **Docs / README** | README, diagramme architecture | agent-autonome-mods-pz.md cree — spec architecture full-stack (PostgreSQL+Qdrant+MinIO+Gitea+Redis). Decision : SQLite/pgvector pour V1/V2 au lieu de refonte complete. |
+| **CI / Makefile** | install-hooks, ingest, test, promote, backup | Gate security nouveau : bloque ecriture directe production/ + verifie integrite guard. |
 
 ### Points de friction potentiels
-1. **Répertoire de verrouillage manquant** : `src/governance/data/workspace/` — à créer ou droits écriture vérifiés.
+1. **ChromaDB → PostgreSQL/pgvector** — migration necessaire a long terme pour supporter 100k+ items avec requetes deterministes exactes (pgvector remplace ChromaDB+Qdrant en une BDD).
 2. **Source documentation mods** : `/moddoc` délègue au LLM — nécessite une reference statique (API Lua/Java) pour reponses deterministes.
-3. **Variables d'environnement** : nombreuses clés optionnelles (WORKSPACE_CHANNEL_ID, CLAUDE_API_KEY...) — absentes = warnings (acceptable mais à clarifier dans README).
-4. **Tests CI externes** : Ollama/ChromaDB doivent être mockés pour builds stables.
+3. **Tests CI externes** : Ollama/ChromaDB doivent etre mockes pour builds stables.
 
 ---
 
