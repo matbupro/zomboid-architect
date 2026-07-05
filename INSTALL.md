@@ -5,9 +5,9 @@
 | Outil | Version min. | Installer via |
 |-------|-------------|---------------|
 | Python ≥ 3.10 | 3.14 conseillé | `winget install Python.Python.3.14` |
-| Git |最新版 | `winget install Git.Git` |
-| Docker Desktop |最新版 | `winget install Docker.DockerDesktop` |
-| Ollama |最新版 | https://ollama.com → installer + `ollama pull qwen3.6:35b-a3b` |
+| Git | dernière version | `winget install Git.Git` |
+| Docker Desktop | dernière version | `winget install Docker.DockerDesktop` |
+| Ollama | dernière version | https://ollama.com → installer + `ollama pull qwen3.6:35b-a3b` |
 
 ## Installation en 1 clic (Windows)
 
