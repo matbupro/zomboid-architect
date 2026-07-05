@@ -411,10 +411,9 @@ async def ingest_structured_data(
             chunk_size = len(chunk["text"]) + 512  # buffer metadata
             if current_batch_bytes + chunk_size > MAX_BATCH_BYTES and batch_chunks:
                 summary.batches_created += 1
-                success = await _flush_batch(batch_chunks, ChromaWriter())
-                if success:
-                    summary.chunks_written += len(batch_chunks)
-                    summary.validations_passed += 1
+                written = await _flush_batch(batch_chunks)
+                summary.chunks_written += written
+                summary.validations_passed += written
                 batch_chunks.clear()
                 current_batch_bytes = 0
 
@@ -425,42 +424,65 @@ async def ingest_structured_data(
     # Flush le dernier batch
     if batch_chunks:
         summary.batches_created += 1
-        success = await _flush_batch(batch_chunks, ChromaWriter())
-        if success:
-            summary.chunks_written += len(batch_chunks)
-            summary.validations_passed += 1
+        written = await _flush_batch(batch_chunks)
+        summary.chunks_written += written
+        summary.validations_passed += written
 
     return summary
 
 
+def _sanitize_metadata(meta: dict[str, Any]) -> dict[str, Any]:
+    """Rend les metadata compatibles ChromaDB (str/int/float/bool/list/None uniquement)."""
+    sanitized: dict[str, Any] = {}
+    for k, v in meta.items():
+        if isinstance(v, (str, int, float, bool)) or v is None:
+            sanitized[k] = v
+        elif isinstance(v, list):
+            # Conserver les lists de types primitives
+            if all(isinstance(x, (str, int, float, bool)) for x in v):
+                sanitized[k] = v
+            else:
+                sanitized[k] = json.dumps(v, ensure_ascii=False)
+        else:
+            # Dict ou autre type → sérialiser en JSON
+            sanitized[k] = json.dumps(v, ensure_ascii=False)
+    return sanitized
+
+
 async def _flush_batch(
     batch_chunks: list[tuple[dict, str]],
-    writer: ChromaWriter,
-) -> bool:
-    """Ecrire un batch de chunks dans ChromaDB."""
+) -> int:
+    """Ecrire un batch de chunks dans ChromaDB (un seul appel par collection)."""
     from .processors.base import Chunk
+    from .storage.chroma_writer import ChromaWriter
 
-    all_result = []
+    # Group by target collection — chaque collection requiert un appel separate
+    by_collection: dict[str, list[dict]] = {}
     for chunk_data, collection in batch_chunks:
-        # Normaliser le metadata du chunk
-        meta = dict(chunk_data.get("metadata", {}))
-        meta["batch_id"] = str(uuid.uuid4())[:8]
-        all_result.append((Chunk(text=chunk_data["text"]), chunk_data.get("collection", "pz_items")))
+        by_collection.setdefault(collection, []).append(chunk_data)
 
     success_count = 0
-    for chunk_obj, collection in all_result:
-        writer_ = ChromaWriter()
+    writer_ = ChromaWriter()
+    for target_col, chunk_datas in by_collection.items():
+        chunks_list: list[Chunk] = []
+        metas_per_chunk: list[dict[str, Any]] = []
+        for idx_local, cd in enumerate(chunk_datas):
+            meta = _sanitize_metadata(cd.get("metadata", {}))
+            meta["batch_id"] = str(uuid.uuid4())[:8]
+            chunks_list.append(Chunk(text=cd["text"], index=idx_local, start_offset=0, metadata=meta))
+            metas_per_chunk.append(meta)
+
         ok = await writer_.write_chunks_to_chroma(
-            chunks=[chunk_obj],
+            chunks=chunks_list,
             source="structured://ingest.py",
             content_type="application/json",
-            collection=collection,
-            metadata={"ingest_batch": "auto", **meta},
+            collection=target_col,
+            metadata={"ingest_batch": "auto"},
         )
         if ok:
-            success_count += 1
+            success_count += len(chunks_list)
 
-    return success_count > 0
+    return success_count
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────────

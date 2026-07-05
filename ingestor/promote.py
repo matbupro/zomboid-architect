@@ -147,10 +147,30 @@ def _run_golden_set(golden_path: Path) -> GateResult:
         qid       = q.get("id", "?")
         question  = q.get("question", "")
         expected  = set(q.get("expected_ids", []))
-        filters   = q.get("filter")
+        raw_filters   = q.get("filter")
 
         if not question:
             continue
+
+        # Mapper les filtres du golden set vers les noms de champs reels des metadata ingestees
+        # Puis convertir en filtre ChromaDB valide (toujours $and pour multi-champs)
+        normalized_raw = {}
+        if raw_filters:
+            key_map = {"type": "item_type", "version": "game_version"}
+            for k, v in raw_filters.items():
+                key = key_map.get(k, k)
+                val = str(v).lower() if isinstance(v, str) else v
+                # Ignorer les filtres trop generiques (item_type=item matche aussi pz_mechanics)
+                if key == "item_type" and val == "item":
+                    continue
+                normalized_raw[key] = val
+
+        # Ajouter game_version explicite (le golden set peut l'omettre)
+        normalized_raw.setdefault("game_version", game_version)
+
+        # Construire un filtre ChromaDB valide — toujours $and pour la compatibilite SDK
+        conditions = [{k: {"$eq": v}} for k, v in normalized_raw.items()]
+        filters = {"$and": conditions} if len(conditions) > 1 else conditions[0]
 
         try:
             result = query_staging(question, k=5, filters=filters)
