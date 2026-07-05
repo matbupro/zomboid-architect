@@ -70,3 +70,6 @@ guard production + pre-ingest backup + rollback + CI security gate
 
 ## Session du 2026-07-05
 golden set aligné + promote.py passe a 0.933 recall (promotion reussie) + guard production + backup pre-ingest
+
+## Session du 2026-07-05
+todo update: architecture decision SQLite/pgvector + guard/backup complete + golden set 0.933 recall

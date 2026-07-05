@@ -283,3 +283,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - fix(golden/set): aligner expected_ids aux donnees reellement ingerees (15 paires realistes)
+
+### 2026-07-05 - commit a4a7033
+
+**Changements :**
+- docs: update todo with architecture decision (SQLite/pgvector migration plan + guard/backup complete)
