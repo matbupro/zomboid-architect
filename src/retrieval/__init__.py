@@ -79,6 +79,20 @@ def query_production(
     return client.query(question, k=k, filters=filters)
 
 
+def get_production_client():  # type: ignore[misc]
+    """Retourne le client ChromaDB de production (pour tests / consumers externes)."""
+    from .chroma_client import ChromaClient
+
+    return ChromaClient(stage="production")
+
+
+def get_staging_client():  # type: ignore[misc]
+    """Retourne le client ChromaDB de staging."""
+    from .chroma_client import ChromaClient
+
+    return ChromaClient(stage="staging")
+
+
 def list_collections(stage: str = "staging") -> list[str]:
     """Liste les collections dans une base ChromaDB."""
     from .chroma_client import ChromaClient

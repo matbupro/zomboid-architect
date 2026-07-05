@@ -45,12 +45,12 @@
 
 ## PHASE 6 : Maintenance & Build 42
 - [x] Filtrage $and natif pour isoler B41 / B42 (24 tests, integre dans chroma_client + engine_client + pipeline + main)
-- [ ] Mise à jour incrémentale Chroma (par hash), sans tout réindexer
-- [ ] Détection de patch cassant : rejouer le golden set après chaque MAJ du jeu
-- [ ] Script de tag Git annoté + archivage backup à chaque release
-- [ ] Générer automatiquement les patch notes depuis l’historique Git
+- [x] Mise à jour incrémentale Chroma (par hash), sans tout réindexer — 17 tests, tous passant ✅
+- [x] Détection de patch cassant : rejouer le golden set après chaque MAJ du jeu — module `ingestor/regression.py` + 19 tests
+- [x] Script de tag Git annoté + archivage backup à chaque release — `ingestor/tag_release.py` + 17 tests
+- [x] Générer automatiquement les patch notes depuis l’historique Git — `generate_changelog()` avec conventional commits
 
-## NOUVEAU : Phase 7 — Moteur d'ingestion multi-format (2025-07) ✅ TERMINE
+## NOUVEAU : Phase 7 — Moteur d’ingestion multi-format (2025-07) ✅ TERMINE
 - [x] Arborescence `ingestor/` créée (config, engine, processors/, storage/, search/, embedding/)
 - [x] Interface `Processor.extract()` + `ExtractionResult` / `Chunk` base classes
 - [x] Moteur de détection MIME automatique (engine.py)
@@ -162,6 +162,8 @@
 ### 12.8 Facultatif : publication Steam Workshop
 - [ ] Integrer SteamCMD (deja present dans `tools/steamcmd`) pour upload direct
 - [ ] Commande `/modpublish` declenchant tache CI ou script local via API Web Steam
+
+## Sync auto: last_sync: 2026-07-04
 
 ## Sync auto: last_sync: 2026-07-04
 
