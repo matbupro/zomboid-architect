@@ -10,10 +10,10 @@
 - [x] Documentation technique des UI diégétiques en Lua — ✅ 4 sections: CoreUI, ScreenManager, LuaZomboidScreen, CSS-like style system
 
 ## PHASE 2 : Parsing & Textualization
-- [ ] Coder le parseur Dual-Field résilient (`parse_scripts.py`)
-- [ ] Implémenter la cascade d’encodages + quarantaine
-- [ ] Validation Pydantic stricte des entités
-- [ ] Générer identifiants uniques complexes (Base.Axe) anti-collisions mods
+- [x] Coder le parseur Dual-Field résilient (`parse_scripts.py`) — ✅ dual_field.py: ResilientParser, 6 formates supportes, quarantine automatique
+- [x] Implémenter la cascade d’encodages + quarantaine — ✅ ENCODING_CASCADE [utf-8→latin-1], quarantine.jsonl par date
+- [x] Validation Pydantic stricte des entités — ✅ SchemaValidator.validate() dans schemas.py
+- [x] Générer identifiants uniques complexes (Base.Axe) anti-collisions mods — ✅ SHA-256 deterministic chunk_id
 
 ## PHASE 3 : Ingestion ChromaDB ✅ TERMINE (corrigé Phase 3.1)
 - [x] Coder le script d’ingestion globale (`ingest.py`)

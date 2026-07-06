@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
-Dernier commit : b36cf9b
+Dernier commit : 1a4cb47
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -40,6 +40,13 @@ Version moteur : 0.4.0-alpha
   |-- CLAUDE.md
   |-- data/raw/.gitkeep
   |-- docker-compose.yml
+  |-- docs/lua-ui/index.md
+  |-- docs/lua-ui/README.md
+  |-- docs/mechanics/01-panic.md
+  |-- docs/mechanics/02-distance-and-noise.md
+  |-- docs/mechanics/03-farming.md
+  |-- docs/mechanics/04-weather.md
+  |-- docs/mechanics/README.md
   |-- doctor.ps1
   |-- downloads/steamcli_auth.whl
   |-- downloads/steamcmd_doc.html
@@ -85,6 +92,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/steam/workshop_scanner.py
   |-- ingestor/storage/chroma_writer.py
   |-- ingestor/tag_release.py
+  |-- ingestor/watchdog.py
   |-- INSTALL.md
   |-- Makefile
   |-- mods/.gitkeep
@@ -122,6 +130,8 @@ Version moteur : 0.4.0-alpha
   |-- src/governance/parser.py
   |-- src/governance/production_guard.py
   |-- src/governance/worker.py
+  |-- src/mcp_decorators.py
+  |-- src/mcp_tools.py
   |-- src/modgen/__init__.py
   |-- src/modgen/__main__.py
   |-- src/modgen/config.py
@@ -158,6 +168,7 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_sqlite_storage.py
   |-- tests/test_steamcmd_client.py
   |-- tests/test_tag_release.py
+  |-- tests/test_watchdog.py
   |-- tests/test_workshop_scanner.py
   |-- tools/steamcmd/.crash
   |-- tools/steamcmd/appcache/appinfo.vdf

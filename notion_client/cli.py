@@ -50,9 +50,9 @@ def _print_actions(actions: list[sync.SyncAction]) -> None:
         print("\n  Rien à faire — tout est jour.")
 
 
-def cmd_push(dry_run: bool = False) -> list[sync.SyncAction]:
+def cmd_push(dry_run: bool = False, cleanup_orphans: bool = False) -> list[sync.SyncAction]:
     """Push les tâches locales vers Notion."""
-    actions = sync.sync(dry_run=dry_run)
+    actions = sync.sync(dry_run=dry_run, cleanup_orphans=cleanup_orphans)
     if dry_run:
         print(f"\n{'='*60}")
         print("DRY RUN — ce qui serait fait (aucune modification)")
@@ -146,12 +146,16 @@ def main() -> None:
     group.add_argument("--schema", action="store_true", help="Imprimer le schéma de la DB")
     group.add_argument("--create-schema", action="store_true", help="Afficher le schéma pour création manuelle")
     group.add_argument("--stats", action="store_true", help="Stats des phases dans todo.md")
+    arg_parser.add_argument(
+        "--cleanup", action="store_true",
+        help="Supprimer les orphelins Notion sans match local (attention: destruction réelle)",
+    )
 
     args = arg_parser.parse_args()
 
-    if args.push or args.dry_run:
+    if args.push or args.dry_run or args.cleanup:
         try:
-            cmd_push(dry_run=args.dry_run)
+            cmd_push(dry_run=args.dry_run, cleanup_orphans=bool(args.cleanup))
         except RuntimeError as e:
             print(f"Erreur de configuration : {e}", file=sys.stderr)
             sys.exit(1)

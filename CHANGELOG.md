@@ -418,3 +418,18 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore: sync version 0.4.0-alpha — release notes + version bump
+
+### 2026-07-06 - commit e64bdb8
+
+**Changements :**
+- chore: complete version 0.4.0-alpha release (VERSION + CHANGELOG + README synced)
+
+### 2026-07-06 - commit 6165630
+
+**Changements :**
+- chore: bump version 0.3.0-alpha to 0.4.0-alpha
+
+### 2026-07-06 - commit 1a4cb47
+
+**Changements :**
+- chore: verify todo list checkboxes — Phase 1 Lua UI + Phase 4 MCP/watchdog + Phase 5 CI reports + Phase 12.8 steam upload

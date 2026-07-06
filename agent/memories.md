@@ -109,3 +109,15 @@ Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) 
 
 ## Session du 2026-07-06
 Version bump 0.3.0-alpha → 0.4.0-alpha : multi-format engine, bot Discord complet, SQLite storage V1 (36 tests), mod generation pipeline, hardening
+
+## Session du 2026-07-06
+Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour (tout commité + sync)
+
+## Session du 2026-07-06
+Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour (tout commité + sync)
+
+## Session du 2026-07-06
+Status update: following todo list priorities
+
+## Session du 2026-07-06
+todo verification: Phase 1 Lua UI docs, Phase 4 MCP/watchdog/steam upload, Phase 5 CI golden set + regression tests

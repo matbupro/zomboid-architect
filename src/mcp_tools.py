@@ -259,6 +259,49 @@ def pz_get_moddoc(api_name: str) -> dict[str, Any]:
         return {"error": str(exc)}
 
 
+def pz_get_guide(guide_id: str) -> dict[str, Any]:
+    """Recupere un guide de connaissance structure (ex: lua_debug_guide).
+
+    Ce guide provient d'une collection specialisee 'pz_guides'.
+    Supporte l'ID exact ou une recherche par nom de fichier.
+
+    Args:
+        guide_id: Identifiant du guide (ex: 'lua_decode_guide')
+    """
+    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from types import SimpleNamespace
+
+    try:
+        client = ChromaClient(stage="production", host=None)
+        # 1. Tentative par ID exact
+        result = client.get_by_id(guide_id, collection="pz_guides")
+
+        # 2. Fallback : Recherche semantique si l'ID exact echoue (pour gerer les prefixes de chemin)
+        if result is None:
+            search_results = client.query(question=guide_id, k=1)
+            chunks = search_results.get("chunks", [])
+            if chunks:
+                chunk = chunks[0]
+                # On reconstruit un objet compatible
+                result = SimpleNamespace(
+                    id=chunk["id"],
+                    prose=chunk["prose"],
+                    metadata_=chunk["metadata"]
+                )
+
+        if result is None:
+            return {"error": f"Guide non trouve: {guide_id}"}
+
+        return {
+            "id": result.id,
+            "prose": result.prose,
+            "metadata": result.metadata_,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)}
+
+
+
 # =====================================================================
 # Export public
 # =====================================================================
@@ -270,4 +313,5 @@ __all__ = [
     "pz_get_mechanic",
     "pz_get_recipe",
     "pz_get_moddoc",
+    "pz_get_guide",
 ]

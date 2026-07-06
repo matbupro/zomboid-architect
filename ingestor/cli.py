@@ -94,9 +94,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Options globales
     parser.add_argument("--max-depth", type=int, default=5, help="Profondeur max de crawl (defaut: 5)")
-    parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/crawl (defaut: 20)")
+    parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/args (defaut: 20)")
     parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG → Brave fallback")
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
+    parser.add_argument("--collection", type=str, help="Collection ChromaDB cible (ex: pz_guides)")
 
     # Steam & Mod commands (groupse a part)
     steam_group = parser.add_mutually_exclusive_group()
@@ -331,7 +332,7 @@ async def handle_file(args: argparse.Namespace) -> None:
         print(f"\n  Extrait :\n    {preview}")
 
     # Store
-    collection = result.collection or "pz_pdfs"
+    collection = args.collection or result.collection or "pz_pdfs"
     try:
         _auto_file = not sys.stdin.isatty()
         if _auto_file:
@@ -395,7 +396,7 @@ async def handle_dir(args: argparse.Namespace) -> None:
                 chunks=result.chunks,
                 source=result.source,
                 content_type=result.content_type or "(auto)",
-                collection=result.collection or "pz_pdfs",
+                collection=args.collection or result.collection or "pz_pdfs",
                 metadata={"directory": str(dir_path)},
             )
         print("ChromaDB : stockage terminé.")

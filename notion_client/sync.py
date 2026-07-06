@@ -168,18 +168,24 @@ def _extract_select(prop: dict | None) -> str:
 def sync(
     dry_run: bool = False,
     file_path: str | None = None,
+    cleanup_orphans: bool = False,
 ) -> list[SyncAction]:
     """Lancer le sync local → Notion et renvoyer la liste des actions.
 
     Args:
         dry_run: si True, n'envoie aucune requête (affiche juste ce qui serait fait)
         file_path: chemin vers le todo.md (défaut : agent/todo.md)
+        cleanup_orphans: supprimer les items Notion sans match local (par défaut False → warning only)
 
     Returns:
-        Liste de SyncAction décrivant chaque action effectuée
+        Liste de SyncAction décrivant chaque action effectuée. Les orphelins supprimés
+        sont retournés avec action="deleted_orphan" ou action="delete [dry-run]".
     """
     config = api.get_config()
     client = api.NotionClient(config)
+
+    # Collecteur d'orphanes (items non-matches)
+    deleted_items: list[str] = []  # IDs supprimés
 
     try:
         # 1. Parse local
@@ -210,6 +216,8 @@ def sync(
 
         # 3. Parcourir les phases et tâches locales
         actions: list[SyncAction] = []
+        matched_remote_ids: set[str] = set()  # IDs d'items Notion trouvés par fuzzy match
+
         for phase in phases:
             phase_name = re.sub(r"^\s*Phase\s+\d+\s*:\s*", "", phase.name).strip()
 
@@ -280,6 +288,9 @@ def sync(
                             phase=phase.name, task_text=task.text, local_done=task.done, action=f"create [preview]" if dry_run else "created"
                         ))
                 else:
+                    # Match trouvé → tracked via matched_remote_ids pour orphelin detection
+                    matched_remote_ids.add(remote_match["id"])
+
                     # Tâche existante : comparer statut + priorité
                     remote_status = _extract_select(remote_match.get("properties", {}).get(status_col, {}))
                     expected_status = "Done" if task.done else "Not Started"
@@ -318,6 +329,48 @@ def sync(
                             actions.append(SyncAction(
                                 phase=phase.name, task_text=task.text, local_done=task.done, action="synced"
                             ))
+
+        # 4. Orphan cleanup : items Notion sans match local
+        orphan_items: list[tuple[str, str]] = []  # (id, text) des orphelins
+        for item in remote_items:
+            rid = item["id"]
+            props = item.get("properties", {})
+            rtext = _extract_text(props.get(title_col, {}))
+            if rid not in matched_remote_ids and rtext:
+                orphan_items.append((rid, rtext))
+
+        if orphan_items:
+            if cleanup_orphans:
+                if dry_run:
+                    for rid, rtext in orphan_items:
+                        actions.append(SyncAction(
+                            phase="Orphan cleanup", task_text=rtext, local_done=False, action=f"delete [dry-run]"
+                        ))
+                else:
+                    deleted = 0
+                    for rid, rtext in orphan_items:
+                        try:
+                            client._request("DELETE", f"/pages/{rid}")
+                            deleted += 1
+                            deleted_items.append(rid)
+                            actions.append(SyncAction(
+                                phase="Orphan cleanup", task_text=rtext, local_done=False, action="deleted_orphan"
+                            ))
+                        except RuntimeError:
+                            pass  # ignore les erreurs de suppression
+                    if not dry_run:
+                        print(f"\n  [🧹 {deleted} orphelin(s) supprimé(s) de Notion")
+            else:
+                # Warning : tâches orphelines sans suppression
+                for rid, rtext in orphan_items[:5]:
+                    actions.append(SyncAction(
+                        phase="Orphan warning", task_text=rtext, local_done=False, action=f"orphan [no match — run --cleanup]"
+                    ))
+
+        # Cleanup final (si des orphelins ont été supprimés)
+        if deleted_items and not dry_run:
+            print(f"\n  [🧹 {len(deleted_items)} tâche(s) orpheline(s) supprimée(s) de Notion")
+            print("      Pour supprimer automatiquement à chaque sync, utiliser --cleanup flag sur la CLI.")
 
         return actions
 

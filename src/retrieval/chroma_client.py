@@ -164,7 +164,7 @@ class ChromaClient:
         # Search across all collections populated by ingest.py
         collections_to_search = [
             c for c in client.list_collections()
-            if c.name in ("pz_items", "pz_recipes", "pz_mechanics")
+            if c.name in ("pz_items", "pz_recipes", "pz_mechanics", "pz_guides")
         ]
         if not collections_to_search:
             logger.warning("Aucune collection cible trouvee dans ChromaDB")
@@ -202,7 +202,40 @@ class ChromaClient:
         for c in all_chunks:
             c.pop("_distance", None)  # nettoyer avant retour
 
-        return {"chunks": all_chunks[:k], "query": question, "k": k}
+        return {"chunks": all_chunks[:k], "query": question, "produit_query": question, "k": k}
+
+    def get_by_id(
+        self, target_id: str, collection: str, game_version: str | None = None
+    ) -> Any:
+        """Lookup deterministic item/guide by its ID.
+        Returns a SimpleNamespace with .id, .collection, .prose, and .metadata_.
+        """
+        from types import SimpleNamespace
+
+        client = self._ensure_client()
+        if client is None:
+            return None
+        try:
+            col = client.get_collection(name=collection)
+            where = {}
+            if game_version:
+                where["game_version"] = game_version
+            res = col.get(ids=[target_id], where=where if where else None)
+
+            # Check if we actually found something
+            if not res or not res["ids"] or res["ids"][0] != target_id:
+                return None
+
+            return SimpleNamespace(
+                id=res["ids"][0],
+                collection=collection,
+                prose=self._extract_prose(res["documents"][0]),
+                metadata_=res["metadatas"][0],
+            )
+        except Exception as exc:
+            logger.error("get_by_id error for %s in %s: %s", target_id, collection, exc)
+            return None
+
 
     @staticmethod
     def _extract_prose(doc: Any) -> str:

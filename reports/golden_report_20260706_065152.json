@@ -1,0 +1,277 @@
+{
+  "timestamp": "2026-07-06T06:51 UTC",
+  "collections": [
+    {
+      "name": "pz_test",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_text",
+      "count": 10,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_test3",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_web_pages",
+      "count": 35,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_mechanics",
+      "count": 8,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_write_test",
+      "count": 6,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_items",
+      "count": 16,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_recipes",
+      "count": 4,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_test2",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_lua_api",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_java_api",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_pdfs",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_images",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_videos",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_audios",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_mods",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_workshop_items",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_mod_lua_scripts",
+      "count": 0,
+      "avg_metadata_fields": 0
+    },
+    {
+      "name": "pz_mod_configs",
+      "count": 0,
+      "avg_metadata_fields": 0
+    }
+  ],
+  "golden_recall": {
+    "b41-axe-pickup": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.Axe"
+      ]
+    },
+    "b41-wooden-stick": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.WoodenStick"
+      ]
+    },
+    "b41-bread-info": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.Bread"
+      ]
+    },
+    "b41-canned-food": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.CannedFood"
+      ]
+    },
+    "b41-sledge-hammer": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.SledgeHammer"
+      ]
+    },
+    "b41-wooden-shield": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.WoodenShield"
+      ]
+    },
+    "b41-chicken-leg": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.ChickenLegRaw"
+      ]
+    },
+    "b41-antibiotics": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Base.Antibiotics"
+      ]
+    },
+    "b41-hatchet-recipe": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Recipe.Hatchet"
+      ]
+    },
+    "b41-bread-recipe": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Recipe.BreadFromWheat"
+      ]
+    },
+    "b41-panic-mechanic": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Mechanic.Panic"
+      ]
+    },
+    "b41-distance-vision": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Mechanic.DistanceVision"
+      ]
+    },
+    "b41-farming-mechanic": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Mechanic.Farming"
+      ]
+    },
+    "b41-fire-crafting": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Mechanic.Firecrafting"
+      ]
+    },
+    "b42-multiplayer": {
+      "recall": 0.0,
+      "expected": 1,
+      "found": 0,
+      "hit_at_rank": null,
+      "missed_ids": [
+        "Mechanic.Multiplayer"
+      ]
+    }
+  },
+  "golden_recall_summary": {
+    "avg_recall": 0.0,
+    "questions_with_perfect_recall": 0,
+    "total_questions": 15,
+    "missed_ids": [
+      "Base.Antibiotics",
+      "Base.Axe",
+      "Base.Bread",
+      "Base.CannedFood",
+      "Base.ChickenLegRaw",
+      "Base.SledgeHammer",
+      "Base.WoodenShield",
+      "Base.WoodenStick",
+      "Mechanic.DistanceVision",
+      "Mechanic.Farming",
+      "Mechanic.Firecrafting",
+      "Mechanic.Multiplayer",
+      "Mechanic.Panic",
+      "Recipe.BreadFromWheat",
+      "Recipe.Hatchet"
+    ]
+  },
+  "quarantine": {
+    "total_entries": 0,
+    "by_date": {},
+    "recent_errors": []
+  },
+  "health": {
+    "ollama_online": true,
+    "ollama_models": [
+      "qwen3.6:35b-a3b",
+      "qwen2.5-coder:1.5b-base",
+      "jina/jina-embeddings-v2-base-en:latest",
+      "nomic-embed-text:v1.5",
+      "llama3.2:3b"
+    ],
+    "chroma_online": true,
+    "chroma_version": "{\"nanoseco",
+    "disk_free_gb": 0.0
+  }
+}
