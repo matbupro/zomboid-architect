@@ -106,3 +106,6 @@ Phase 10 Docker validatee: build/run/search cross-collection + mark complete
 
 ## Session du 2026-07-06
 Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) + 36 tests passing
+
+## Session du 2026-07-06
+Version bump 0.3.0-alpha → 0.4.0-alpha : multi-format engine, bot Discord complet, SQLite storage V1 (36 tests), mod generation pipeline, hardening

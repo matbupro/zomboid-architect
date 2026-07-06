@@ -6,7 +6,14 @@ Serve un deux buts : **stratégie de survie** (conseils précis) et **développe
 
 ## Version
 
-`0.3.0-alpha` — Phase B42 + mod generation engine
+`0.4.0-alpha` — Moteur d'ingestion multi-format, bot Discord complet, SQLite storage V1
+
+**Nouveau depuis v0.3.0 :**
+- **Phases 7–9** : Ingestion multi-format (PDF, images, vidéo, audio, docx, epub, web) + crawler DuckDuckGo/Playwright
+- **Bot Discord** : /help, /survie, /recipe, /moddoc, /search, /modgen — mode DM automatique
+- **Phase 12** : Génération de mods PZ valides (32+15 tests)
+- **Phase 3.5 V1** : Storage layer SQLite + Ollama embedding (zéro service externe, 36/36 tests)
+- **Phase 10** : Infrastructure Docker ingstor, quarantine manager, circuit breaker
 
 Voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md) pour l'historique complet.
 

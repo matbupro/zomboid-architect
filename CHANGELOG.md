@@ -413,3 +413,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat(3.5-v1): SQLite storage layer with optional Ollama embedding — zero external service
+
+### 2026-07-06 - commit b36cf9b
+
+**Changements :**
+- chore: sync version 0.4.0-alpha — release notes + version bump

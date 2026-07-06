@@ -3,8 +3,8 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
-Dernier commit : 060a6fc
-Version moteur : 0.3.0-alpha
+Dernier commit : b36cf9b
+Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
