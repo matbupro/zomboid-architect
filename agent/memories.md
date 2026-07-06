@@ -100,3 +100,6 @@ A-D: Docker ingestor fix, golden report CLI, parser B42 validation
 
 ## Session du 2026-07-06
 Sync post-commit: ingestor hardening + bot Docker/config + parser restructure + 27 files changed
+
+## Session du 2026-07-06
+Phase 10 Docker validatee: build/run/search cross-collection + mark complete

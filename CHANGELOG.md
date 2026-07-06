@@ -323,3 +323,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat: comprehensive ingestor + bot hardening (0 quarantine false-positives)
+
+### 2026-07-06 - commit ee9525d
+
+**Changements :**
+- fix(ingestor): validate Docker service Phase 10 (build/run/search verified)

@@ -28,7 +28,7 @@
 ## PHASE 3.5 : Architecture de stockage (nouvelle) ✅ TERMINE (decision)
 - [x] Analyser ChromaDB vs SQLite/PostgreSQL pour PZ à grande échelle
 - [x] Decision : PostgreSQL + pgvector remplace ChromaDB + Qdrant (1 BDD au lieu de 2)
-- [ ] V1 : SQLite + colonne embedding optionnelle Ollama (zero nouveau service)
+- [x] V1 : SQLite + colonne embedding optionnelle Ollama (zero nouveau service) — 36/36 tests ✅
 - [ ] V2 : Migration PostgreSQL + pgvector (HNSW index vectoriel) quand > 10k items
 - [x] Golden set aligne sur donnees reellement ingerees (recall=0.933, promotion reussie ✅)
 
@@ -208,6 +208,8 @@
 ## Sync auto: last_sync: 2026-07-05
 
 ## Sync auto: last_sync: 2026-07-05
+
+## Sync auto: last_sync: 2026-07-06
 
 ## Sync auto: last_sync: 2026-07-06
 
