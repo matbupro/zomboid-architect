@@ -14,8 +14,14 @@ from pathlib import Path
 
 
 def _load_env():
-    """Charge le fichier .env si présent."""
-    env_file = Path(__file__).parent / ".env"
+    """Charge le fichier .env.unified à la racine du projet (source de vérité)."""
+    env_file = Path(__file__).parent.parent / ".env.unified"
+    if not env_file.exists() or not env_file.is_file():
+        # fallback : cherche .env ou .env.example
+        for alt in [Path(__file__).parent / ".env", Path(__file__).parent.parent / ".env"]:
+            if alt.exists():
+                env_file = alt
+                break
     if env_file.exists():
         with open(env_file) as f:
             for line in f:

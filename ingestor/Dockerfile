@@ -48,10 +48,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium
 
 # ------------------------------------------------------------------------------
-# Tesseract OCR data (français + anglais)
-# ------------------------------------------------------------------------------
-RUN tesseract --list-langs 2>/dev/null | grep -q 'eng' || \
-    apt-get update && apt-get install -y tesseract-ocr-eng tesseract-ocr-fra && \
+# Tesseract OCR data (français + anglais) — installé en amont pour éviter layers doubles
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr-eng tesseract-ocr-fra && \
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------------------------

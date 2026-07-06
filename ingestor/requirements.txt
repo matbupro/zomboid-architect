@@ -30,13 +30,16 @@ openai-whisper>=20231117   # Transcription audio (via CLI whisper, pas Ollama AP
 # ------------------------------------------------------------------------------
 playwright>=1.40           # Navigateur headless Chromium
 duckduckgo-search>=6.0     # Recherche DuckDuckGo (no API key needed)
-python-readability>=0.7    # Extraction contenu propre (port JS readability)
+readability-lxml>=0.8        # Extraction contenu propre (port JS readability, successeur de python-readability)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # Archives / Steam Workshop
 # ------------------------------------------------------------------------------
 py7zr>=0.21.0              # Extraction .pbo archives (LZMA compression)
+
+# Vector DB
+chromadb>=0.5              # Base vectorielle (retrieval RAG)
 
 # HTTP & utilitaires
 # ------------------------------------------------------------------------------

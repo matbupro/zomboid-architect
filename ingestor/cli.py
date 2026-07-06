@@ -76,6 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
   %(prog)s --dir "C:/my_docs/"
   %(prog)s --list-collections
   %(prog)s --search-all "comment survivre en B42"
+  %(prog)s --report        Rapport qualite (recall, collections, quarantine)
 """,
     )
 
@@ -87,6 +88,9 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--dir", type=str, help="Ingestion d'un dossier complet")
     group.add_argument("--list-collections", action="store_true", help="Liste les collections ChromaDB disponibles")
     group.add_argument("--search-all", type=str, help="Recherche sur TOUTES les collections ChromaDB")
+    group.add_argument("--report", action="store_true", help="Rapport de qualite (recall golden set, collections, quarantaine)")
+
+    # Options globales
 
     # Options globales
     parser.add_argument("--max-depth", type=int, default=5, help="Profondeur max de crawl (defaut: 5)")
@@ -449,6 +453,17 @@ async def handle_search_all(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Golden report handler (sync, no async needed)
+# ---------------------------------------------------------------------------
+
+def handle_report() -> None:
+    """Commande : --report — genere le rapport qualite."""
+    from .generate_report import main as gen_report_main
+
+    gen_report_main(output_json=True, output_md=True)
+
+
+# ---------------------------------------------------------------------------
 # Steam & Mod handlers
 # ---------------------------------------------------------------------------
 
@@ -629,6 +644,8 @@ async def main(args: argparse.Namespace) -> None:
         await handle_list_collections(args)
     elif args.search_all:
         await handle_search_all(args)
+    elif args.report:
+        handle_report()
 
 
 def run() -> None:

@@ -7,12 +7,23 @@ Le multi-modal (images, vidéo, audio) est transformé en texte via OCR/transcri
 
 from __future__ import annotations
 
+import datetime as _dt
 import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.governance.logger import get_logger
+
+
+def _datetime_now_utc() -> str:
+    """Retourne l'heure actuelle en UTC format ISO 8601."""
+    return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+
+
+def _detect_is_url(text: str) -> bool:
+    """Simple URL detection (avoids circular import from engine.py)."""
+    return text.strip().startswith("http://") or text.strip().startswith("https://")
 
 logger = get_logger(__name__)
 
@@ -40,6 +51,72 @@ class ExtractionResult:
     word_count: int = 0                    # Total mots extraits
     extraction_time_ms: float = 0          # Temps d'extraction (ms)
     metadata: dict = field(default_factory=dict)  # Metadata globales
+
+    def save_raw(self, dirpath: str | Path) -> Path:
+        """Sauvegarde le résultat brut en JSON sur disque.
+
+        Le fichier JSON contient TOUT l'ExtractionResult (chunks + metadata).
+        C'est la source de vérité pour reconstruction ChromaDB si besoin.
+
+        Args:
+            dirpath: Dossier cible (ex: data/raw/pz_text/). Créé s'il n'existe pas.
+
+        Returns:
+            Chemin du fichier JSON sauvegardé.
+        """
+        import json as _json
+
+        p = Path(dirpath)
+        p.mkdir(parents=True, exist_ok=True)
+
+        # Nom du fichier : <sha256_8chars>_<nom_original>.json
+        # Sanitize for Windows: remove \ / : * ? " < > |
+        _WIN_BAD = set(r'\/:*?"<>|')
+        def _sanitize(text: str) -> str:
+            return "".join(ch if ch not in _WIN_BAD else "_" for ch in text)
+
+        if _detect_is_url(self.source):
+            name_part = "url_" + _sanitize(self.source[:60])
+        else:
+            safe_name = Path(self.source).name
+            name_part = _sanitize(safe_name) if safe_name else _sanitize(Path(self.source).stem)
+        hash_part = self.file_hash[:12] if self.file_hash else "nohash"
+        fname = f"{hash_part}_{name_part}.json"
+
+        filepath = p / fname
+
+        # Serialisation
+        payload = {
+            "_meta": {
+                "format": "ingestion_raw_v1",
+                "source": self.source,
+                "content_type": self.content_type,
+                "collection": self.collection,
+                "file_hash": self.file_hash,
+                "word_count": self.word_count,
+                "extraction_time_ms": self.extraction_time_ms,
+                "saved_at": _datetime_now_utc(),
+            },
+            "chunks": [
+                {
+                    "text": c.text,
+                    "index": c.index,
+                    "start_offset": c.start_offset,
+                    "metadata": c.metadata,
+                }
+                for c in self.chunks
+            ],
+            "metadata": self.metadata,
+        }
+
+        tmp = str(filepath) + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            _json.dump(payload, f, ensure_ascii=False, indent=2)
+        import shutil as _shutil
+        _shutil.move(tmp, str(filepath))
+
+        logger.debug("Raw sauvegardé : %s (%d chunks)", filepath.name, len(self.chunks))
+        return filepath
 
 
 class Processor(ABC):

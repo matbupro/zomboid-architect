@@ -15,8 +15,21 @@ from typing import Optional
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 
-_LOG_DIR = Path(__file__).parent.parent / "logs"
-_LOG_DIR.mkdir(parents=True, exist_ok=True)
+# Logs hors de src/ pour éviter les conflits de mount Docker (src:ro)
+# Priorite : $APP_LOGS_DIR (env), sinon /app/logs (Docker volume), sinon logs/ local
+_LOG_DIR = Path(os.environ.get("APP_LOGS_DIR", "/app/logs"))
+try:
+    _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # Verifier qu'on peut ecrire
+    (_LOG_DIR / ".write_test").write_text("ok", encoding="utf-8")
+    (_LOG_DIR / ".write_test").unlink()
+except OSError:
+    try:
+        _LOG_DIR = Path(__file__).parent.parent / "logs"
+        _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        _LOG_DIR = Path("/tmp/zomboid_logs")
+        _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _LOG_FILE = _LOG_DIR / "project.log"
 
 _MAX_BYTES = 10 * 1024 * 1024   # 10 MB per file

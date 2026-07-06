@@ -33,9 +33,18 @@ INITIAL_BACKOFF: float = 1.0  # secondes, exponential backoff
 # ---------------------------------------------------------------------------
 
 def _load_env_vars() -> dict[str, str]:
-    """Charger les variables d'environnement depuis .env.notion si dispos."""
-    env_path = Path(__file__).parent / ".env.notion"
+    """Charger les variables depuis .env.unified (racine du projet)."""
     env: dict[str, str] = {}
+    # Source de vérité : .env.unified à la racine du projet
+    env_path = Path(__file__).parent.parent / ".env.unified"
+    if not env_path.exists():
+        # fallback : cherche .env.notion localement ou .env à la racine
+        for alt in [Path(__file__).parent / ".env.notion", Path(__file__).parent.parent / ".env"]:
+            if alt.exists():
+                env_path = alt
+                break
+    if not env_path.exists():
+        return {}  # aucune source trouvée, les vraies env vars priment
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
@@ -44,7 +53,7 @@ def _load_env_vars() -> dict[str, str]:
             if "=" in stripped:
                 key, _, value = stripped.partition("=")
                 env[key.strip()] = value.strip().strip('"').strip("'")
-    # Les vraies variables d'environnement priment sur .env.notion
+    # Les vraies variables d'environnement priment sur .env.unified
     for key in ("NOTION_API_KEY", "NOTION_DATABASE_ID"):
         if key not in env:
             env[key] = os.environ.get(key, "")  # fallback vers le systeme

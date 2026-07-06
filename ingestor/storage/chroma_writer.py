@@ -375,7 +375,9 @@ class ChromaWriter:
 
         for col in collections:
             try:
-                results = await self.query(col, query_text, n_results=n_results // max(len(collections), 1))
+                # Garantir au moins 1 resultat par collection (evite n_results=0)
+                per_col = max(1, n_results // len(collections))
+                results = await self.query(col, query_text, n_results=per_col)
                 all_results.extend(results)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Recherche dans %s échouée : %s", col, exc)

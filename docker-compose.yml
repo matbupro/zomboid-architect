@@ -13,10 +13,12 @@ services:
     container_name: zomboid-bot
     restart: unless-stopped
     volumes:
-      - "F:/Antigravity DEV/Zomboid_Architect/bot/.env:/app/bot/.env:ro"   # .env du bot
-      - "F:/Antigravity DEV/Zomboid_Architect:/app/zomboid_repo:ro"          # repo complet pour roadmap/docs
+      - "./bot:/app/bot:ro"                                                              # bot package (preserve python -m bot.main)
+      - "F:/Antigravity DEV/Zomboid_Architect/.env.unified:/app/.env.unified:ro"        # config unifiée
+      - "./src:/app/src:ro"                                                              # modules src pour imports Python (governance, retrieval)
+      - "logs-data:/app/logs"                                                              # logs writes (writable volume)
     environment:
-      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_TOKEN: "${DISCORD_TOKEN}"            # depuis .env du host ou variables d'environnement
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       CHROMA_HOST: http://host.docker.internal:8000
       WORKSPACE_CHANNEL_NAME: "💻 WORKSPACE Z-ARCHITECT"
@@ -73,12 +75,24 @@ services:
     restart: "no"          # lancé à la demande via `docker compose run`
     volumes:
       - "F:/Antigravity DEV/Zomboid_Architect/data:/app/zomboid_data:rw"
-      - "F:/Antigravity DEV/Zomboid_Architect/ingestor/.env:/app/ingestor/.env:ro"
+      # .env.unifié monté à la racine du container (/app/)
+      - "F:/Antigravity DEV/Zomboid_Architect/.env.unified:/app/.env.unified:ro"
+      # Repo complet — donne accès au module src/ (governance, logger, retrieval)
+      - "F:/Antigravity DEV/Zomboid_Architect/src:/app/src:ro"
+      # Dossier tests pour golden set (report)
+      - "F:/Antigravity DEV/Zomboid_Architect/tests:/app/tests:ro"
+      # Reports générés par le rapport (rw dans le container, visibles dans repo)
+      - "reports-data:/app/reports:rw"
+      # Logs du conteneur → dossier local (rw)
+      - "logs-data:/app/logs:rw"
     environment:
       CHROMA_HOST: http://host.docker.internal:8000
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       EMBEDDING_MODEL: "nomic-embed-text"
       CLAUDE_API_KEY: ""       # optionnel : mettre la clé Claude pour vision API
+      STEAM_USER: "${STEAM_USER}"
+      STEAM_PASS: "${STEAM_PASS}"
+      PYTHONPATH: "/app:/app/src"  # permet import src.governance.* + ingestor packages
     networks:
       - zomboid-net
     depends_on: [chromadb]
@@ -93,6 +107,8 @@ services:
 volumes:
   ollama-data:
   chroma-data:
+  logs-data:    # logs ingestor/ bot (rw depuis le container)
+  reports-data: # golden_report JSON/MD générés (rw)
 
 # ---------------------------------------------------------------------------
 # Network (bridge par défaut)

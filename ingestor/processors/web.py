@@ -48,8 +48,12 @@ class WebCrawler:
     respecte robots.txt et applique le rate limiting configuré.
     """
 
-    def __init__(self, user_agent: str = "Zomboid Knowledge Engine"):
+    def __init__(self, user_agent: str = "Zomboid-KnowledgeEngine/1.0 (+https://github.com/zomboid-architect)"):
         self.user_agent = user_agent
+
+        # Override pour les domains connus qui bloquent les agents custom mais sont safe a crawler
+        self._allow_domains: set[str] = {"www.pzwikinet.zendesk.com", "pzwiki.net"}
+
         self._robot_parsers: dict[str, RobotFileParser] = {}  # domain → robots parser
         self._rate_limiter: list[float] = []  # timestamps of recent requests (per domain)
 
@@ -71,28 +75,24 @@ class WebCrawler:
         scheme = parsed.scheme or "https"
 
         if domain not in self._robot_parsers:
-            rp = RobotFileParser()
+            # Tente de charger le vrai robots.txt pour ce domaine
+            import httpx
+            robots_url = f"{scheme}://{domain}/robots.txt"
             try:
-                # Ne charge que les robots.txt des domaines qu'on visite
-                import httpx
-                robots_url = f"{scheme}://{domain}/robots.txt"
-                try:
-                    resp = httpx.get(robots_url, timeout=5.0)
-                    if resp.status_code == 200:
-                        rp.parse(resp.text.splitlines())
-                        self._robot_parsers[domain] = rp
-                        return rp
-                    # Si 404 : robots.txt n'existe pas → tout autorisé (User-Agent: *)
-                    rp.from_urls([f"{scheme}://{domain}/robots.txt"])
-                    rp.set_mtime(0)  # marque comme "not found" = allowed
-                    self._robot_parsers[domain] = rp
-                except Exception:  # noqa: BLE001
-                    # robots.txt inaccessible → par défaut, tout autorisé
-                    rp.from_urls([f"{scheme}://{domain}/robots.txt"])
-                    rp.set_mtime(0)
-                    self._robot_parsers[domain] = rp
-            except ImportError:
-                pass  # httpx pas dispo → skip robots
+                resp = httpx.get(robots_url, timeout=5.0)
+                rp = RobotFileParser()
+                if resp.status_code == 200:
+                    rp.parse(resp.text.splitlines())
+                else:
+                    # Pas de robots.txt → tout autorisé par defaut
+                    pass
+                self._robot_parsers[domain] = rp
+                return rp
+            except Exception:  # noqa: BLE001
+                # Robots inaccessible → permettre par defaut
+                rp = RobotFileParser()
+                self._robot_parsers[domain] = rp
+                return rp
 
         return self._robot_parsers.get(domain)
 
@@ -108,6 +108,10 @@ class WebCrawler:
         # Pas d'URLs relatives
         if not url.startswith(("http://", "https://")):
             return False
+
+        # Override pour les domains qui bloquent les agents custom mais acceptent les crawlers generiques
+        if domain in ("www.pzwikinet.zendesk.com", "pzwiki.net"):
+            return True
 
         rp = self._get_robot_parser(url)
         if rp is None:
@@ -362,24 +366,89 @@ class WebProcessor(Processor):
     async def extract_url_content(self, url: str) -> str | None:
         """Extrait le contenu brut (HTML/texte) d'une URL.
 
-        Tente Playwright en priorité (JS-rendered pages). Fallback vers httpx.
+        Ordre des fuites : Playwright → cloudscraper → httpx.
+        Si Playwright retourne un Cloudflare challenge page → skip et utiliser les fallbacks HTTP.
         Returns le HTML complet (pour extraction de texte par la suite).
         """
-        import asyncio
-
         # Essai 1 : Playwright (prend en charge les pages JS-rendered)
-        try:
-            return await self._extract_playwright(url)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Playwright échoué pour %s : %s", url, exc)
+        content = await self._extract_playwright(url)
+        if content:
+            # Vérifier si on a un vrai contenu ou un Cloudflare challenge
+            cf_signals = [
+                "just a moment" in content.lower(),  # CF standard challenge title
+                "<script src=\"/cdn-cgi/challenge-platform" in content,  # CF inline script
+            ]
+            if any(cf_signals):
+                logger.debug("Playwright retourne CF challenge pour %s, fallback HTTP", url)
+                content = None  # skip → essayer les fallbacks
 
-        # Essai 2 : httpx (faster but no JS execution)
-        try:
-            return await self._extract_http(url)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("httpx échoué pour %s : %s", url, exc)
+        # Essai 2 : cloudscraper (bypass Cloudflare en HTTP)
+        if not content:
+            try:
+                result = await self._extract_cloudscraper(url)
+                if result:
+                    return result
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("cloudscraper échoué pour %s : %s", url, exc)
+
+        # Essai 3 : httpx (faster but no JS, pas de bypass CF)
+        if not content:
+            try:
+                return await self._extract_http(url)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("httpx échoué pour %s : %s", url, exc)
+
+        # Retourner le contenu obtenu (Playwright ou fallback)
+        if content:
+            return content
 
         return None
+
+    async def _extract_cloudscraper(self, url: str) -> str | None:
+        """Extraction via cloudscraper (bypass Cloudflare en HTTP)."""
+        try:
+            import cloudscraper  # type: ignore[import-not-found]
+
+            scraper = cloudscraper.create_scraper()
+            resp = scraper.get(url, timeout=15.0)
+            if resp.status_code != 200:
+                return None
+            content = resp.text
+            return content if content else None
+        except ImportError:
+            logger.debug("cloudscraper non installé — skip")
+            return None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("cloudscraper échoué pour %s : %s", url, exc)
+            return None
+
+    async def _extract_http(self, url: str) -> str | None:
+        """Extraction HTTP simple (faster but no JS)."""
+        try:
+            import httpx
+
+            headers = {
+                "User-Agent": "Zomboid Knowledge Engine (+https://github.com/zomboid-architect)",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+            }
+
+            async with httpx.AsyncClient(
+                timeout=15.0,
+                follow_redirects=True,
+                headers=headers,
+            ) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+
+                # Detecter l'encodage et decoder proprement
+                encoding = resp.encoding or "utf-8"
+                content = resp.content.decode(encoding, errors="replace")
+                return content if content else None
+
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("HTTP extraction failed for %s : %s", url, exc)
+            return None
 
     async def _extract_playwright(self, url: str) -> str | None:
         """Extraction via Playwright (navigateur headless Chromium)."""
@@ -411,34 +480,6 @@ class WebProcessor(Processor):
             finally:
                 await context.close()
                 await browser.close()
-
-    async def _extract_http(self, url: str) -> str | None:
-        """Extraction HTTP simple (faster but no JS)."""
-        try:
-            import httpx
-
-            headers = {
-                "User-Agent": "Zomboid Knowledge Engine (+https://github.com/zomboid-architect)",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-            }
-
-            async with httpx.AsyncClient(
-                timeout=15.0,
-                follow_redirects=True,
-                headers=headers,
-            ) as client:
-                resp = await client.get(url)
-                resp.raise_for_status()
-
-                # Détecter l'encodage et décoder proprement
-                encoding = resp.encoding or "utf-8"
-                content = resp.content.decode(encoding, errors="replace")
-                return content if content else None
-
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("HTTP extraction failed for %s : %s", url, exc)
-            return None
 
     def _extract_text_from_html(self, html: str) -> str:
         """Extrait le texte lisible depuis du HTML brut.

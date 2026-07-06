@@ -323,6 +323,15 @@ class IngestionEngine:
             collection = collection or collection_map.get(processor_key, "pz_pdfs")
 
         result.collection = collection
+
+        # -- Sauvegarde brute (source de vérité pour reconstruction ChromaDB) --
+        raw_dir = self.config.DATA_ROOT / "raw"
+        try:
+            saved_path = result.save_raw(raw_dir / collection)
+            logger.debug("Raw persisté : %s", saved_path)
+        except Exception as exc:  # noqa: BLE001 — ne pas bloquer l'ingestion
+            logger.warning("Échec sauvegarde brute de '%s' : %s", source_str, exc)
+
         logger.info("Ingestion %s → %d chunks dans '%s'", source_str, len(result.chunks), collection)
         return result
 

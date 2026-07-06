@@ -80,9 +80,17 @@ class IngestorConfig:
 
 
 def load_config() -> IngestorConfig:
-    """Charge la config depuis l'environnement ou les valeurs par défaut."""
-    env_file = Path(__file__).parent / ".env"
-    if env_file.exists():
+    """Charge la config depuis .env.unified (racine du projet) ou les valeurs par défaut."""
+    env_file = Path(__file__).parent.parent / ".env.unified"
+    if not env_file.exists():
+        # fallback : cherche .env à la racine
+        for alt in [Path(__file__).parent.parent / ".env", Path(__file__).parent / ".env"]:
+            if alt.exists():
+                env_file = alt
+                break
+    if not env_file.exists():
+        pass  # aucun fichier trouvé, utiliser les defaults + vraies env vars
+    else:
         with open(env_file) as f:
             for line in f:
                 line = line.strip()

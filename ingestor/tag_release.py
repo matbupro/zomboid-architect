@@ -81,11 +81,13 @@ class SemVer:
 
 
 def read_version() -> SemVer:
-    content = VERSION_FILE.read_text().strip()
+    # Lire avec UTF-8-SIG pour ignorer automatiquement le BOM
+    content = VERSION_FILE.read_text(encoding="utf-8-sig").strip()
     return SemVer.from_string(content)
 
 
 def write_version(ver: SemVer) -> None:
+    # UTF-8 sans BOM (UTF-8-SIG ajoute un BOM, on l'évite ici)
     VERSION_FILE.write_text(str(ver) + "\n", encoding="utf-8")
 
 
@@ -152,7 +154,9 @@ def _is_release_commit(msg: str) -> bool:
 
 
 def create_backup() -> Optional[Path]:
-    """Backup production ChromaDB → backups/chromadb/YYYY-MMDD_vX.Y.Z.tar.gz."""
+    """Backup production ChromaDB + raw data → backups/chromadb/YYYY-MM_vX.Y.Z.tar.gz."""
+    RAW_DIR = ROOT / "data" / "raw"
+
     if not PROD_DIR.exists():
         print("[tag_release] Production dir does not exist — skipping backup")
         return None
@@ -165,8 +169,11 @@ def create_backup() -> Optional[Path]:
 
     with tarfile.open(snapshot_path, "w:gz") as tar:
         tar.add(PROD_DIR, arcname=PROD_DIR.name)
+        # Inclure les données brutes (source de vérité pour reconstruction)
+        if RAW_DIR.exists():
+            tar.add(RAW_DIR, arcname=RAW_DIR.name)
 
-    print(f"[tag_release] Production backup → {snapshot_path}")
+    print(f"[tag_release] Production backup -> {snapshot_path}")
     return snapshot_path
 
 
@@ -274,11 +281,11 @@ def do_release(
         "changelog_preview": changelog_body[:200] if changelog_body else "",
     }
 
-    print(f"[tag_release] {old_ver} → {new_ver}")
+    print(f"[tag_release] {old_ver} -> {new_ver}")
 
     # Ecrire nouvelle version
     write_version(new_ver)
-    print(f"[tag_release] VERSION mise à jour → {new_ver}")
+    print(f"[tag_release] VERSION mise a jour -> {new_ver}")
 
     # Backup production
     backup_path = create_backup()

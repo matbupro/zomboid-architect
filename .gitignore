@@ -35,12 +35,14 @@ data/workspace/*
 data/tmp/*
 data/sources/*
 data/quarantine/*
+data/raw/*
 !data/staging/.gitkeep
 !data/production/.gitkeep
 !data/workspace/.gitkeep
 !data/tmp/.gitkeep
 !data/sources/.gitkeep
 !data/quarantine/.gitkeep
+!data/raw/.gitkeep
 
 # Logs
 *.log

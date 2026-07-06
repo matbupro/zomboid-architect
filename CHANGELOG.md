@@ -308,3 +308,13 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - docs(doctor): add function/section annotations (5% -> ~8%). docs(audit): add project audit script covering parser/doc/ratios. fix(setup): Docker ETAPE 2 Install-WithWinget + FIX comment cleanup. fix(run-bot): replace dynamic variable ref with SetEnvironmentVariable
+
+### 2026-07-06 - commit 62948e5
+
+**Changements :**
+- fix(ingestor): MIME detection fallback + CLI auto-accept (0 quarantine false-positives)
+
+### 2026-07-06 - commit cc1dfce
+
+**Changements :**
+- chore: auto-sync Phase 8 web crawling complete + test cleanup (cloudscraper CF bypass, PZ wiki extraction verified)
