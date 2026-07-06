@@ -83,7 +83,10 @@
 - [x] Audio (whisper transcription) — processors/audio.py
 - [x] Word .docx — processors/docx.py
 - [x] eBooks .epub — processors/epub.py
-- [ ] CLI `--file <path>` + `--dir <path>` testes et valides (deppr FFmpeg standalone)
+- [x] CLI `--file <path>` + `--dir <path>` testes et valides (FFmpeg standalone requis uniquement pour video processor)
+- [x] MIME detection fallback : `_peek_text()` + config files reconnus (.env, Dockerfile) → plus de quarantine false-positive
+- [x] Auto-accept storage en mode non-interactif (`--dir`/`--file`)
+- [x] 62 tests passing (38 ingestor processors + 24 ingest integration)
 
 ## NOUVEAU : Phase 10 — Safety + Infrastructure
 - [x] Quarantine manager + dedup SHA-256 (quarantine_manager.py)

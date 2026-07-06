@@ -80,6 +80,17 @@ FORMAT_EXTENSIONS: dict[str, str] = {
 }
 
 
+def _peek_text(path: Path | str) -> bool:
+    """Retourne True si les premiers 1024 octets du fichier semblent etre du texte."""
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(1024)
+        # Un fichier binaire contient des null bytes dans les premiers octets
+        return b"\x00" not in chunk
+    except Exception:
+        return False
+
+
 def detect_type(path: Path | str) -> tuple[str, str]:
     """Détecte le type de fichier et retourne (content_type, processor_key).
 
@@ -95,14 +106,28 @@ def detect_type(path: Path | str) -> tuple[str, str]:
 
     # D'abord essayer l'extension
     ext = p.suffix.lower()
-    processor_key = FORMAT_EXTENSIONS.get(ext, None)
+    extension_mime = FORMAT_EXTENSIONS.get(ext, None)  # MIME pour cette extension (si connue)
     content_type = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
 
     # Si MIME guess échoue, utiliser le mapping extension
     if content_type == "application/octet-stream":
         content_type = ext_to_mime(ext)
 
-    # Mappe aux keys de processeur
+    # Fallback : inspection du contenu (fichiers sans extension ou inconnus comme .env, Dockerfile)
+    if not extension_mime:
+        try:
+            is_text = _peek_text(p) or not p.stat().st_size  # texte OU fichier vide
+        except FileNotFoundError:
+            is_text = False
+        name_lower = p.name.lower()
+        known_config_exts = (".env", ".yml", ".yaml", ".toml", ".cfg", ".ini", ".conf")
+        known_config_names = ("dockerfile", "docker-compose.yml", "makefile", "license")
+        if name_lower in known_config_names or is_text:
+            content_type = "text/plain"
+        else:
+            content_type = "application/octet-stream"
+
+    # Mappe content_type vers processor_key (utile pour les extensions connues dont le MIME != short key)
     processor_key = mime_to_processor(content_type)
     if not processor_key:
         raise ValueError(

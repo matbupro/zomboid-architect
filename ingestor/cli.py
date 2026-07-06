@@ -375,8 +375,15 @@ async def handle_dir(args: argparse.Namespace) -> None:
     print(f"  Total chunks     : {total_chunks}")
     print(f"  Total mots       : {total_words}")
 
-    # Stocker dans ChromaDB (optionnel)
-    store = input("\nStocker tous les fichiers dans ChromaDB ? [y/N] ").strip().lower()
+    # Stocker dans ChromaDB (optionnel) — auto-accept si stdin non-TTY
+    _auto_dir = not sys.stdin.isatty()
+    if _auto_dir:
+        store = "y"
+    else:
+        try:
+            store = input("\nStocker tous les fichiers dans ChromaDB ? [y/N] ").strip().lower()
+        except EOFError:
+            store = "y"
     if store == "y":
         from .storage.chroma_writer import write_chunks_to_chroma
         for result in results:
