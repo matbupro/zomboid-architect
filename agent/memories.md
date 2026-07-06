@@ -103,3 +103,6 @@ Sync post-commit: ingestor hardening + bot Docker/config + parser restructure + 
 
 ## Session du 2026-07-06
 Phase 10 Docker validatee: build/run/search cross-collection + mark complete
+
+## Session du 2026-07-06
+Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) + 36 tests passing

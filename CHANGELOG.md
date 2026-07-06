@@ -4,6 +4,86 @@ Toutes les modifications notables, organisées par session de développement.
 
 ---
 
+## [v0.4.0-alpha] — 2026-07-06
+
+### Nouveau moteur d'ingestion multi-format (Phases 7 → 9)
+
+Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx, epub, web), extraction en texte pur, embedding via Ollama, stockage ChromaDB/SQLite.
+
+| Fichier | Rôle |
+|---------|------|
+| `ingestor/cli.py` | CLI (`--search`, `--file`, `--dir`, `--crawl`, `--url`, `--list-collections`, `--search-all`) |
+| `ingestor/engine.py` | Router MIME → processeur, détection URL vs fichier |
+| `ingestor/config.py` | Settings centralisés (ChromaDB, Ollama, OCR, web) |
+| `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionResult` |
+| `ingestor/processors/text.py` | Processeur `.txt`, `.md`, `.csv`, `.json` |
+| `ingestor/processors/pdf.py` | PDF → texte (pdfplumber) + OCR fallback (easyocr) |
+| `ingestor/processors/image.py` | Images → OCR multi-langue + description vision API |
+| `ingestor/processors/video.py` | Vidéo → ffmpeg frames + transcription audio Whisper |
+| `ingestor/processors/audio.py` | Audio → transcription complète |
+| `ingestor/processors/docx.py` | Word `.docx` extraction texte |
+| `ingestor/processors/epub.py` | eBook `.epub` extraction contenu |
+| `ingestor/processors/web.py` | Crawler Playwright BFS + WebProcessor (readability) |
+| `ingestor/search/duckduckgo.py` | Moteur recherche DuckDuckGo (ddgs v9.x, no API key) |
+| `ingestor/storage/chroma_writer.py` | Writer ChromaDB SDK + Ollama embedding + cross-collection search |
+| `ingestor/quarantine_manager.py` | Dédup SHA-256, circuit breaker, monitoring disque |
+| `ingestor/requirements.txt` | Dépendances Python du moteur d'ingestion |
+
+#### Collections ChromaDB ajoutées
+| Collection | Contenu |
+|------------|---------|
+| `pz_web_pages` | Pages web crawlées (DuckDuckGo + Playwright) |
+| `pz_pdfs` | Documents PDF / texte ingérés |
+| `pz_images` | Images → descriptions OCR/vision |
+| `pz_videos` | Vidéos → transcriptions audio |
+| `pz_audios` | Fichiers audio → transcriptions |
+
+### Moteur de génération de mods (Phase 12)
+
+Generation de mods PZ valides depuis description textuelle.
+
+- **CLI** : `python -m src.modgen generate "Une épée" --name "MySword"`
+- **Bot Discord** : `/modgen <description>` → generation auto + retour fichiers
+- **Templates PZ valides** : mod.info JSON, init.lua, ZomboidModDescriptor.txt
+- **Packaging** : `make mod-build MOD_NAME=MyMod` → ZIP dans `mods/`
+- **Validation** : `python -m src.modgen validate /path/to/mod/`
+- **Tests** : 32 unitaires + 15 integration (ZIP manifest)
+
+### Storage layer SQLite avec embedding Ollama (Phase 3.5 V1)
+
+Remplacement de ChromaDB par SQLite local — zéro service externe requis.
+
+| Fichier | Rôle |
+|---------|------|
+| `src/storage/sqlite_storage.py` | Stockage per-collection, cosine similarity SQL, embedding optionnel Ollama |
+| `src/storage/__init__.py` | Module init + exports publics |
+| `tests/test_sqlite_storage.py` | **36 tests** passing (collections, CRUD, vector search, filters, getById, cross-search, embedder mock) |
+
+- SQLite par collection (tables `z_pz_items`, `z_pz_recipes`...) avec JSON metadata
+- Similarité cosinus en SQL pur + Python (pas de dépendance C extension)
+- Embedding Ollama auto-généré à l'écriture
+- Metadata filtering ($and / $eq / version) via JSON operators SQLite `->>`
+- `StorageBackend` unifié avec fallback auto ChromaDB → SQLite
+
+### Bot Discord complet (Phase Bot)
+
+- Slash commands : `/help`, `/stats`, `/survie`, `/recipe`, `/moddoc`, `/search`, `/modgen`
+- Mode DM automatique, Docker compose (3 services), scripts `run-bot.ps1/bat`
+- Pipeline : message → detect_intent → enrich_context (ChromaDB/fallback) → LLM.complete
+
+### Hardening + Infrastructure (Phase 10 & 13)
+
+- Quarantine manager + dedup SHA-256, circuit breaker anti-crash, monitoring disque
+- Docker service ingestor dans docker-compose.yml (on-demand `docker compose run`)
+- `.env` manquant → bot ne démarre pas (guard + `.env.example` complet)
+- Makefile : `make env-init`, `make ingest`, `make test`, `make promote`, `make backup`
+
+### Corrections de bugs
+
+9 fixes inclus (import circulaire WebProcessor, CLI bloqué input(), FileNotFoundError engine.ingest(), Chunk missing start_offset, ChromaDB upsert [[...]], UnicodeEncodeError emoji Windows CMD, ChromaDB query_embeddings rename, DDGS regions→region, DDGS time param removed) + MIME detection fallback `peek_text()` + 0 quarantine false-positives
+
+---
+
 ## [v0.3.0-alpha] — 2026-07-04
 
 ### Phase 6 : Filtrage B41/B42 natif dans le pipeline de requete
@@ -328,3 +408,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - fix(ingestor): validate Docker service Phase 10 (build/run/search verified)
+
+### 2026-07-06 - commit 060a6fc
+
+**Changements :**
+- feat(3.5-v1): SQLite storage layer with optional Ollama embedding — zero external service

@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
-Dernier commit : ee9525d
+Dernier commit : 060a6fc
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -136,6 +136,8 @@ Version moteur : 0.3.0-alpha
   |-- src/modgen/templates/ZomboidModDescriptor.txt.j2
   |-- src/retrieval/__init__.py
   |-- src/retrieval/chroma_client.py
+  |-- src/storage/__init__.py
+  |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
@@ -153,6 +155,7 @@ Version moteur : 0.3.0-alpha
   |-- tests/test_modgen_integration.py
   |-- tests/test_pbo_processor.py
   |-- tests/test_regression.py
+  |-- tests/test_sqlite_storage.py
   |-- tests/test_steamcmd_client.py
   |-- tests/test_tag_release.py
   |-- tests/test_workshop_scanner.py
