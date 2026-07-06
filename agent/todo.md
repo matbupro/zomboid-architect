@@ -68,12 +68,12 @@
 - [x] FFmpeg installe en DLL (via PotPlayer) — binaire standalone a installer pour le processing vidéo
 - [x] Tesseract OCR installe (v5.4.0 — `winget install UB-Mannheim.TesseractOCR`)
 
-## NOUVEAU : Phase 8 — Web crawling
+## NOUVEAU : Phase 8 — Web crawling ✅ TERMINE
 - [x] Moteur recherche DuckDuckGo (search/duckduckgo.py) — no API key needed
 - [x] Crawler Playwright BFS (processors/web.py) avec depth limit, rate limiting, robots.txt
 - [x] Brave Search fallback integre dans CLI `--search` + `--crawl` (fallback automatique si DDG echoue) — code + 7 tests unitaires
-- [x] Stockage dans ChromaDB (`pz_web_pages`) — code ecrit mais pas teste
-- [ ] Test sur un site reel (wiki pz, documentation)
+- [x] Stockage dans ChromaDB (`pz_web_pages`) — teste et valide ✅
+- [x] Test sur un site reel (wiki pz) — cloudscraper bypass Cloudflare, 2 pages extraites (~2800 mots) + 8 chunks stockes
 
 ## NOUVEAU : Phase 9 — Processeurs multi-format ✅ TERMINE
 - [x] Text (.txt, .md, .csv, .json) — processors/text.py
@@ -205,3 +205,5 @@
 ## Sync auto: last_sync: 2026-07-05
 
 ## Sync auto: last_sync: 2026-07-05
+
+## Sync auto: last_sync: 2026-07-06

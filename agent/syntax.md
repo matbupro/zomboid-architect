@@ -1,16 +1,15 @@
 # Etat Actuel du Projet
 
 ## Status
-**Derniere MAJ agent/ : 2026-07-05 par sync_agent.ps1 automatique.**
+**Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
-Dernier commit : f213931
+Dernier commit : 0bd4ced
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
-  |-- .coverage
   |-- .env.example
   |-- .github/workflows/tests.yml
   |-- .gitignore
@@ -25,6 +24,7 @@ Version moteur : 0.3.0-alpha
   |-- agent/syntax.md
   |-- agent/todo.md
   |-- agent-autonome-mods-pz.md
+  |-- audit.ps1
   |-- bot/__init__.py
   |-- bot/cleanup_channels.py
   |-- bot/config.py
@@ -379,4 +379,4 @@ Version moteur : 0.3.0-alpha
 
 | Date | Action | Detail |
 |------|--------|--------|
-| 2026-07-05 | sync_agent.ps1 | MAJ auto - tree, last commit, version |
+| 2026-07-06 | sync_agent.ps1 | MAJ auto - tree, last commit, version |

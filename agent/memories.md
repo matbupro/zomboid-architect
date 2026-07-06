@@ -88,3 +88,6 @@ todo.md sync Notion automatique
 
 ## Session du 2026-07-05
 doctor repair mode + setup fresh machine install
+
+## Session du 2026-07-06
+Phase 8 Web crawling termine : cloudscraper CF bypass, PZ wiki extraction 2 pages + ChromaDB storage, cross-collection search verified. Test file cleanup.

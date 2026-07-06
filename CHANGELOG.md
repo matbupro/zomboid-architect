@@ -303,3 +303,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat(sync): fuzzy matching local↔Notion (accents, apostrophes, tirets)
+
+### 2026-07-06 - commit 0bd4ced
+
+**Changements :**
+- docs(doctor): add function/section annotations (5% -> ~8%). docs(audit): add project audit script covering parser/doc/ratios. fix(setup): Docker ETAPE 2 Install-WithWinget + FIX comment cleanup. fix(run-bot): replace dynamic variable ref with SetEnvironmentVariable
