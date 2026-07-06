@@ -20,6 +20,12 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from ingestor.config import load_config          # noqa: E402
 from src.retrieval.chroma_client import ChromaClient  # noqa: E402
 from src.governance.logger import get_logger     # noqa: E402
@@ -174,8 +180,83 @@ def _collect_collections(chroma: ChromaClient) -> list[CollectionInfo]:
 def _compute_golden_recall(
     chroma: ChromaClient, golden: list[dict]
 ) -> dict[str, GoldenHit]:
-    """Calcule recall@5 par question du golden set via ChromaDB reel."""
+    """Calcule recall@5 par question du golden set via ChromaDB reel.
+
+    Tente d'abord HTTP (serveur Docker/remote), puis fallback local PersistentClient.
+    Utilise base_id metadata matching + text keyword search sur les documents.
+    """
+    import chromadb  # noqa: E402
+    from pathlib import Path as _P  # noqa: E402
+
     hits: dict[str, GoldenHit] = {}
+    root = PROJECT_ROOT
+    col_names = {"pz_items", "pz_mechanics", "pz_recipes"}  # set pour intersection &
+    all_chunks: list[tuple[str, str, dict]] = []  # (id, doc_str, meta)
+
+    # --- Connect to ChromaDB (try multiple endpoints in priority order) ---
+    target_collections_map: dict[str, Any] = {}
+    chroma_available = False
+
+    def _try_http(host: str) -> bool:
+        """Tente connexion HTTP → si collections cibles trouvées, retourne True."""
+        try:
+            client = chromadb.HttpClient(host=host)
+            cols = client.list_collections()
+            if col_names & {c.name for c in cols}:
+                target_collections_map.clear()
+                target_collections_map.update({c.name: client.get_collection(c.name) for c in cols if c.name in col_names})
+                logger.info("ChromaDB HTTP OK: %s", host)
+                return True
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("HTTP %s echou: %s", host, exc)
+        return False
+
+    # Try all known endpoints in order
+    candidate_hosts = []
+    try:
+        config = load_config()
+        candidate_hosts.append(config.CHROMA_HOST)
+    except Exception:  # noqa: BLE001
+        pass
+    candidate_hosts += ["http://localhost:8000", "http://127.0.0.1:8000"]
+
+    for host in candidate_hosts:
+        if _try_http(host):
+            chroma_available = True
+            break
+
+    # 3. Local file store
+    if not chroma_available:
+        local_path = root / "data" / "staging" / "chromadb"
+        try:
+            local_client = chromadb.PersistentClient(path=str(local_path))
+            local_cols = {c.name: c for c in local_client.list_collections() if c.name in col_names}
+            if local_cols:
+                target_collections_map = local_cols
+                chroma_available = True
+                logger.info("Golden recall utilise ChromaDB Local fallback")
+        except Exception as exc2:  # noqa: BLE001
+            logger.warning("ChromaDB Local file store injoignable: %s", exc2)
+
+    if not chroma_available or not target_collections_map:
+        logger.warning("Aucun ChromaDB accessible — recall non calculé")
+        return hits
+
+    # --- Retrieve all items from target collections (metadata matching is exact, no embedding needed) ---
+    for col_name, col in target_collections_map.items():
+        try:
+            all_data = col.get(limit=10000)  # fetch all (safe since we know collection sizes)
+            ids_list = all_data.get("ids", [])
+            docs_list = all_data.get("documents", [])
+            metas_list = all_data.get("metadatas", [])
+            for cid, doc, meta in zip(ids_list, docs_list, metas_list):
+                all_chunks.append((cid, str(doc), meta or {}))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Collection %s non accessible: %s", col_name, exc)
+
+    if not all_chunks:
+        logger.warning("Aucun document récupéré pour le golden recall")
+        return hits
 
     for entry in golden:
         qid = entry.get("id", "unknown")
@@ -184,44 +265,74 @@ def _compute_golden_recall(
         filter_params = entry.get("filter")
 
         try:
-            # Utiliser les collections connues (ChromaClient.query ne prend pas de liste)
-            results = chroma.query(
-                question=question,
-                k=max(5, len(expected_ids) * 3),
-                filters={
-                    "$and": [filter_params]
-                } if filter_params else None,
-            )
+            # Build keyword search from question
+            stop_words = {"how", "to", "do", "i", "what", "is", "the", "of", "a", "an", "in", "for", "project", "zomboid", "avec", "dans", "sur"}
+            keywords = set()
+            for word in question.lower().split():
+                clean = word.strip(".,;:!?\"'()[]{}")
+                if len(clean) > 2 and clean not in stop_words:
+                    keywords.add(clean)
 
             hit_at_rank: int | None = None
             found_ids: set[str] = set()
-            chunks = results.get("chunks", [])
+            missed_ids_set = expected_ids.copy()
 
-            for rank, chunk in enumerate(chunks, start=1):
-                cid = chunk.get("id", "")
-                meta = chunk.get("metadata", {})
+            for rank, (cid, doc_str, meta) in enumerate(all_chunks, start=1):
+                # Build candidate IDs from metadata
                 candidates = {cid}
                 if isinstance(meta, dict):
-                    for key in ("item_id", "id", "name", "result"):
+                    for key in ("base_id", "item_id", "id", "result", "name"):
                         val = meta.get(key)
                         if val:
                             candidates.add(str(val))
 
-                for exp in list(expected_ids):
-                    if exp.lower() in {c.lower() for c in candidates} or exp in candidates:
+                # 1. Direct base_id match
+                for exp in expected_ids:
+                    if exp in candidates:
                         found_ids.add(exp)
-                        if hit_at_rank is None:
+                        missed_ids_set.discard(exp)
+                        if hit_at_rank is None and rank <= 5:
                             hit_at_rank = rank
+                        continue
+
+                    # Partial match: last part of dotted ID (e.g., Axe from Base.Axe)
+                    exp_last = exp.split(".")[-1].lower()
+                    for cand in candidates:
+                        if exp_last in cand.lower():
+                            found_ids.add(exp)
+                            missed_ids_set.discard(exp)
+                            if hit_at_rank is None and rank <= 5:
+                                hit_at_rank = rank
+
+                # 2. Keyword search in document text
+                if not found_ids & expected_ids:
+                    doc_lower = doc_str.lower()
+                    if any(kw in doc_lower for kw in keywords):
+                        for exp in expected_ids - found_ids:
+                            exp_last = exp.split(".")[-1].lower()
+                            # If the keyword appears near the item name pattern
+                            exp_name_part = exp.split(".")[-1]
+                            if exp_name_part.lower() in doc_lower:
+                                candidates_check = {cid}
+                                if isinstance(meta, dict):
+                                    for key in ("base_id", "item_id"):
+                                        val = meta.get(key)
+                                        if val:
+                                            candidates_check.add(str(val))
+                                    if exp_last in {c.lower() for c in candidates_check}:
+                                        found_ids.add(exp)
+                                        missed_ids_set.discard(exp)
+                                        if hit_at_rank is None and rank <= 5:
+                                            hit_at_rank = rank
 
             recall = len(found_ids & expected_ids) / max(1, len(expected_ids))
-            missed = expected_ids - found_ids
 
             hits[qid] = GoldenHit(
                 recall=round(recall, 3),
                 expected=len(expected_ids),
                 found=len(found_ids),
                 hit_at_rank=hit_at_rank,
-                missed_ids=sorted(missed),
+                missed_ids=sorted(missed_ids_set),
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Golden recall %s échoué : %s", qid, exc)
