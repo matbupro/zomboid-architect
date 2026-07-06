@@ -97,3 +97,6 @@ Phase 9 CLI validatee : --file + --dir testés sur .env/Dockerfile/py/md. MIME d
 
 ## Session du 2026-07-06
 A-D: Docker ingestor fix, golden report CLI, parser B42 validation
+
+## Session du 2026-07-06
+Sync post-commit: ingestor hardening + bot Docker/config + parser restructure + 27 files changed

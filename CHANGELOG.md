@@ -318,3 +318,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore: auto-sync Phase 8 web crawling complete + test cleanup (cloudscraper CF bypass, PZ wiki extraction verified)
+
+### 2026-07-06 - commit a0e7ccb
+
+**Changements :**
+- feat: comprehensive ingestor + bot hardening (0 quarantine false-positives)

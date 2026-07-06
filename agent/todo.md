@@ -92,7 +92,7 @@
 - [x] Quarantine manager + dedup SHA-256 (quarantine_manager.py)
 - [x] Circuit breaker anti-crash
 - [x] Disk space monitoring
-- [ ] Docker service ingestor dans docker-compose.yml
+- [x] Docker service ingestor dans docker-compose.yml (build ✅ / run `docker compose run --rm ingestor` ✅ / cross-collection search via Ollama ✅)
 - [x] README ingestor/ ✅ termine (17 sections : quickstart, architecture, CLI ref, config, Steam, Brave, depannage…)
 - [x] Tests unitaires processeurs — 45 tests (engine detection, MIME mapping, chunking, compute_hash, text extraction)
 
@@ -208,6 +208,8 @@
 ## Sync auto: last_sync: 2026-07-05
 
 ## Sync auto: last_sync: 2026-07-05
+
+## Sync auto: last_sync: 2026-07-06
 
 ## Sync auto: last_sync: 2026-07-06
 

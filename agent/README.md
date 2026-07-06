@@ -13,7 +13,6 @@ Ceci est **mon** espace memoire. Le dossier agent/ contient tous mes fichiers de
 | rules.md | 12 commandements + regles d'or du projet
 | syntax.md | Etat actuel du projet (ce fichier)
 | todo.md | TODO list completee (mise a jour continue)
-| memory/project-summary.md | Resume complet du projet (architecture, config, commandes, tests) — reference principale pour agents
 
 ## Maintenance
 

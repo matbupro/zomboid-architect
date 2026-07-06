@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
-Dernier commit : 62948e5
+Dernier commit : a0e7ccb
 Version moteur : 0.3.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -19,6 +19,7 @@ Version moteur : 0.3.0-alpha
   |-- agent/maintenance/README.md
   |-- agent/maintenance/sync_agent.ps1
   |-- agent/memories.md
+  |-- agent/memory/project-summary.md
   |-- agent/README.md
   |-- agent/rules.md
   |-- agent/syntax.md
@@ -37,6 +38,7 @@ Version moteur : 0.3.0-alpha
   |-- bot/requirements.txt
   |-- CHANGELOG.md
   |-- CLAUDE.md
+  |-- data/raw/.gitkeep
   |-- docker-compose.yml
   |-- doctor.ps1
   |-- downloads/steamcli_auth.whl
@@ -48,7 +50,11 @@ Version moteur : 0.3.0-alpha
   |-- ingestor/config.py
   |-- ingestor/Dockerfile
   |-- ingestor/engine.py
+  |-- ingestor/generate_report.py
   |-- ingestor/ingest.py
+  |-- ingestor/parser/__init__.py
+  |-- ingestor/parser/dual_field.py
+  |-- ingestor/parser/schemas.py
   |-- ingestor/processors/__init__.py
   |-- ingestor/processors/audio.py
   |-- ingestor/processors/base.py
@@ -64,6 +70,7 @@ Version moteur : 0.3.0-alpha
   |-- ingestor/pz_game_ingester.py
   |-- ingestor/quarantine_manager.py
   |-- ingestor/README.md
+  |-- ingestor/rebuild_chroma.py
   |-- ingestor/regression.py
   |-- ingestor/requirements.txt
   |-- ingestor/search/__init__.py
