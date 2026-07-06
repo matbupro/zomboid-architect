@@ -44,6 +44,14 @@ jobs:
           pip install jinja2
           pytest tests/test_modgen_integration.py -m "" -v
 
+      - name: Run golden set recall tests
+        run: |
+          python tests/test_golden_set.py -v
+
+      - name: Run regression tests (golden set comparison)
+        run: |
+          pytest tests/test_regression.py -m "" -v --tb=short
+
       - name: Run property-based tests (hypothesis)
         run: |
           pytest tests/test_workshop_scanner.py -m "" -k addoninfo --hypothesis-seed=42 -v

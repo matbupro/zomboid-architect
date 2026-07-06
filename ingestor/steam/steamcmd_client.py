@@ -190,6 +190,44 @@ class SteamCMDClient:
 
         return result
 
+    async def upload_workshop_item(
+        self,
+        folder_path: str | Path,
+        title: str,
+        description: str = "",
+        changelog: str = "",
+        preview_file: str | Path | None = None,
+    ) -> CmdResult:
+        """Uploader un mod vers le Steam Workshop.
+
+        Args:
+            folder_path: Chemin vers le dossier du mod (contenant mod.info, etc.)
+            title: Titre du mod tel qu'affiche sur le Workshop.
+            description: Description longue visible sur la page Workshop.
+            changelog: Notes de version / log de modifications.
+            preview_file: Chemin vers une image d'aperçu (.png/.jpg). Optionnel.
+
+        Returns:
+            CmdResult avec le resultat de l'upload (workshop_item_id, status).
+        """
+        folder_path = Path(folder_path)
+        if not folder_path.exists():
+            return CmdResult(success=False, output="", exit_code=-1, error=f"Dossier inexistant: {folder_path}")
+
+        login_cmd = self._get_login_command()
+        cmd_line = login_cmd + [f"+workshop_upload_item", str(PZ_APP_ID), str(folder_path)]
+
+        if title:
+            cmd_line.extend(["-name", title])
+        if description:
+            cmd_line.extend(["-description", description])
+        if changelog:
+            cmd_line.extend(["-changelog", changelog])
+        if preview_file and Path(preview_file).exists():
+            cmd_line.extend(["-previewfile", str(preview_file)])
+
+        return await self._run_cmd(*cmd_line)
+
     async def download_all_subscribed_mods(self, target_dir: Path | None = None) -> list[int]:
         """Telecharger tous les mods workshop abonnees.
 
