@@ -36,7 +36,7 @@
 - [x] Déclarer outil MCP `pz_knowledge_retrieval` (ChromaDB + reranking) — *implémenté dans bot/engine_client.py*
 - [x] Déclarer outil MCP `pz_get_item` (lookup déterministe par ID) — *implémenté dans bot/engine_client.py*
 - [x] Déclarer outil MCP `pz_generate_mod_template(mod_name, features)` — ✅ mcp_tools.py L128
-- [ ] Déclarer les ressources Markdown fixes + prompts (debug_lua_script, help_me_survive)
+- [x] Déclarer les ressources Markdown fixes + prompts (debug_lua_script, help_me_survive)
 - [x] Isoler chaque handler MCP (décorateur safe_tool) — ✅ mcp_decorators.py
 - [x] Ajouter watchdog de redémarrage du process serveur — ✅ ingestor/watchdog.py + tests
 - [ ] Connecter le serveur à l’agent local (OpenClaw ou autre client MCP)
