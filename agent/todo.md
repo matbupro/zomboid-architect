@@ -6,8 +6,8 @@
 - [x] Fichier VERSION → `0.1.0-alpha`
 - [x] Rédiger CHANGELOG.md, VERSIONING.md, ARCHITECTURE.md
 - [x] Configurer les hooks de commit (Conventional Commits)
-- [ ] Rédiger les fiches de mécaniques Markdown (Panique, Bruit/Distances, Agriculture, Méteo)
-- [ ] Documentation technique des UI diégétiques en Lua
+- [x] Rédiger les fiches de mécaniques Markdown (Panique, Bruit/Distances, Agriculture, Méteo) — ✅ 4 fiches rédigées + README index
+- [x] Documentation technique des UI diégétiques en Lua — ✅ 4 sections: CoreUI, ScreenManager, LuaZomboidScreen, CSS-like style system
 
 ## PHASE 2 : Parsing & Textualization
 - [ ] Coder le parseur Dual-Field résilient (`parse_scripts.py`)
@@ -35,10 +35,10 @@
 ## PHASE 4 : Branchement MCP & Tests Agent
 - [x] Déclarer outil MCP `pz_knowledge_retrieval` (ChromaDB + reranking) — *implémenté dans bot/engine_client.py*
 - [x] Déclarer outil MCP `pz_get_item` (lookup déterministe par ID) — *implémenté dans bot/engine_client.py*
-- [ ] Déclarer outil MCP `pz_generate_mod_template(mod_name, features)`
+- [x] Déclarer outil MCP `pz_generate_mod_template(mod_name, features)` — ✅ mcp_tools.py L128
 - [ ] Déclarer les ressources Markdown fixes + prompts (debug_lua_script, help_me_survive)
-- [ ] Isoler chaque handler MCP (décorateur safe_tool)
-- [ ] Ajouter watchdog de redémarrage du process serveur
+- [x] Isoler chaque handler MCP (décorateur safe_tool) — ✅ mcp_decorators.py
+- [x] Ajouter watchdog de redémarrage du process serveur — ✅ ingestor/watchdog.py + tests
 - [ ] Connecter le serveur à l’agent local (OpenClaw ou autre client MCP)
 - [ ] Test 1 : panique → armes à feu (filtre type: mechanics)
 - [ ] Test 2 : générer UI Lua diégétique (ressource dédiée)
@@ -49,7 +49,7 @@
 - [x] Mesurer recall@5 avant/après reranking (`tests/test_golden_set.py`, 17 tests mock, 17/17 passant)
 - [x] Documenter les scores de référence (recall=0.933 sur staging → production ✅)
 - [x] Lier le golden set à promote.py (GateResult + RECALL_THRESHOLD=0.75 bloque la promotion)
-- [ ] Générer le rapport de version (recall, nb entités, quarantaine)
+- [x] Générer le rapport de version (recall, nb entités, quarantaine) — ✅ generate_report.py + CI golden set + regression tests
 
 ## PHASE 6 : Maintenance & Build 42
 - [x] Filtrage $and natif pour isoler B41 / B42 (24 tests, integre dans chroma_client + engine_client + pipeline + main)
@@ -178,7 +178,7 @@
 - [x] CI : execution tests modgen dans .github/workflows/tests.yml
 
 ### 12.8 Facultatif : publication Steam Workshop
-- [ ] Integrer SteamCMD (deja present dans `tools/steamcmd`) pour upload direct
+- [x] Integrer SteamCMD (deja present dans `tools/steamcmd`) pour upload direct — ✅ steamcmd_client.upload_workshop_item()
 - [ ] Commande `/modpublish` declenchant tache CI ou script local via API Web Steam
 
-## Sync auto: last_sync: 2026-07-06 — todo list follow-up (Phase 5 report fix, MCP tools, mechanic fiches, bot validation)
+## Sync auto: last_sync: 2026-07-06 — todo verified + UI Lua docs + CI golden set + watchdog + steam upload
