@@ -73,3 +73,6 @@ Auto-sync: S1 infra + S2 schema commit, pz-agent Docker stack running, PostgreSQ
 
 ## Session du 2026-07-07
 feat: S3 LangGraph agent loop implementation — new ingestor/agent_core/ package with 6 files, state machine, validation levels, retry policy
+
+## Session du 2026-07-07
+S4-e pipeline ingest-pz-full + S4-f coverage-report — orchestrateur complet + rapport de couverture

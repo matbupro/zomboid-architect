@@ -447,3 +447,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat(agent_core): S3 LangGraph agent loop — complete implementation
+
+### 2026-07-07 - commit b1984cc
+
+**Changements :**
+- feat(ingestor): S4-e pipeline --ingest-pz-full + S4-f --coverage-report
