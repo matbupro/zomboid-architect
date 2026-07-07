@@ -437,3 +437,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore(docs): correction fautes orthographe françaises — ~170 accents diacritiques (README, CHANGELOG, docs/, agent/, modgen/)
+
+### 2026-07-07 - commit ae6317d
+
+**Changements :**
+- chore(tasks): mark completed checkboxes for S1/S2/S4 (validated against commits 15e529f + 41f250b)

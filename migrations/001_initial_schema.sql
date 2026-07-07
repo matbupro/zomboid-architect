@@ -308,7 +308,7 @@ CREATE INDEX idx_users_role ON users(role);
 -- Vues utiles (section C du doc)
 -- =============================================================================
 
-CREATE VIEW v_latest_validated_artifact AS
+CREATE OR REPLACE VIEW v_latest_validated_artifact AS
 SELECT DISTINCT ON (p.id)
     p.id AS project_id, p.mod_id, p.name,
     ma.id AS artifact_id, ma.version, ma.created_at,
@@ -478,12 +478,12 @@ CREATE TRIGGER trg_collection_updated
 -- Vue: data_coverage_summary — % coverage global et par category
 -- =============================================================================
 
-CREATE VIEW v_coverage_summary AS
+CREATE OR REPLACE VIEW v_coverage_summary AS
 SELECT
     category,
     COUNT(*) AS total_items,
     SUM(CASE WHEN is_documented THEN 1 ELSE 0 END) AS documented,
-    ROUND(AVG(data_completeness_score) * 100, 2) AS avg_completeness_pct,
+    ROUND((AVG(data_completeness_score) * 100)::numeric, 2) AS avg_completeness_pct,
     ROUND(
         SUM(CASE WHEN is_documented THEN 1 ELSE 0 END)::NUMERIC /
         NULLIF(COUNT(*), 0) * 100, 2
@@ -496,7 +496,7 @@ ORDER BY coverage_pct ASC;
 -- Vue: ingestion_health — etat actuel de l'ingestion
 -- =============================================================================
 
-CREATE VIEW v_ingestion_health AS
+CREATE OR REPLACE VIEW v_ingestion_health AS
 SELECT
     source_type,
     status,

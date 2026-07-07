@@ -67,3 +67,6 @@ Suppression 12 golden reports obsolètes + 6 fichiers database/ superseded. Proj
 
 ## Session du 2026-07-07
 Correction orthographe — ~170 accents diacritiques corrigés dans README, CHANGELOG, docs/, agent/, et annotations Python (modgen/)
+
+## Session du 2026-07-07
+Auto-sync: S1 infra + S2 schema commit, pz-agent Docker stack running, PostgreSQL 16+PostGIS with 16 tables + 5 views

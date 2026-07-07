@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-07 par sync_agent.ps1 automatique.**
 
-Dernier commit : 8b7d8ee
+Dernier commit : ae6317d
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -37,6 +37,7 @@ Version moteur : 0.4.0-alpha
   |-- bot/requirements.txt
   |-- CHANGELOG.md
   |-- CLAUDE.md
+  |-- docker-compose.pz-agent.yml
   |-- docker-compose.yml
   |-- docs/lua-ui/index.md
   |-- docs/lua-ui/README.md
@@ -53,9 +54,12 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/cli.py
   |-- ingestor/config.py
   |-- ingestor/Dockerfile
+  |-- ingestor/Dockerfile.pz-headless
   |-- ingestor/engine.py
+  |-- ingestor/entrypoint.sh
   |-- ingestor/generate_report.py
   |-- ingestor/ingest.py
+  |-- ingestor/inject_mod.sh
   |-- ingestor/parser/__init__.py
   |-- ingestor/parser/dual_field.py
   |-- ingestor/parser/schemas.py
@@ -70,6 +74,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/processors/text.py
   |-- ingestor/processors/video.py
   |-- ingestor/processors/web.py
+  |-- ingestor/processors/wikijson.py
   |-- ingestor/promote.py
   |-- ingestor/pz_game_ingester.py
   |-- ingestor/quarantine_manager.py
@@ -86,11 +91,14 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/steam/qr_auth.py
   |-- ingestor/steam/steamcmd_client.py
   |-- ingestor/steam/workshop_scanner.py
+  |-- ingestor/storage/pz_storage.py
   |-- ingestor/storage/storage_writer.py
   |-- ingestor/tag_release.py
+  |-- ingestor/tasks.md
   |-- ingestor/watchdog.py
   |-- INSTALL.md
   |-- Makefile
+  |-- migrations/001_initial_schema.sql
   |-- mods/.gitkeep
   |-- notion_client/.gitignore
   |-- notion_client/__init__.py
@@ -111,18 +119,6 @@ Version moteur : 0.4.0-alpha
   |-- notion_sync.py
   |-- pytest.ini
   |-- README.md
-  |-- reports/golden_report_20260706_065152.json
-  |-- reports/golden_report_20260706_065152.md
-  |-- reports/golden_report_20260706_065828.json
-  |-- reports/golden_report_20260706_065828.md
-  |-- reports/golden_report_20260706_070429.json
-  |-- reports/golden_report_20260706_070429.md
-  |-- reports/golden_report_20260706_071319.json
-  |-- reports/golden_report_20260706_071319.md
-  |-- reports/golden_report_20260706_071409.json
-  |-- reports/golden_report_20260706_071409.md
-  |-- reports/golden_report_20260706_071500.json
-  |-- reports/golden_report_20260706_071500.md
   |-- requirements.txt
   |-- resources/lua_debug_guide.md
   |-- resources/survival_mechanics_ref.md

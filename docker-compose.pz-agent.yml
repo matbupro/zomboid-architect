@@ -55,9 +55,7 @@ services:
     image: qdrant/qdrant:v1.7.4
     container_name: pz-agent-qdrant
     restart: unless-stopped
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    ports: []
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
@@ -141,7 +139,7 @@ services:
     container_name: pz-agent-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "16379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru

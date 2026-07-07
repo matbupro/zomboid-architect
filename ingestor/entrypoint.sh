@@ -12,6 +12,17 @@ set -e
 MOD_ID="${1:-testmod}"
 BUILD_TARGET="${2:-42}"
 
+# ------------------------------------------------------------------------------
+# Download PZ server if not already installed
+# ------------------------------------------------------------------------------
+if [ ! -f /pz-server/start-server.sh ]; then
+    echo "[PZ-HEADLESS] PZ server non installe — telechargement via SteamCMD..."
+    /usr/local/bin/download_pz.sh || {
+        echo "[PZ-HEADLESS] ERREUR: echec du telechargement de PZ"
+        exit 1
+    }
+fi
+
 echo "[PZ-HEADLESS] Starting server for mod: $MOD_ID (build: $BUILD_TARGET)"
 
 # Generation du servertest.ini avec le mod active
