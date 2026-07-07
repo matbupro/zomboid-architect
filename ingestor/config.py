@@ -2,7 +2,9 @@
 config — Settings du moteur d'ingestion multi-format.
 
 Variables d'environnement (voir .env.unified) :
-  STORAGE_BACKEND   — type de stockage: sqlite, postgres (défaut: sqlite)
+  STORAGE_BACKEND   — type de stockage: sqlite, postgres, qdrant (défaut: sqlite)
+  STORAGE_QDRANT_URL — URL du serveur Qdrant (défaut: http://localhost:6333)
+  STORAGE_DUAL_SYNC — dual-write SQLite+PG pendant migration (défaut: false)
   STORAGE_PG_HOST   — hôte PostgreSQL (défaut: localhost)
   STORAGE_PG_PORT   — port PostgreSQL (défaut: 5432)
   STORAGE_PG_DB     — nom BDD PostgreSQL (défaut: zomboid_storage)
@@ -29,8 +31,10 @@ from pathlib import Path
 class IngestorConfig:
     """Configuration centralisée de l'ingestion."""
 
-    # Storage (SQLite / PostgreSQL via StorageBackend)
+    # Storage (SQLite / PostgreSQL / Qdrant via StorageBackend)
     STORAGE_BACKEND: str = "sqlite"
+    STORAGE_QDRANT_URL: str = "http://localhost:6333"  # serveur vectoriel distant
+    STORAGE_DUAL_SYNC: bool = False  # dual-write SQLite + PG pendant migration
 
     # Ollama (embedding)
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
@@ -106,6 +110,8 @@ def load_config() -> IngestorConfig:
 
     return IngestorConfig(
         STORAGE_BACKEND=os.getenv("STORAGE_BACKEND", "sqlite"),
+        STORAGE_QDRANT_URL=os.getenv("STORAGE_QDRANT_URL", "http://localhost:6333"),
+        STORAGE_DUAL_SYNC=os.getenv("STORAGE_DUAL_SYNC", "false").lower() in ("true", "1", "yes"),
         OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434"),
         EMBEDDING_MODEL=os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
         CLAUDE_API_KEY=os.getenv("CLAUDE_API_KEY"),

@@ -29,6 +29,7 @@ Exemple :
 
 from __future__ import annotations
 
+import asyncio as _asyncio
 import json
 import math
 import time
@@ -706,12 +707,16 @@ class _StorageConfig:
         self.backend: str = _os.getenv("STORAGE_BACKEND", "sqlite").lower() or "sqlite"
         self.data_dir: str = _os.getenv("STORAGE_SQLITE_DIR", "data/storage")
         self.ollama_url: str | None = _os.getenv("OLLAMA_BASE_URL", "http://localhost:11434") or None
+        # Qdrant vector store (S5-c): remote vector search over embeddings
+        self.qdrant_url: str = _os.getenv("STORAGE_QDRANT_URL", "http://localhost:6333")
         # PostgreSQL options
         self.pg_host: str = _os.getenv("STORAGE_PG_HOST", "localhost")
         self.pg_port: int = int(_os.getenv("STORAGE_PG_PORT", "5432"))
         self.pg_db: str = _os.getenv("STORAGE_PG_DB", "zomboid_storage")
         self.pg_user: str = _os.getenv("STORAGE_PG_USER", "postgres")
         self.pg_pass: str | None = _os.getenv("STORAGE_PG_PASS")
+        # Dual-sync pendant migration (S5-b): ecrit sur SQLite + PG simultanement
+        self.dual_sync: bool = _os.getenv("STORAGE_DUAL_SYNC", "false").lower() in ("true", "1", "yes")
 
 
 def _load_storage_config() -> _StorageConfig:
@@ -719,11 +724,16 @@ def _load_storage_config() -> _StorageConfig:
 
 
 class StorageBackend:
-    """Backend de stockage vectoriel — SQLite par defaut (V1), PostgreSQL/pgvector (V2).
+    """Backend de stockage vectoriel — SQLite par defaut (V1), PostgreSQL/pgvector (V2), Qdrant (V3).
 
     Configure via .env :
       STORAGE_BACKEND=sqlite     → SQLite local (defaut, aucun service externe)
       STORAGE_BACKEND=postgres   → PostgreSQL + pgvector (necessite un serveur PG)
+      STORAGE_BACKEND=qdrant     → Qdrant distant + SQLite texte (S5-c, necessite docker-compose up qdrant)
+
+    S5-c : Architecture hybride — SQLite garde texte+metadata, Qdrant gere les vecteurs.
+           query() delegate a Qdrant pour la recherche vectorielle cosinus.
+           write_chunks() upsert les embeddings vers Qdrant en parallel.
 
     Args:
         data_dir: Repertoire de la base SQLite (si backend=sqlite).
@@ -741,12 +751,51 @@ class StorageBackend:
         self._backend_type = cfg.backend
         self._sqlite = SQLiteStorage(data_dir=data_dir, ollama_url=ollama_url)
 
-        # PostgreSQL backend (V2) — chargee a la demande pour eviter dependance au demarrage
+        # PostgreSQL backend (V2) — chargee a la demande ou eagerly en dual-sync mode
         self._postgres: Any | None = None
+        self._dual_sync = cfg.dual_sync
+        self._pg_ready = False  # PG confirme healthy
+
+        # Qdrant vector store (S5-c) — remote vector search + embeddings
+        self._qdrant: Any | None = None
+        self._qdrant_ready = False
+        self._qdrant_url = cfg.qdrant_url
+        if self._backend_type == "qdrant":
+            qd = self._ensure_qdrant()
+            if qd is not None:
+                self._qdrant_ready = True
+                logger.info("Qdrant vector store active (url=%s)", cfg.qdrant_url)
+                # S'assurer les collections existent
+                try:
+                    from src.storage.qdrant_backend import DEFAULT_QDRANT_CATEGORIES
+
+                    qd.ensure_all_collections(DEFAULT_QDRANT_CATEGORIES, recreate=False)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Initialisation collections Qdrant echoue (non-critique): %s", exc)
+            else:
+                logger.warning("Qdrant backend demande mais indisponible — SQLite en fallback")
+
+        if self._dual_sync:
+            # En dual-mode, on initialise PG des le demarrage (lazy mais precoce)
+            pg = self._ensure_postgres()
+            if pg is not None:
+                self._pg_ready = True
+                logger.info("Dual-sync active : SQLite + PostgreSQL (sync en cours)")
+            else:
+                logger.warning("Dual-sync demandé mais PG indisponible — SQLite seul")
+
+        # Si backend postgresql ET PG indisponible, fallback explicite
+        if self._backend_type == "postgresql" and self._postgres is None:
+            logger.warning("PostgreSQL backend demandee mais indisponible — SQLite en fallback forcé")
 
     def _ensure_postgres(self) -> Any:
-        """Charge le backend PostgreSQL a la demande (lazy import)."""
-        if self._postgres is None and self._backend_type == "postgresql":
+        """Charge le backend PostgreSQL a la demande (lazy import).
+
+        Charge PG si:
+          - backend_type == 'postgresql' (mode PG principal)
+          - OU dual_sync active (ecritures simultanees SQLite + PG)
+        """
+        if self._postgres is None and (self._backend_type == "postgresql" or self._dual_sync):
             try:
                 from src.storage.postgres_backend import PostgresStorageBackend  # noqa: F811
                 cfg = _load_storage_config()
@@ -758,10 +807,43 @@ class StorageBackend:
                     password=cfg.pg_pass,
                 )
                 logger.info("PostgreSQL backend activee (host=%s:%d, db=%s)", cfg.pg_host, cfg.pg_port, cfg.pg_db)
-            except ImportError as exc:
+            except ImportError as exc:  # noqa: BLE001
                 logger.warning("PostgreSQL indisponible (%s) — fallback SQLite", exc)
-                self._backend_type = "sqlite"
+                if self._backend_type == "postgresql":
+                    self._backend_type = "sqlite"
+            except Exception as exc:  # noqa: BLE001
+                # Capturer toutes les exceptions (ConnectionError, etc.) de __init__
+                logger.warning("PostgreSQL init echou (%s) — fallback SQLite", exc)
+                if self._backend_type == "postgresql":
+                    self._backend_type = "sqlite"
         return self._postgres
+
+    def _ensure_qdrant(self) -> Any:
+        """Charge le backend Qdrant a la demande (lazy import).
+
+        S'assure que les collections par defaut existent sur le serveur.
+        """
+        if self._qdrant is not None:
+            return self._qdrant
+
+        try:
+            from src.storage.qdrant_backend import QdrantVectorBackend  # noqa: F811
+
+            cfg = _load_storage_config()
+            self._qdrant = QdrantVectorBackend(
+                url=cfg.qdrant_url,
+                vector_size=768,  # nomic-embed-text dims
+            )
+            logger.info("Qdrant backend active (url=%s)", cfg.qdrant_url)
+        except ImportError as exc:  # noqa: BLE001
+            logger.warning("Qdrant indisponible (%s) — fallback SQLite", exc)
+            if self._backend_type == "qdrant":
+                self._backend_type = "sqlite"
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Qdrant init echou (%s) — fallback SQLite", exc)
+            if self._backend_type == "qdrant":
+                self._backend_type = "sqlite"
+        return self._qdrant
 
     @property
     def sqlite(self) -> SQLiteStorage:
@@ -770,12 +852,61 @@ class StorageBackend:
 
     @property
     def backend_type(self) -> str:
-        """Type du backend actif : 'sqlite' ou 'postgresql'."""
+        """Type du backend actif : 'sqlite', 'postgresql', 'dual-sync' ou 'qdrant'."""
+        if self._dual_sync and self._pg_ready:
+            return "dual-sync"
+        if self._backend_type == "qdrant" and self._qdrant_ready:
+            return "qdrant"
         return self._backend_type
 
     # ------------------------------------------------------------------
-    # Interface unifiée — delegue au backend actif
+    # S5-b — Dual-sync helpers (ecritures simultanees SQLite + PG)
     # ------------------------------------------------------------------
+
+    def _sync_to_pg(self, fn_name: str, *args: Any, **kwargs: Any) -> bool:  # type: ignore[no-untyped-def]
+        """Synchroniser un appel ecriture vers PG (silencieusement)."""
+        if not self._dual_sync or not self._pg_ready:
+            return False
+
+        try:
+            loop = _asyncio.get_event_loop()
+        except RuntimeError:
+            loop = _asyncio.new_event_loop()
+            _asyncio.set_event_loop(loop)
+
+        # Mapper le nom de methode SQLite → PG
+        method_map = {
+            "write_chunks": "write_chunks",
+            "ensure_collection": "ensure_collection",
+        }
+        pg_method_name = method_map.get(fn_name)
+        if not pg_method_name:
+            return False
+
+        async def _do_sync() -> bool:
+            try:
+                pg = self._ensure_postgres()
+                if not pg:
+                    return False
+                method = getattr(pg, pg_method_name, None)
+                if not method or not callable(method):
+                    return False
+                # Les signatures SQLite/PG differents → adapter les args
+                result = await method(*args, **kwargs)
+                return True  # type: ignore
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Dual-sync PG echou (silencieux): %s", exc)
+                return False
+
+        try:
+            sync_result = loop.run_until_complete(_do_sync())
+            if sync_result:
+                logger.debug("Dual-sync PG OK pour %s", fn_name)
+            return sync_result  # type: ignore
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Dual-sync PG exec echou (silencieux): %s", exc)
+            return False
+
 
     def list_collections(self) -> list[str]:
         if self._backend_type == "postgresql":
@@ -785,11 +916,25 @@ class StorageBackend:
         return self._sqlite.list_collections()
 
     def ensure_collection(self, collection: str) -> bool:
-        if self._backend_type == "postgresql":
-            pg = self._ensure_postgres()
-            if pg:
-                return pg.ensure_collection(collection)
-        return self._sqlite.ensure_collection(collection)
+        created = self._sqlite.ensure_collection(collection)
+        # En dual-mode, s'assurer la collection existe aussi sur PG
+        if self._dual_sync and self._pg_ready:
+            try:
+                loop = _asyncio.get_event_loop()
+            except RuntimeError:
+                loop = _asyncio.new_event_loop()
+                _asyncio.set_event_loop(loop)
+            async def _ensure_pg():  # type: ignore[no-untyped-def]
+                pg = self._ensure_postgres()
+                if not pg or not hasattr(pg, 'ensure_collection'):
+                    return False
+                await pg.ensure_collection(collection)
+                return True
+            try:
+                loop.run_until_complete(_ensure_pg())
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Dual-sync ensure_collection PG echou (silencieux): %s", exc)
+        return created
 
     def count_collection(self, collection: str) -> int:
         if self._backend_type == "postgresql":
@@ -806,11 +951,81 @@ class StorageBackend:
         extra_meta: dict[str, Any] | None = None,
         content_type: str = "text/plain",
     ) -> int:
-        if self._backend_type == "postgresql":
-            pg = self._ensure_postgres()
-            if pg:
-                return pg.write_chunks(chunks, collection, source, extra_meta, content_type)
-        return self._sqlite.write_chunks(chunks, collection, source, extra_meta, content_type)
+        # Ecriture primaire sur SQLite (toujours) — embedder Ollama genere les vecteurs cote SQLite
+        written = self._sqlite.write_chunks(chunks, collection, source, extra_meta, content_type)
+
+        # Synchronisation PG en dual-mode
+        if self._dual_sync and self._pg_ready:
+            try:
+                loop = _asyncio.get_event_loop()
+            except RuntimeError:
+                loop = _asyncio.new_event_loop()
+                _asyncio.set_event_loop(loop)
+            async def _sync_chunks() -> bool:  # type: ignore[no-untyped-def]
+                pg = self._ensure_postgres()
+                if not pg or not hasattr(pg, 'write_chunks'):
+                    return False
+                try:
+                    await pg.write_chunks(chunks, collection, source, content_type, extra_meta)
+                    return True  # type: ignore
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Dual-sync write_chunks PG echou (silencieux): %s", exc)
+                    return False
+            try:
+                loop.run_until_complete(_sync_chunks())
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Dual-sync write_chunks exec echou (silencieux): %s", exc)
+
+        # S5-c : synchronisation embeddings vers Qdrant si backend=qdrant
+        if self._backend_type == "qdrant" and self._qdrant_ready:
+            self._sync_embeddings_qdrant(chunks, collection, source)
+
+        return written
+
+    def _sync_embeddings_qdrant(self, chunks: list[Any], collection: str, source: str = "") -> None:
+        """Extracte les embeddings generes et upsert vers Qdrant.
+
+        Les embeddings sont generates par Ollama dans sqlite_storage.write_chunks
+        (colonne embedding JSON). On regenere ici pour extraire les vecteurs bruts.
+        """
+        qdb = self._ensure_qdrant()
+        if not qdb or not hasattr(qdb, 'batch_upsert'):
+            return
+
+        vectors: list[list[float]] = []
+        ids: list[str] = []
+        payloads: list[dict[str, Any]] = []
+
+        for i, chunk in enumerate(chunks):
+            text = getattr(chunk, "text", None) if hasattr(chunk, "text") else str(chunk)
+            if not text or not text.strip():
+                continue
+
+            # Regenerer l'embedding via Ollama (déjà en cache)
+            emb = None
+            if self._sqlite._embedder:
+                try:
+                    emb = self._sqlite._embedder.embed(text)
+                except Exception:  # noqa: BLE001
+                    pass
+
+            if not emb or len(emb) != 768:
+                continue
+
+            vectors.append(emb)
+            chunk_id = f"{source}::chunk::{i}"
+            ids.append(chunk_id)
+            meta: dict[str, Any] = {}
+            if hasattr(chunk, "metadata"):
+                meta = dict(getattr(chunk, "metadata", {}) or {})
+            meta["source"] = source
+            payloads.append(meta)
+
+        if vectors:
+            try:
+                qdb.batch_upsert(collection, vectors, ids, payloads)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Synchronisation embeddings Qdrant echou (silencieux): %s", exc)
 
     def write_chunk(
         self,
@@ -836,7 +1051,80 @@ class StorageBackend:
             pg = self._ensure_postgres()
             if pg:
                 return pg.query(collection, query_text, n_results, filters, game_version)
+
+        if self._backend_type == "qdrant" and self._qdrant_ready:
+            # S5-c : requete vectorielle via Qdrant + texte depuis SQLite
+            return self._query_qdrant(collection, query_text, n_results)
+
         return self._sqlite.query(collection, query_text, n_results, filters, game_version, where=where)
+
+    def _query_qdrant(
+        self,
+        collection: str,
+        query_text: str,
+        n_results: int,
+    ) -> list[SearchResult]:
+        """Recherche vectorielle via Qdrant — embedding Ollama + retrieval SQLite.
+
+        Flux :
+          1. Genere embedding de la requete via Ollama (stocke en cache)
+          2. Requete Qdrant pour les points les plus similaires
+          3. Récupère le texte complet depuis SQLite par ID
+        """
+        # Etape 1: embedding via Ollama
+        query_emb = None
+        if self._sqlite._embedder:
+            try:
+                query_emb = self._sqlite._embedder.embed(query_text)
+            except Exception:  # noqa: BLE001
+                logger.warning("Embedding Ollama echou pour '%s' — fallback SQLite", query_text[:50])
+
+        if not query_emb:
+            logger.warning(
+                "Pas d'embedding disponible pour Qdrant — retourne resultat vide pour '%s'",
+                query_text[:50],
+            )
+            return []
+
+        # Etape 2: requete vectorielle Qdrant
+        qdb = self._ensure_qdrant()
+        if not qdb or not hasattr(qdb, 'query'):
+            logger.warning("Qdrant indisponible — fallback SQLite")
+            return self._sqlite.query(collection, query_text, n_results)
+
+        try:
+            from src.storage.qdrant_backend import QdrantSearchResult  # noqa: F811
+
+            qdrant_results = qdb.query(collection, query_vector=query_emb, n_results=n_results)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Recherche Qdrant echou (%s) — fallback SQLite", exc)
+            return self._sqlite.query(collection, query_text, n_results)
+
+        if not qdrant_results:
+            return []
+
+        # Etape 3: conversion SearchResult (compatibilité) + retrieval texte depuis SQLite
+        results: list[SearchResult] = []
+        for hit in qdrant_results:
+            if isinstance(hit, QdrantSearchResult):
+                # Récupère le texte complet depuis SQLite si non présent dans payload
+                prose = hit.prose
+                if not prose:
+                    sr = self._sqlite.get_by_id(collection, hit.id)
+                    if sr:
+                        prose = sr.prose
+                    else:
+                        prose = ""
+
+                results.append(SearchResult(
+                    collection=collection,
+                    id=hit.id,
+                    prose=prose,
+                    distance=round(1.0 - hit.score, 6),
+                    metadata_=hit.metadata_,
+                ))
+
+        return results
 
     def get_by_id(self, collection: str, item_id: str, game_version: str | None = None) -> SearchResult | None:
         """Récupère une entité par ID deterministe (fallback SQLite)."""
@@ -852,13 +1140,45 @@ class StorageBackend:
 
     def health(self) -> dict[str, Any]:
         """Etat du backend actif."""
-        if self._backend_type == "postgresql":
+        result: dict[str, Any] = {"available": True}
+
+        # Qdrant vector store (S5-c)
+        if self._backend_type == "qdrant" and self._qdrant_ready:
+            qd_health = {}
+            try:
+                qdb = self._ensure_qdrant()
+                if qdb and hasattr(qdb, 'health'):
+                    qd_health = qdb.health()
+            except Exception:  # noqa: BLE001
+                pass
+            result["qdrant"] = qd_health or {"available": False, "mode": "qdrant", "error": "health check failed"}
+            result["sqlite"] = {"available": True, "db_path": self._sqlite._db_path}  # type: ignore[attr-defined]
+            result["mode"] = "qdrant+sqlite-text"
+            return result
+
+        # SQLite (toujours disponible en dual-mode)
+        if self._dual_sync or self._backend_type == "sqlite":
+            result["mode"] = "sqlite" + ("+pg-dual" if self._dual_sync and self._pg_ready else "")
+            result["sqlite"] = {"available": True, "db_path": self._sqlite._db_path}  # type: ignore[attr-defined]
+
+        if self._dual_sync and self._pg_ready:
+            pg_health = {}
+            try:
+                pg = self._ensure_postgres()
+                if pg:
+                    pg_health = pg.health()
+            except Exception:  # noqa: BLE001
+                pass
+            result["postgresql"] = pg_health or {"available": False, "mode": "postgresql", "error": "health check failed"}
+        elif self._backend_type == "postgresql":
             pg = self._ensure_postgres()
             if pg:
-                return {"available": True, "mode": "postgresql"}
-            return {"available": False, "mode": "postgresql", "error": "Backend indisponible"}
-        return {
-            "available": True,
-            "mode": "sqlite",
-            "db_path": self._sqlite._db_path,  # type: ignore[attr-defined]
-        }
+                result["mode"] = "postgresql"
+                result["postgresql"] = pg.health()
+            else:
+                result["available"] = False
+                result["mode"] = "postgresql"
+                result["error"] = "Backend indisponible"
+
+        return result
+

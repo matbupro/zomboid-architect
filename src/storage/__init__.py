@@ -1,10 +1,9 @@
-"""src/storage — Abstraction du stockage vectoriel (SQLite / PostgreSQL).
+"""src/storage — Abstraction du stockage vectoriel (SQLite / PostgreSQL / Qdrant).
 
-Remplacement d'un storage fixe par un backend interchangeable SQLite/PostgreSQL.
-
-Config via .env :
+Backends interchangeables :
   STORAGE_BACKEND=sqlite     → SQLite local (defaut, V1)
   STORAGE_BACKEND=postgres   → PostgreSQL + pgvector (V2)
+  STORAGE_BACKEND=qdrant     → Qdrant distant + SQLite texte (S5-c, V3)
 
 Usage :
     from src.storage import StorageBackend, SQLiteStorage, SearchResult
@@ -16,6 +15,7 @@ Usage :
 
 from __future__ import annotations
 
+from .qdrant_backend import QdrantVectorBackend, QdrantSearchResult
 from .sqlite_storage import SearchResult, SQLiteStorage, StorageBackend, _load_storage_config
 
 __all__ = [
@@ -23,4 +23,6 @@ __all__ = [
     "SQLiteStorage",
     "StorageBackend",
     "_load_storage_config",
+    "QdrantVectorBackend",
+    "QdrantSearchResult",
 ]

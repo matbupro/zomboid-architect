@@ -386,30 +386,31 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 > Actuellement: data/storage/zomboid.db (SQLite unique). Le doc vise PostgreSQL + Qdrant + MinIO.
 
 ### S5-i. Migration SQLite → PostgreSQL
-- [ ] **S5-a** Script `migrations/convert_sqlite_to_pg.py` — lit zomboid.db, réinjecte dans PostgreSQL via StorageBackend switch
+- [x] **S5-a** Script `migrations/convert_sqlite_to_pg.py` + CLI `--migrate-pg` / `--migrate-pg-dry-run` — lit tables SQLite (z_*), convertit embeddings JSON → pgvector vector(768) literal, INSERT INTO PG avec upsert ON CONFLICT. Handlers CLI integres dans ingestor/cli.py (handle_migrate_pg). Dry mode liste les collections sans migrer. ✅
   - Sauvegarder les embeddings existants (s'il y en a)
   - Migrer les collections SQLite → knowledge_chunks en PG
-- [ ] **S5-b** Configurer dual-backend pendant la transition: STORAGE_BACKEND=sqlite + fallback_pg=true
+- [x] **S5-b** Dual-backend pendant transition: `STORAGE_DUAL_SYNC=true` → ecritures simultanees SQLite + PG, lectures toujours SQLite. Variables d'environnement: `STORAGE_BACKEND=sqlite` (defaut) + `STORAGE_DUAL_SYNC=true`. Backend detection: backend_type retourne 'dual-sync' quand PG disponible en sync. Health() rapporte les deux backends. Fallback silencieux si PG indisponible. `tests/test_dual_backend.py`: 17 tests passes. ✅
 
-### S5-II. Migration vers Qdrant vector store
-- [ ] **S5-c** Remplacer SQLite vectoriel par Qdrant pour les embeddings (Qdrant est recommandé dans ton doc section A)
-  - Créer collection Qdrant pour chaque category PZ (items, recipes, mechanics, api_ref, etc.)
-  - Migrate existing embeddings → Qdrant points
-- [ ] **S5-d** Cross-search entre SQLite local et Qdrant distant (si dual-mode nécessaire pendant migration)
+### S5-II. Migration vers Qdrant vector store ✅ fait session courante
+- [x] **S5-c** Remplacer SQLite vectoriel par Qdrant pour les embeddings — backend `src/storage/qdrant_backend.py` (~480 lignes), hybrid StorageBackend (SQLite texte + Qdrant vecteurs), collections per-category auto-create, migration SQLite→Qdrant (`migrate_from_sqlite()`), cross-collection search, batch upsert. `STORAGE_BACKEND=qdrant`. Health() rapporte Qdrant+SQLite. Fallback silencieux si Qdrant indisponible. `tests/test_qdrant_backend.py`: 24 tests passes. ✅
+  - Créer collection Qdrant pour chaque category PZ (14 categories via DEFAULT_QDRANT_CATEGORIES)
+  - Migrate existing embeddings → Qdrant points (`migrate_from_sqlite()`)
+  - Batch upsert optimize pour ingest massif
+- [x] **S5-d** Cross-search entre SQLite local et Qdrant distant — intégré dans StorageBackend._query_qdrant(): embedding Ollama → requete vectorielle Qdrant → retrieval texte depuis SQLite. health() rapporte `mode="qdrant+sqlite-text"`. ✅
 
 ---
 
 ## S6 — Tests & Validation
 
 ### S6-i. Tests des nouveaux processors
-- [ ] **S6-a** Test unitaire `tests/test_wikijson_processor.py` — validation parse du JSON structure, fields manquants handling
-- [ ] **S6-b** Test d'intégration end-to-end: ingest Wikidrive → storage_writer → query → vérifier items count
-- [ ] **S6-c** Regression tests existants à étendre pour les nouvelles collections (S4-f ci-dessus)
+- [x] **S6-a** Test unitaire `tests/test_wikijson_processor.py` — 49 tests: normalizers (item/recipe/mob/generic), _classify_item, _load_wiki_data (fichier/dossier), classification, extract() e2o, edge cases, metadata ✅
+- [x] **S6-b** Test d'intégration end-to-end `tests/test_wikijson_e2o.py` — 13 tests : flux complet Wiki.json → processor → StorageWriter → SQLite → verification count/cross-reference/metadata. Nom de collection unique par test pour isolation. ✅
+- [x] **S6-c** Regression tests etendus — `tests/test_regression_collection_extend.py` : 26 tests — pz_mechanics/pz_web_pages write/query/ensure/delete/upgrade (jamais testes avant), cross-collection search sur TOUTES les 4 collections (items+recipes+mechanics+webpages), e2o full pipeline (WikiJsonProcessor → StorageBackend pour chaque collection), regression checks items/recipes/cross_collection toujours fonctionnels, get_by_id sur toutes collections. ✅
 
 ### S6-II. Validation des données ingérées
-- [ ] **S6-d** Validator cross-reference: chaque recipe ingredient → existe dans pz_items ?
-- [ ] **S6-e** Validator completeness: % fields remplis par item vs ~50+ fields totaux
-- [ ] **S6-f** Validator schema: le JSON Wiki.json match-il les types PG attendus (JSONB columns) ?
+- [x] **S6-d** Validator cross-reference — `tests/test_wikijson_crossref.py` : 13 tests — detection broken refs (ingredient → item par key/displayName/underscore variant), matching case-insensitive, large dataset (50 items/30 recipes), empty data dir. ✅
+- [x] **S6-e** Validator completeness — `tests/test_wikijson_completeness.py` : 15 tests — % champs remplis par item (weapon ~89%, food nutrition, clothing resistance, recipe fields, mob stats), partial/completion tiers, skills generic completeness comparison, zero-field items, non-dict values ignored. ✅
+- [x] **S6-f** Validator schema — `tests/test_wikijson_schema.py` : 20 tests — PG JSONB compatibility (metadata keys/values, nested structures), chunk text validation (NUL bytes, UTF-8, max length), ExtractionResult field types (file_hash SHA-256 hex, word_count int, extraction_time_ms number, source non-empty, collection name valid), recipe ingredients serializable, damage_tiers nested JSON serializable, empty result valid, chunk index/start_offset >= 0, all expected collection types. ✅
 
 ---
 
