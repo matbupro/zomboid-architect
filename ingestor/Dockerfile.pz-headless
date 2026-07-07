@@ -1,0 +1,70 @@
+# =============================================================================
+# Dockerfile.pz-headless — Serveur PZ headless pour validation de mods
+# =============================================================================
+# Base: Ubuntu 22.04 + SteamCMD + PZ Dedicated Server (app 380870) + luacheck
+# Usage:
+#   docker build -f ingestor/Dockerfile.pz-headless -t pz-headless .
+#   docker run --rm pz-headless "MyMod" "42"          # valider un mod sur build42
+#   docker run --rm pz-headless "MyMod" "41"          # ou build41 (stable)
+# =========================================================================
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV STEAMCMD_DIR=/steamcmd
+ENV PZ_SERVER_DIR=/pz-server
+ENV PZ_APP_ID=380870
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# ------------------------------------------------------------------------------
+# System deps: steamcmd, 32-bit libs, curl, archive tools, locales
+# ------------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg curl ca-certificates lib32gcc-s1 \
+    tar xz-utils locales python3 python3-pip \
+    lua5.3 luajit lzip && \
+    locale-gen en_US.UTF-8 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------------------------------------
+# Luacheck (linting Lua) — version stable via luarocks
+# ------------------------------------------------------------------------------
+RUN pip3 install --no-cache-dir luacheck 2>/dev/null || {
+    # Fallback: installe avec git si luarocks echoue
+    apt-get update && apt-get install -y luarocks && \
+    luarocks install luacheck && \
+    apt-get remove -y luarocks && apt-get autoremove -y;
+  }
+
+# ------------------------------------------------------------------------------
+# SteamCMD + PZ Dedicated Server (Build 41 stable)
+# ------------------------------------------------------------------------------
+RUN mkdir -p ${STEAMCMD_DIR} && useradd -m -u 1000 pzuser
+
+WORKDIR ${STEAMCMD_DIR}
+RUN wget -q https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz && \
+    tar -xzf steamcmd_linux.tar.gz && rm steamcmd_linux.tar.gz
+
+RUN su pzuser -c "${STEAMCMD_DIR}/steamcmd.sh +login anonymous \
+    +force_install_dir ${PZ_SERVER_DIR} \
+    +app_update ${PZ_APP_ID} validate +quit"
+
+# Build 42 beta (desactive par defaut — decommenter si necessaire)
+# RUN su pzuser -c "${STEAMCMD_DIR}/steamcmd.sh +login anonymous \
+#     +force_install_dir ${PZ_SERVER_DIR} \
+#     +app_update ${PZ_APP_ID} -beta bleeding0 validate +quit"
+
+RUN mkdir -p ${PZ_SERVER_DIR}/mods ${PZ_SERVER_DIR}/logs ${PZ_SERVER_DIR}/lua ${PZ_SERVER_DIR}/servermods
+
+# ------------------------------------------------------------------------------
+# Scripts utilitaires dans le container
+# ------------------------------------------------------------------------------
+COPY entrypoint.sh ${PZ_SERVER_DIR}/entrypoint.sh
+COPY inject_mod.sh /usr/local/bin/inject_mod.sh
+RUN chmod +x ${PZ_SERVER_DIR}/entrypoint.sh /usr/local/bin/inject_mod.sh
+
+WORKDIR ${PZ_SERVER_DIR}
+USER pzuser
+EXPOSE 16261/udp 16262/udp 27015/udp
+ENTRYPOINT ["/pz-server/entrypoint.sh"]

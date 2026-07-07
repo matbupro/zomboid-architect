@@ -1,0 +1,214 @@
+# =============================================================================
+# docker-compose.pz-agent.yml — Infrastructure PZ Knowledge Engine
+# =============================================================================
+# Stack recommandée du projet : PostgreSQL + Qdrant + MinIO + Gitea + Redis
+# + Serveur PZ headless pour validation des mods.
+#
+# Usage :
+#   docker compose -f docker-compose.pz-agent.yml up -d        # boot tout
+#   docker compose -f docker-compose.pz-agent.yml down          # arrêter
+#   docker compose -f docker-compose.pz-agent.yml ps            # statut services
+#
+# Dépendances externes (déjà sur le host) :
+#   - Ollama (localhost:11434) — embeddings, utilisé par bot + ingestor
+#   - SteamCMD (si besoin de telecharger PZ)
+# =============================================================================
+
+services:
+  # ==========================================================================
+  # PostgreSQL 16 — Source de vérité (metadonnees, pipeline, tracabilite)
+  # ==========================================================================
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: pz-agent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pz_agent
+      POSTGRES_USER: pz_agent
+      POSTGRES_PASSWORD: "${PG_PASSWORD:?Set PG_PASSWORD in .env.pz-agent}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Migrations auto-appliquees au premier boot
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pz_agent -d pz_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zomboid-net
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
+
+  # ==========================================================================
+  # Qdrant — Recherche vectorielle (embeddings semantiques contexte PZ)
+  # ==========================================================================
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: pz-agent-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zomboid-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+
+  # ==========================================================================
+  # MinIO — Stockage objet (zips de mods, posters, assets)
+  # ==========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: pz-agent-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: "${MINIO_USER:-pzagent}"
+      MINIO_ROOT_PASSWORD: "${MINIO_PASSWORD:?Set MINIO_PASSWORD in .env.pz-agent}"
+    ports:
+      - "9000:9000"     # API S3
+      - "9001:9001"     # Console UI
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zomboid-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2G
+
+  # ==========================================================================
+  # Gitea — Git auto-heberge (repos de mods, CI/CD, code review)
+  # ==========================================================================
+  gitea:
+    image: gitea/gitea:1.21
+    container_name: pz-agent-gitea
+    restart: unless-stopped
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=postgres:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=pz_agent
+      - GITEA__database__PASSWD=${PG_PASSWORD}
+    ports:
+      - "3000:3000"   # Web UI
+      - "2222:22"     # SSH Git
+    volumes:
+      - gitea_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - zomboid-net
+
+  # ==========================================================================
+  # Redis — Cache de session, queue de taches, state agent
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: pz-agent-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zomboid-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+  # ==========================================================================
+  # PZ Dedicated Server Headless — Environnement de test des mods
+  # ==========================================================================
+  pz-headless:
+    build:
+      context: ./ingestor
+      dockerfile: Dockerfile.pz-headless
+    container_name: pz-agent-pzserver
+    restart: "no"           # lance a la demande : docker compose run pz-headless
+    volumes:
+      - workspace_data:/workspace
+      - pz_mods:/pz-server/mods
+      - pz_logs:/tmp/pz_logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - zomboid-net
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 4096
+        hard: 4096
+    stop_grace_period: 30s
+
+# ===========================================================================
+# Volumes persistants
+# ===========================================================================
+volumes:
+  postgres_data:
+  qdrant_data:
+  minio_data:
+  gitea_data:
+  redis_data:
+  workspace_data:      # mod workspace pendant validation
+  pz_mods:             # mods injectes dans le serveur PZ
+  pz_logs:             # logs headless (console + lua)
+
+# ===========================================================================
+# Network — reuse le reseau existant du projet
+# ===========================================================================
+networks:
+  zomboid-net:
+    driver: bridge
