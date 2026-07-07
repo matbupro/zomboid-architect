@@ -1,7 +1,7 @@
 """schema — Schema de specification d'un mod Zomboid.
 
 Dataclasses centrales representant une specification haute-niveau
-d'un mod a generer : ModSpec (contenu) et ModConfig (configuration).
+d'un mod à générer : ModSpec (contenu) et ModConfig (configuration).
 """
 
 from __future__ import annotations
@@ -15,20 +15,20 @@ from typing import Any
 
 
 # ---------------------------------------------------------------------------
-# Types de mods supportes
+# Types de mods supportés
 # ---------------------------------------------------------------------------
 
 
 class ModType(str, Enum):
-    """Types de mods supportes par le generateur.
+    """Types de mods supportés par le générateur.
 
-    Chaque type correspond a un schema PZ different :
-      item  — Nouvel objet (arme, outil, vetement)
-      feature — Nouvelle mecanique de jeu (crafting, combat…)
+    Chaque type correspond à un schéma PZ différent :
+      item  — Nouvel objet (arme, outil, vêtement)
+      feature — Nouvelle mécanique de jeu (crafting, combat…)
       ui    — Interface personnalisée
-      script — Script general
+      script — Script général
       zombie — Nouvel ennemi / behavior zombie
-      vehicle — Nouvel vehicule
+      vehicle — Nouvel véhicule
     """
 
     ITEM = "item"
@@ -46,7 +46,7 @@ class ModType(str, Enum):
 
 @dataclass
 class ModFile:
-    """Fichier unique a ecrire dans le mod final."""
+    """Fichier unique à écrire dans le mod final."""
 
     relative_path: str      # Chemin relatif au root du mod (ex: media/lua/client/MyMod.lua)
     content: str            # Contenu texte du fichier
@@ -60,26 +60,26 @@ class ModFile:
 
 @dataclass
 class ModSpec:
-    """Specification haute-niveau d'un mod a generer.
+    """Specification haute-niveau d'un mod à générer.
 
-    Peut etre fourni directement par l'utilisateur ou genere automatiquement
-    par le LLM a partir d'une description naturelle (ex: "Ajouter une arme avec 50 degats").
+    Peut être fourni directement par l'utilisateur ou généré automatiquement
+    par le LLM à partir d'une description naturelle (ex: "Ajouter une arme avec 50 dégâts").
 
     Args:
-        name: Nom affiche du mod (obligatoire).
+        name: Nom affiché du mod (obligatoire).
         description: Description courte du mod.
-        author: Auteur par defaut ("Zomboid Architect").
-        mod_type: Type de mod, defaut ITEM.
-        script_dir: Dossier de scripts dans media/lua/ (defaut "scripts").
-        min_game_version: Version minimale compatible (defaut "Build42").
-        multiplayer: Compatible multiplayer (defaut True).
-        singleplayer: Compatible singleplayer (defaut True).
-        files: Fichiers manuels a inclure.
-        client_scripts: Listes de scripts Lua clients a generer automatiquement.
-        shared_scripts: Listes de scripts Lua shared a generer.
-        server_scripts: Listes de scripts Lua serveur a generer.
-        features: Fonctionnalites detaillees ({name, type, stats, …}).
-        tags: Tags Steam Workshop separes par virgule.
+        author: Auteur par défaut ("Zomboid Architect").
+        mod_type: Type de mod, défaut ITEM.
+        script_dir: Dossier de scripts dans media/lua/ (défaut "scripts").
+        min_game_version: Version minimale compatible (défaut "Build42").
+        multiplayer: Compatible multiplayer (défaut True).
+        singleplayer: Compatible singleplayer (défaut True).
+        files: Fichiers manuels à inclure.
+        client_scripts: Listes de scripts Lua clients à générer automatiquement.
+        shared_scripts: Listes de scripts Lua shared à générer.
+        server_scripts: Listes de scripts Lua serveur à générer.
+        features: Fonctionnalités détaillées ({name, type, stats, …}).
+        tags: Tags Steam Workshop séparés par virgule.
     """
 
     name: str
@@ -111,14 +111,14 @@ class ModSpec:
 
 @dataclass
 class GeneratedModManifest:
-    """Represente un mod genere sur le disque."""
+    """Represente un mod généré sur le disque."""
 
-    id: str                       # ID canonique (sans espaces ni caracteres speciaux)
+    id: str                       # ID canonique (sans espaces ni caractères spéciaux)
     name: str                     # Nom du mod
     output_path: Path             # Chemin absolu du dossier genere
     spec: ModSpec                 # Spec d'origine
     created_at: float = field(default_factory=time.time)
-    file_count: int = 0           # Nombre de fichiers ecrits
+    file_count: int = 0           # Nombre de fichiers écrits
 
     @property
     def mod_root(self) -> Path:

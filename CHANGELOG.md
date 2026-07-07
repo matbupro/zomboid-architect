@@ -40,10 +40,10 @@ Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx
 
 ### Moteur de génération de mods (Phase 12)
 
-Generation de mods PZ valides depuis description textuelle.
+Génération de mods PZ valides depuis description textuelle.
 
 - **CLI** : `python -m src.modgen generate "Une épée" --name "MySword"`
-- **Bot Discord** : `/modgen <description>` → generation auto + retour fichiers
+- **Bot Discord** : `/modgen <description>` → génération auto + retour fichiers
 - **Templates PZ valides** : mod.info JSON, init.lua, ZomboidModDescriptor.txt
 - **Packaging** : `make mod-build MOD_NAME=MyMod` → ZIP dans `mods/`
 - **Validation** : `python -m src.modgen validate /path/to/mod/`
@@ -86,11 +86,11 @@ Remplacement de [storage vectoriel] par SQLite local — zéro service externe r
 
 ## [v0.3.0-alpha] — 2026-07-04
 
-### Phase 6 : Filtrage B41/B42 natif dans le pipeline de requete
+### Phase 6 : Filtrage B41/B42 natif dans le pipeline de requête
 
-Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$and` natifs de [storage vectoriel].  [historique]
+Isolement complet des données par version du jeu (B41 vs B42) via les filtres `$and` natifs de [storage vectoriel].  [historique]
 
-#### Fichiers modifies
+#### Fichiers modifiés
 
 | Fichier | Changement |
 |---------|-----------|
@@ -98,45 +98,45 @@ Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$
 | `[fichier supprimé — sqlite_storage.py] [historique]` | `query()` accepte `game_version` — compose automatiquement $and avec filters existants |
 | `bot/engine_client.py` | `search()`, `get_by_id()`, `query_staging()` propagent tous `game_version` via $and |
 | `bot/pipeline.py` | `enrich_context()` et `process_message()` passent `game_version` au moteur |
-| `bot/main.py` | Resolution de PZ_GAME_VERSION au demarrage + propagation dans le pipeline bot |
-| `bot/config.py` | Ajout de `PZ_GAME_VERSION` dans Settings + resolution depuis .env |
+| `bot/main.py` | Résolution de PZ_GAME_VERSION au démarrage + propagation dans le pipeline bot |
+| `bot/config.py` | Ajout de `PZ_GAME_VERSION` dans Settings + résolution depuis .env |
 
-#### Fichiers testes
+#### Fichiers testés
 
 | Fichier | Tests |
 |---------|-------|
 | `tests/test_game_version_filtering.py` | 24 tests (filter builders, tag_chunk, integration [storage vectoriel] client (historique)/engine_client) |
 
-### Moteur de generation de mods (`src/modgen/`) — nouvelle (Phase 12)
+### Moteur de génération de mods (`src/modgen/`) — nouvelle (Phase 12)
 
-Generation de mods Project Zomboid valides a partir d'une description textuelle.
+Génération de mods Project Zomboid valides à partir d'une description textuelle.
 
-#### Fichiers cres
+#### Fichiers créés
 
-| Fichier | Role |
+| Fichier | Rôle |
 |---------|------|
 | `src/modgen/__init__.py` | Module init + exports publics |
 | `src/modgen/schema.py` | Dataclasses: ModSpec, GeneratedModManifest, ModFile, ModType |
 | `src/modgen/generator.py` | Moteur principal (ModGenerator class) |
-| `src/modgen/config.py` | Config du generateur (ModGenConfig + load_modgen_config) |
+| `src/modgen/config.py` | Config du générateur (ModGenConfig + load_modgen_config) |
 | `src/modgen/__main__.py` | CLI (`generate`, `list-templates`, `validate`) |
 | `src/modgen/templates/*.j2` | 7 templates Jinja2 (mod.info, init.lua, descriptors, README) |
 | `tests/test_modgen.py` | **32 tests unitaires** — schema, generation, validation, CLI, ZIP |
 
-#### Fonctionnalites
+#### Fonctionnalités
 
-- **CLI** : `python -m src.modgen generate "Une epée" --name "MySword"`
-- **Bot Discord** : `/modgen "Ajouter une arme furtive"` → generation auto + retour fichiers
+- **CLI** : `python -m src.modgen generate "Une épée" --name "MySword"`
+- **Bot Discord** : `/modgen "Ajouter une arme furtive"` → génération auto + retour fichiers
 - **Templates PZ valides** : mod.info JSON, init.lua avec hooks, ZomboidModDescriptor.txt
 - **Packaging** : `make mod-build MOD_NAME=MyMod` → ZIP dans `mods/`
 - **Validation** : `python -m src.modgen validate /path/to/mod/`
 
-#### Slash commands ajoutes
+#### Slash commands ajoutés
 
 | Commande | Description |
 |----------|-------------|
-| `/modgen <description>` | Genere un mod PZ depuis une description textuelle |
-| `/help` | Mis a jour avec /modgen dans la liste |
+| `/modgen <description>` | Génère un mod PZ depuis une description textuelle |
+| `/help` | Mis à jour avec /modgen dans la liste |
 
 ---
 
@@ -153,8 +153,7 @@ Création complète du moteur d'ingestion multi-modal : lecture de **tout format
 | `ingestor/cli.py` | Entrée CLI (`--search`, `--file`, `--dir`, `--crawl`, `--url`, `--list-collections`, `--search-all`) |
 | `ingestor/engine.py` | Router MIME → processeur, détection URL vs fichier |
 | `ingestor/config.py` | Settings centralisés ([storage vectoriel], Ollama, OCR, web) |  [historique]
-| `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionRe
-sult` |
+| `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionResult` |
 | `ingestor/processors/text.py` | Processeur `.txt`, `.md`, `.csv`, `.json` |
 | `ingestor/processors/pdf.py` | PDF → texte (pdfplumber) + OCR fallback (easyocr) |
 | `ingestor/processors/image.py` | Images → OCR multi-langue + description vision API |
@@ -362,7 +361,7 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 ### 2026-07-05 - commit ca1de16
 
 **Changements :**
-- fix(golden/set): aligner expected_ids aux donnees reellement ingerees (15 paires realistes)
+- fix(golden/set): aligner expected_ids aux données réellement ingérées (15 paires réalistes)
 
 ### 2026-07-05 - commit a4a7033
 

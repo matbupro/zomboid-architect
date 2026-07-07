@@ -2,7 +2,7 @@
 
 **Moteur de connaissance local, déterministe et sans hallucination sur Project Zomboid.**
 
-Serve un deux buts : **stratégie de survie** (conseils précis) et **développement de mods** (doc Lua/Java). Exposé via un bot Discord + serveur MCP.
+Sert deux buts : **stratégie de survie** (conseils précis) et **développement de mods** (doc Lua/Java). Exposé via un bot Discord + serveur MCP.
 
 ## Version
 
@@ -31,8 +31,8 @@ Zomboid_Architect/
 │   └── requirements.txt
 ├── src/                   # Code partagé transversal
 │   ├── governance/        # parser, game_version, logger, lock, worker
-│   ├── modgen/            # Moteur de generation de mods PZ (Phase 12)
-│   │   ├── generator.py   # ModGenerator class — cree des mods valides
+│   ├── modgen/            # Moteur de génération de mods PZ (Phase 12)
+│   │   ├── generator.py   # ModGenerator class — crée des mods valides
 │   │   ├── schema.py      # Dataclasses: ModSpec, GeneratedModManifest
 │   │   ├── config.py      # Config modgen
 │   │   └── templates/     # 7 templates Jinja2 (mod.info, init.lua, etc.)
@@ -64,7 +64,7 @@ Zomboid_Architect/
 │       └── golden.json    # 28 questions (15 B41 + 13 B42)
 ├── docs/                  # Documentation gouvernance
 │   ├── VERSIONING.md      # Règles SemVer + cycle alpha→release
-├── mods/                  # Mods generes par src/modgen/ (Phase 12)
+├── mods/                  # Mods générés par src/modgen/ (Phase 12)
 ├── VERSION                # Source unique de vérité (majeur.minor.patch[-pre])
 ├── CHANGELOG.md           # Keep a Changelog format
 ├── .env.unified           # Source de vérité unique pour TOUTES les variables
@@ -78,7 +78,7 @@ Zomboid_Architect/
 ### 1. Configuration
 
 ```powershell
-# Utiliser ou créer .env.unified à la racine (déja un template)
+# Utiliser ou créer .env.unified à la racine (déjà un template)
 # Éditer .env.unified : DISCORD_TOKEN est OBLIGATOIRE (le bot ne démarre pas sans)
 ```
 
@@ -179,7 +179,7 @@ make rollback-latest                   # Rollback au dernier backup
 
 ## Génération de mods (Phase 12)
 
-Le moteur `src/modgen/` genere des mods Project Zomboid valides a partir d'une description textuelle. Il cree la structure complete du mod (mod.info, init.lua, scripts Lua, descriptors Steam Workshop) et compresse en ZIP prets pour l'installation.
+Le moteur `src/modgen/` génère des mods Project Zomboid valides à partir d'une description textuelle. Il crée la structure complète du mod (mod.info, init.lua, scripts Lua, descriptors Steam Workshop) et compresse en ZIP prêts pour l'installation.
 
 ### Configuration
 
@@ -187,18 +187,18 @@ Variables d'environnement (dans `.env`) :
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `MOD_OUTPUT_PATH` | `mods/` | Dossier où les mods generes sont ecrits |
-| `MOD_TEMPLATES_PATH` | `src/modgen/templates/` | Chemin des templates Jinja2 (rarement necessaire de changer) |
+| `MOD_OUTPUT_PATH` | `mods/` | Dossier où les mods générés sont écrits |
+| `MOD_TEMPLATES_PATH` | `src/modgen/templates/` | Chemin des templates Jinja2 (rarement nécessaire de changer) |
 
-Types de mods supportes : `item` (arme/objet), `feature` (mecanique), `ui` (interface), `script`, `zombie`, `vehicle`.
+Types de mods supportés : `item` (arme/objet), `feature` (mécanique), `ui` (interface), `script`, `zombie`, `vehicle`.
 
 ### Workflow typique
 
 ```powershell
-# 1. Generer un mod depuis une description textuelle
-python -m src.modgen generate "Une epée en acier avec 45 degats de dégâts" --name "SteelSword" --type item
+# 1. Générer un mod depuis une description textuelle
+python -m src.modgen generate "Une épée en acier avec 45 dégâts de dégâts" --name "SteelSword" --type item
 
-# → cree mods/modgen_steel_sword_<uuid>/
+# → crée mods/modgen_steel_sword_<uuid>/
 #    ├── mod.info
 #    ├── ZomboidModDescriptor.txt
 #    ├── README.md
@@ -207,7 +207,7 @@ python -m src.modgen generate "Une epée en acier avec 45 degats de dégâts" --
 #        └── SteelSword.lua
 
 # 2. Compiler le mod en ZIP (packaging)
-make mod-build MOD_NAME=modgen_steel_sward_<uuid>
+make mod-build MOD_NAME=modgen_steel_sword_<uuid>
 # → mods/modgen_steel_sword_<uuid>.zip
 
 # 3. Valider la structure du mod
@@ -220,24 +220,24 @@ python -m src.modgen validate mods/modgen_steel_sword_<uuid>/
 ### Bot Discord — commande `/modgen`
 
 ```
-/modgen "Ajouter une epée furtive silencieuse avec 50 degâts"
+/modgen "Ajouter une épée furtive silencieuse avec 50 dégâts"
 ```
 
 Le bot :
-1. Parse la description → cree un `ModSpec` structuré
-2. Generer le dossier mod complet (mod.info + init.lua + scripts Lua)
-3. Retourne les fichiers generes dans la reponse Discord
-4. Les fichiers sont sauvegardes dans le dossier `mods/`
+1. Parse la description → crée un `ModSpec` structuré
+2. Génère le dossier mod complet (mod.info + init.lua + scripts Lua)
+3. Retourne les fichiers générés dans la réponse Discord
+4. Les fichiers sont sauvegardés dans le dossier `mods/`
 
 ### CLI Reference
 
 | Commande | Description |
 |----------|-----------|
-| `python -m src.modgen generate <desc> --name <nom> [--type item\|feature\|ui\|script\|zombie\|vehicle]` | Generer un mod depuis une description textuelle |
+| `python -m src.modgen generate <desc> --name <nom> [--type item\|feature\|ui\|script\|zombie\|vehicle]` | Générer un mod depuis une description textuelle |
 | `python -m src.modgen list-templates` | Afficher les templates Jinja2 disponibles (7 fichiers) |
-| `python -m src.modgen validate <dossier/mod/>` | Verifier la structure et le contenu de mod.info + descriptors |
+| `python -m src.modgen validate <dossier/mod/>` | Vérifier la structure et le contenu de mod.info + descriptors |
 
-### Structure d'un mod genere
+### Structure d'un mod généré
 
 ```
 mon_mod/
@@ -247,24 +247,24 @@ mon_mod/
 │     "minGameVersion": "Build42", "singleplayer": true,
 │     "multiplayer": true }
 ├── ZomboidModDescriptor.txt    # Metadata pour Steam Workshop upload
-├── README.md                   # Documentation auto-generée
+├── README.md                   # Documentation auto-générée
 └── media/lua/
     ├── client/scripts/         # Scripts client (hooks PZ, events)
-    │   ├── init.lua            # Point d'entree — hooks OnGameInit, Tick
-    │   └── <nom_mod>.lua       # Scripts specifiques au type de mod
-    ├── shared/scripts/         # Code partagé client<→serveur
+    │   ├── init.lua            # Point d'entrée — hooks OnGameInit, Tick
+    │   └── <nom_mod>.lua       # Scripts spécifiques au type de mod
+    ├── shared/scripts/         # Code partagé client→serveur
     └── server/scripts/         # Scripts serveur (physique, damage, networking)
 ```
 
 ### Templates Jinja2 (7 fichiers)
 
-| Template | Role |
+| Template | Rôle |
 |----------|------|
 | `mod.info.j2` | Manifest JSON PZ — name, author, type, tags, scriptDir |
-| `init.lua.j2` | Point d'entree — hooks OnGameInit, OnJoinGame, Tick |
+| `init.lua.j2` | Point d'entrée — hooks OnGameInit, OnJoinGame, Tick |
 | `ZomboidModDescriptor.txt.j2` | Descriptor Steam Workshop (nom, desc, tags, fichiers) |
-| `README.md.j2` | Documentation auto-generée (description, type, scripts) |
-| `client_script.lua.j2` | Scripts clients specifiques (events, UI, combat) |
+| `README.md.j2` | Documentation auto-générée (description, type, scripts) |
+| `client_script.lua.j2` | Scripts clients spécifiques (events, UI, combat) |
 | `shared_script.lua.j2` | Code partagé entre client et serveur |
 | `server_script.lua.j2` | Logique serveur (physique, damage, networking) |
 

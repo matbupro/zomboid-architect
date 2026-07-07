@@ -9,10 +9,10 @@ L'agriculture dans Project Zomboid permet de cultiver des légumes pour une sour
 
 Les mécaniques de base incluent :
 - Préparation du sol (bêche + herbe/faucheuse)
-- Plantation de graines (trouvs, achetés ou récupérés sur récoltes)
+- Plantation de graines (trouvés, achetés ou récupérés sur récoltes)
 - Arrosage obligatoire (les plantes meurent sans eau)
 - Temps de croissance (variable selon le type de légume)
-- Récolte et re plantation automatique
+- Récolte et replantation automatique
 
 ## Propriétés / Stats
 
@@ -45,7 +45,7 @@ Les mécaniques de base incluent :
 1. Ajouter tomates et poivrons pour diversité nutritionnelle
 2. Créer un système d'arrosage par gravité (tuyaux d'eau suspendus)
 3. Protéger les cultures avec clôture anti-zombie
-4. Stocker les graines en surplus pour re plantation
+4. Stocker les graines en surplus pour replantation
 
 ### Phase 3 : automatisation avancée
 1. Irrigation automatique avec Sea-Doo / tuyau connecté

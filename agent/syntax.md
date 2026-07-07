@@ -1,12 +1,12 @@
-# Etat Actuel du Projet
+# État Actuel du Projet
 
 ## Status
-**Derniere MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
+**Dernière MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
 
 Dernier commit : 1a4cb47
 Version moteur : 0.4.0-alpha
 
-## Arborescence (git ls-files, mise a jour auto)
+## Arborescence (git ls-files, mise à jour auto)
 
 `
   |-- .claude/settings.local.json
@@ -378,23 +378,23 @@ Version moteur : 0.4.0-alpha
   |-- Zomboid_Architect.code-workspace
 `
 
-## Fichiers Memoire Actifs
+## Fichiers Mémoire Actifs
 
 | Fichier | Role |
 |---------|------|
-| [GOAL.md](GOAL.md) | Objectif principal du projet + createur |
-| [rules.md](rules.md) | 12 commandements + regles d'or |
-| [todo.md](todo.md) | TODO list completee (mise a jour continue) |
+| [GOAL.md](GOAL.md) | Objectif principal du projet + créateur |
+| [rules.md](rules.md) | 12 commandements + règles d'or |
+| [todo.md](todo.md) | TODO list complétée (mise à jour continue) |
 | [architecture.md](architecture.md) | Stack technique, arborescence, flux, MCP |
-| [memories.md](memories.md) | Souvenirs, infos utilisateur, astuces trouvees |
-| [syntax.md](syntax.md) | Etat actuel du projet (ce fichier) |
+| [memories.md](memories.md) | Souvenirs, infos utilisateur, astuces trouvées |
+| [syntax.md](syntax.md) | État actuel du projet (ce fichier) |
 
 ## Contexte Technique
 
 - **Projet :** F:\Antigravity DEV\Zomboid_Architect
-- **Createur :** ElChibros
-- **Clef du dossier memoire :** agent/ - acces libre pour organisation interne de l'agent
-- **Memoire Claude Code native :** ~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/ (chargement automatique)
+- **Créateur :** ElChibros
+- **Clef du dossier mémoire :** agent/ - accès libre pour organisation interne de l'agent
+- **Mémoire Claude Code native :** ~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/ (chargement automatique)
 
 ## Historique des MAJ agent/
 

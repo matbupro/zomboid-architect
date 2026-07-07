@@ -38,7 +38,7 @@ Les principales variables sont :
 | Intensité | Impact | Protection requise |
 |-----------|--------|--------------------|
 | **Légère** | Humidité progressive | Aucune |
-| **Moyenne** | Vêtements trempés rapidement | Impermeable ou abri |
+| **Moyenne** | Vêtements trempés rapidement | Imperméable ou abri |
 | **Lourde** | Saturation immédiate, mobilité réduite | Shelter obligatoirement |
 
 **Effets secondaires** :
@@ -50,8 +50,8 @@ Les principales variables sont :
 | Intensité | Impact | Protection requise |
 |-----------|--------|--------------------|
 | **Légère** | Visibilité réduite, glissade | Vêtements chauds |
-| **Moyenne** | Accumulation 5-10cm/jour | Impermeable + vêtements épais |
-| **Tempête** | Visibilité ~5m, movement ralenti | Shelter obligatoire |
+| **Moyenne** | Accumulation 5-10cm/jour | Imperméable + vêtements épais |
+| **Tempête** | Visibilité ~5m, mouvement ralenti | Shelter obligatoire |
 
 **Effets secondaires** :
 - Le vent + neige = wind chill extrême (-30°C ressenti possible)

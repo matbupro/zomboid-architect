@@ -1,14 +1,14 @@
-"""generator — Moteur principal de generation de mods Zomboid.
+"""generator — Moteur principal de génération de mods Zomboid.
 
-Generateur de mods valide selon la structure PZ (mod.info, media/lua/, etc.).
-Utilise Jinja2 pour les templates et cree automatiquement le scaffolding complet.
+Générateur de mods valide selon la structure PZ (mod.info, media/lua/, etc.).
+Utilise Jinja2 pour les templates et crée automatiquement le scaffolding complet.
 
 Usage programmatique :
     config = ModConfig(output_dir=Path("mods"))
     generator = ModGenerator(config)
     spec = ModSpec(name="MonMod", description="Un mod cool")
     manifest = asyncio.run(generator.generate(spec))
-    print(f"Mod cree dans : {manifest.output_path}")
+    print(f"Mod créé dans : {manifest.output_path}")
 """
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ def _validate_name(name: str) -> list[str]:
     """Valide un nom de mod — retourne une liste d'erreurs (vide = ok)."""
     errors: list[str] = []
     if not name or not name.strip():
-        errors.append("Le nom du mod ne peut pas etre vide.")
+        errors.append("Le nom du mod ne peut pas être vide.")
         return errors
     for char in _INVALID_NAME_CHARS:
         if char in name:
-            errors.append(f"Le caractere '{char}' n'est pas permis dans un nom de mod.")
+            errors.append(f"Le caractère '{char}' n'est pas permis dans un nom de mod.")
             break
     if len(name) > 128:
-        errors.append("Le nom du mod ne doit pas depasser 128 caracteres.")
+        errors.append("Le nom du mod ne doit pas dépasser 128 caractères.")
     return errors
 
 
@@ -63,10 +63,10 @@ def _validate_spec(spec: ModSpec) -> list[str]:
     """Valide une ModSpec — retourne la liste des erreurs (vide = valide)."""
     errors = _validate_name(spec.name)
     if len(spec.description) > 500:
-        errors.append("La description ne doit pas depasser 500 caracteres.")
+        errors.append("La description ne doit pas dépasser 500 caractères.")
     valid_types = [t.value for t in ModType]
     if spec.mod_type not in valid_types:
-        errors.append(f"Type de mod invalide. Types accepts : {valid_types}")
+        errors.append(f"Type de mod invalide. Types acceptés : {valid_types}")
     return errors
 
 
@@ -76,25 +76,25 @@ def _validate_spec(spec: ModSpec) -> list[str]:
 
 
 class ModGenerator:
-    """Genere un dossier mod Project Zomboid valide a partir d'une ModSpec.
+    """Génère un dossier mod Project Zomboid valide a partir d'une ModSpec.
 
-    Crée automatiquement la structure complete :
+    Crée automatiquement la structure complète :
         mod_root/
             mod.info          (manifest JSON)
             ZomboidModDescriptor.txt (Steam Workshop metadata)
-            README.md         (documentation auto-generée)
+            README.md         (documentation auto-générée)
             media/lua/client/  (scripts clients)
             media/lua/shared/  (code shared)
             media/lua/server/  (scripts serveur)
 
-    Les scripts sont remplis via templates Jinja2 predefinis.
+    Les scripts sont remplis via templates Jinja2 prédéfinis.
     """
 
     def __init__(self, config: ModGenConfig | None = None) -> None:
-        """Initialise le generateur avec sa configuration.
+        """Initialise le générateur avec sa configuration.
 
         Args:
-            config: Configuration du generateur. Defaut charge depuis .env + valeurs par defaut.
+            config: Configuration du générateur. Défaut charge depuis .env + valeurs par défaut.
         """
         from src.modgen.config import load_modgen_config  # lazy import
 
@@ -125,13 +125,13 @@ class ModGenerator:
     # -- Méthodes publiques --
 
     async def generate(self, spec: ModSpec) -> GeneratedModManifest:
-        """Genere un dossier mod complet a partir d'une specification.
+        """Génère un dossier mod complet a partir d'une specification.
 
         Args:
             spec: Specification haute-niveau du mod (nom, type, scripts, …).
 
         Returns:
-            GeneratedModManifest avec le chemin absolu du dossier cree.
+            GeneratedModManifest avec le chemin absolu du dossier créé.
 
         Raises:
             ValueError: Si la spec ne passe pas la validation.
@@ -147,12 +147,12 @@ class ModGenerator:
 
         # Crée la structure de dossiers
         output_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("Creation du dossier mod : %s", output_dir)
+        logger.info("Création du dossier mod : %s", output_dir)
 
         # Récupère le chemin relatif des scripts (media/lua/<script_dir>/)
         script_dir_rel = f"scripts/{spec.script_dir}" if spec.script_dir else "scripts"
 
-        # Collecte TOUS les fichiers a écrire
+        # Collecte TOUS les fichiers à écrire
         all_files: list[ModFile] = []
 
         # mod.info (généré dynamiquement, pas template)
@@ -192,7 +192,7 @@ class ModGenerator:
         script_files = self._generate_script_files(spec, script_dir_rel)
         all_files.extend(script_files)
 
-        # Ecrit tous les fichiers
+        # Écrit tous les fichiers
         file_count = 0
         for mod_file in all_files:
             full_path = output_dir / mod_file.relative_path
@@ -200,7 +200,7 @@ class ModGenerator:
             full_path.write_text(mod_file.content, encoding="utf-8")
             file_count += 1
 
-        logger.info("Mod '%s' genere — %d ecrits, %d scripts", spec.name, file_count, len(all_files))
+        logger.info("Mod '%s' généré — %d écrits, %d scripts", spec.name, file_count, len(all_files))
 
         return GeneratedModManifest(
             id=mod_id,
@@ -211,7 +211,7 @@ class ModGenerator:
         )
 
     def _render_mod_info(self, spec: ModSpec) -> str:
-        """Genere le contenu JSON de mod.info."""
+        """Génère le contenu JSON de mod.info."""
         # Prepare tags array for JSON
         tags_list = json.dumps(spec.tags) if spec.tags else "[]"
 
@@ -232,7 +232,7 @@ class ModGenerator:
     def _generate_script_files(
         self, spec: ModSpec, script_dir_rel: str
     ) -> list[ModFile]:
-        """Genere les fichiers de scripts Lua (client, shared, server)."""
+        """Génère les fichiers de scripts Lua (client, shared, server)."""
         files: list[ModFile] = []
 
         # Scripts clients (template client_script.lua.j2)
@@ -280,10 +280,10 @@ class ModGenerator:
 
     @classmethod
     def fill_from_description(cls, description: str, mod_type: ModType = ModType.ITEM) -> ModSpec:
-        """Genere automatiquement un ModSpec a partir d'une description textuelle.
+        """Génère automatiquement un ModSpec a partir d'une description textuelle.
 
         Utilise le LLM (via config optionnelle) pour structurer la description en fields.
-        Sans LLM configuré, cree une spec minimaliste avec les champs par defaut.
+        Sans LLM configuré, crée une spec minimaliste avec les champs par défaut.
 
         Args:
             description: Description naturelle haute-niveau.
@@ -292,8 +292,8 @@ class ModGenerator:
         Returns:
             ModSpec pre-rempli avec le nom extrait et la description parsee.
         """
-        # Extraction simple de nom depuis description si pas explicitement donne
-        name = description.strip()[:64]  # Utiliser description comme nom par defaut
+        # Extraction simple de nom depuis description si pas explicitement donné
+        name = description.strip()[:64]  # Utiliser description comme nom par défaut
         return ModSpec(
             name=name,
             description=description,
@@ -307,7 +307,7 @@ class ModGenerator:
 
 
 # ---------------------------------------------------------------------------
-# Fonction de commodité — generation rapide sans configuration explicite
+# Fonction de commodité — génération rapide sans configuration explicite
 # ---------------------------------------------------------------------------
 
 
@@ -316,15 +316,15 @@ async def generate_mod(
     output_dir: Path | None = None,
     templates_path: Path | None = None,
 ) -> GeneratedModManifest:
-    """Fonction quick-generate : cree un mod avec la config par defaut.
+    """Fonction quick-generate : créé un mod avec la config par défaut.
 
     Args:
         spec: Specification du mod.
-        output_dir: Chemin de sortie (defaut: mods/).
-        templates_path: Chemin des templates (defaut: src/modgen/templates/).
+        output_dir: Chemin de sortie (défaut: mods/).
+        templates_path: Chemin des templates (défaut: src/modgen/templates/).
 
     Returns:
-        GeneratedModManifest du mod cree.
+        GeneratedModManifest du mod créé.
     """
     from src.modgen.config import load_modgen_config  # lazy import
 
@@ -351,21 +351,21 @@ async def generate_mod_from_description(
     C'est l'equivalent CLI : python -m src.modgen generate "Une epée en acier"
 
     Args:
-        description: Description haute-niveau (ex: "Ajouter une arme avec 50 degats").
+        description: Description haute-niveau (ex: "Ajouter une arme avec 50 dégâts").
         mod_type: Type du mod (item, feature, ui, script, zombie, vehicle).
-        name: Nom explicite (defaut : extrait de la description).
-        author: Auteur (defaut: Zomboid Architect).
-        output_dir: Repertoire de sortie.
+        name: Nom explicite (défaut : extrait de la description).
+        author: Auteur (défaut: Zomboid Architect).
+        output_dir: Répertoire de sortie.
 
     Returns:
-        GeneratedModManifest du mod cree.
+        GeneratedModManifest du mod créé.
     """
     # Resolution du type
     try:
         mt = ModType(mod_type)
     except ValueError:
         available = [t.value for t in ModType]
-        raise ValueError(f"Type '{mod_type}' invalide. Types accepts : {available}")
+        raise ValueError(f"Type '{mod_type}' invalide. Types acceptés : {available}")
 
     spec = ModSpec(
         name=name or description.strip()[:64],
@@ -377,13 +377,13 @@ async def generate_mod_from_description(
 
 
 async def zip_mod(manifest: GeneratedModManifest) -> Path:
-    """Compresse un mod genere en un fichier ZIP.
+    """Compresse un mod généré en un fichier ZIP.
 
     Args:
-        manifest: Manifest du mod genere (retour de ModGenerator.generate).
+        manifest: Manifest du mod généré (retour de ModGenerator.generate).
 
     Returns:
-        Chemin du fichier ZIP cree dans le meme dossier que output_dir.
+        Chemin du fichier ZIP créé dans le même dossier que output_dir.
     """
     zip_path = manifest.mod_root.parent / f"{manifest.id}.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -392,5 +392,5 @@ async def zip_mod(manifest: GeneratedModManifest) -> Path:
                 filepath = Path(root) / file
                 arcname = filepath.relative_to(manifest.mod_root.parent)
                 zf.write(filepath, arcname)
-    logger.info("ZIP cree : %s (%d fichiers)", zip_path, manifest.file_count)
+    logger.info("ZIP créé : %s (%d fichiers)", zip_path, manifest.file_count)
     return zip_path

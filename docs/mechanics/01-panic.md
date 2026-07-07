@@ -5,9 +5,9 @@
 
 ## Description
 
-La méchanique de panique détermine comment les zombies réagissent aux bruits et stimuli dans l'environnement. Lorsque des sons sont produits (tirs, objets cassés, cadavres, fumée), les zombie entendent le bruit et se regroupent autour de la source, entrant en état de "panique".
+La mécanique de panique détermine comment les zombies réagissent aux bruits et stimuli dans l'environnement. Lorsque des sons sont produits (tirs, objets cassés, cadavres, fumée), les zombies entendent le bruit et se regroupent autour de la source, entrant en état de "panique".
 
-En état de panique, les zombies courent **40% plus vite** que leur vitesse normale et deviennent beaucoup plus agressifs dans leur approche. Cette méchanique est centrale pour la survie car elle crée un équilibre dynamique entre l'agressivité (attirer les zombie) et la discrétion (éviter de les attirer).
+En état de panique, les zombies courent **40% plus vite** que leur vitesse normale et deviennent beaucoup plus agressifs dans leur approche. Cette mécanique est centrale pour la survie car elle crée un équilibre dynamique entre l'agressivité (attirer les zombies) et la discrétion (éviter de les attirer).
 
 ## Propriétés / Stats
 

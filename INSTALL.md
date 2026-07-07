@@ -16,7 +16,7 @@
 git clone <repo-url>
 cd Zomboid_Architect
 
-# Executer le setup automatiquement
+# Exécuter le setup automatiquement
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
@@ -34,8 +34,8 @@ pip install -r bot/requirements.txt
 ### 2. Variables d'environnement
 ```powershell
 # Unique : .env.unified a la racine (déjà créé comme template)
-copy .env.unified.example .env.unified   # puis editer les valeurs nécessaires
-# ou utiliser setup.ps1 qui cree .env.unified automatiquement
+copy .env.unified.example .env.unified   # puis éditer les valeurs nécessaires
+# ou utiliser setup.ps1 qui crée .env.unified automatiquement
 ```
 
 ### 3. Playwright Chromium

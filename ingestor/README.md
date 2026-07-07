@@ -283,7 +283,7 @@ python -m ingestor.cli --steam-scan
 # 2. Scanner les mods installés (affiche un résumé)
 python -m ingestor.cli --workshop-scan
 
-# 3. Ingest les mods dans StorageBackend (SQLite vectoriel) pour la recherche vectorielle
+# 3. Ingester les mods dans StorageBackend (SQLite vectoriel) pour la recherche vectorielle
 python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 ```
 
@@ -331,7 +331,7 @@ python -m ingestor.cli --search "query" --engine brave
 
 ## Sécurité
 
-| Mecanisme | Details |
+| Mécanisme | Détails |
 |-----------|---------|
 | **robots.txt** | Respecté systématiquement par le crawler web (via `urllib.robotparser`) |
 | **Rate limiting** | 30 requêtes/min max par domaine (configurable via `WEB_RATE_LIMIT`) |
@@ -353,10 +353,10 @@ Vérifie que le service est running :
 ```powershell
 curl http://localhost:11434/api/tags
 ```
-Si non, demarrer : `ollama serve` ou redemarrer le service Windows.
+Si non, démarrer : `ollama serve` ou redémarrer le service Windows.
 
 ### Brave Search retourne toujours vide
-- Verifie que `BRAVE_API_KEY` est bien configurée (`print(os.getenv("BRAVE_API_KEY"))`)
+- Vérifie que `BRAVE_API_KEY` est bien configurée (`print(os.getenv("BRAVE_API_KEY"))`)
 - Le plan gratuit = 2000 req/mois, vérifie le quota sur [brave.com/search/api](https://brave.com/search/api/)
 
 ### `playwright install chromium` échoue
@@ -367,10 +367,10 @@ playwright install chromium --with-deps
 ```
 
 ### `.pbo` extraction fails (LZMA)
-Les `.pbo` signés utilisent une signature au début du fichier qui doit être ignorée. Le processeur `pbo.py` detecte et saute automatiquement la signature (header + data length). Si le .pbo est compressé avec autre chose que LZMA, l'extraction peut echouer.
+Les `.pbo` signés utilisent une signature au début du fichier qui doit être ignorée. Le processeur `pbo.py` détecte et saute automatiquement la signature (header + data length). Si le .pbo est compressé avec autre chose que LZMA, l'extraction peut échouer.
 
 ### Collections StorageBackend (SQLite vectoriel) vides après ingestion
-1. Verifie que StorageBackend (SQLite vectoriel) est accessible : `python -m ingestor.cli --list-collections`
+1. Vérifie que StorageBackend (SQLite vectoriel) est accessible : `python -m ingestor.cli --list-collections`
 2. Les chunks sont-ils generés ? Regarde les logs (`--verbose`)
 3. La confirmation StorageBackend (SQLite vectoriel) a-t-elle été faite (prompt [y/N]) ?
 
@@ -384,4 +384,4 @@ L'ingestor est utilisé en arrière-plan par le bot `bot/` pour :
 2. **Ingestion web automatique** — `/search "query"` dans Discord déclenche la même pipeline que `--search`
 3. **Modding assisté** — Les mods ingérés via `--mod-ingest` alimentent la base de connaissances du bot
 
-L'architecture est decouplee : le bot et l'ingestor partagent uniquement `src/retrieval/` + `src/governance/logger.py`.
+L'architecture est déconnectée : le bot et l'ingestor partagent uniquement `src/retrieval/` + `src/governance/logger.py`.

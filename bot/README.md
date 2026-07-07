@@ -5,7 +5,7 @@
 ### Locale (sans Docker) — recommandé pour le dev
 ```powershell
 cd "f:\Antigravity DEV\Zomboid_Architect"
-.\run-bot.ps1          # PowerShell (recommande)
+.\run-bot.ps1          # PowerShell (recommandé)
 :: ou
 run-bot.bat            # cmd.exe
 ```

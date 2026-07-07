@@ -1,7 +1,7 @@
-"""config — Settings du module de generation de mods.
+"""config — Settings du module de génération de mods.
 
-Charge la configuration depuis l'environnement (.env) ou les valeurs par defaut.
-Suit le meme pattern que bot/config.py et ingestor/config.py (dataclass + load_config()).
+Charge la configuration depuis l'environnement (.env) ou les valeurs par défaut.
+Suit le même pattern que bot/config.py et ingestor/config.py (dataclass + load_config()).
 """
 
 from __future__ import annotations
@@ -11,15 +11,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-# Types de mods disponibles (liste simple en module-level pour eviter import circulaire)
+# Types de mods disponibles (liste simple en module-level pour éviter import circulaire)
 _MOD_TYPES = ["item", "feature", "ui", "script", "zombie", "vehicle"]
 
 
 @dataclass
 class ModGenConfig:
-    """Configuration centralisee du moteur de generation de mods."""
+    """Configuration centralisée du moteur de génération de mods."""
 
-    # Output path — ou placer les mods generes
+    # Output path — ou placer les mods générés
     output_path: Path = field(default_factory=lambda: Path("mods"))
 
     # Template directory — ou trouver les templates Jinja2
@@ -27,7 +27,7 @@ class ModGenConfig:
         default_factory=lambda: Path(__file__).parent / "templates"
     )
 
-    # Valeurs par defaut pour les champs des mods generes
+    # Valeurs par défaut pour les champs des mods générés
     default_author: str = "Zomboid Architect"
     default_game_version: str = "Build42"
     default_script_dir: str = ""  # vide = scripts racine
@@ -40,13 +40,13 @@ class ModGenConfig:
 
 
 def load_modgen_config(**overrides: object) -> ModGenConfig:
-    """Charge la configuration depuis l'environnement ou les valeurs par defaut.
+    """Charge la configuration depuis l'environnement ou les valeurs par défaut.
 
     Args:
         **overrides: Valeurs explicites qui surchargent les variables d'environnement.
 
     Returns:
-        ModGenConfig charge depuis .env > overrides > default values.
+        ModGenConfig chargé depuis .env > overrides > default values.
     """
     kwargs = {}
     for key in ("output_path", "templates_path", "default_author", "default_game_version", "default_script_dir"):

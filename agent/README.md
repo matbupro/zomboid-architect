@@ -1,18 +1,18 @@
-# Agent Memory - Dossier de Memoire Interne
+# Agent Memory - Dossier de Mémoire Interne
 
-Ceci est **mon** espace memoire. Le dossier agent/ contient tous mes fichiers de contexte organises par domaine pour limiter les pertes et hallucinations.
+Ceci est **mon** espace mémoire. Le dossier agent/ contient tous mes fichiers de contexte organisés par domaine pour limiter les pertes et hallucinations.
 
 ## Index des Fichiers
 
 | Fichier | Role |
 |---------|------|
-| .agent_memory.md | (non decrit)
-| architecture.md | Stack technique, arborescence, flux de donnees, MCP
-| GOAL.md | Objectif principal du projet + createur
-| memories.md | Souvenirs, infos utilisateur, astuces trouvees
-| rules.md | 12 commandements + regles d'or du projet
-| syntax.md | Etat actuel du projet (ce fichier)
-| todo.md | TODO list completee (mise a jour continue)
+| .agent_memory.md | (non décrit)
+| architecture.md | Stack technique, arborescence, flux de données, MCP
+| GOAL.md | Objectif principal du projet + créateur
+| memories.md | Souvenirs, infos utilisateur, astuces trouvées
+| rules.md | 12 commandements + règles d'or du projet
+| syntax.md | État actuel du projet (ce fichier)
+| todo.md | TODO list complétée (mise à jour continue)
 
 ## Maintenance
 

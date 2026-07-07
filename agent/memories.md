@@ -18,7 +18,7 @@
 - Mode DM automatique intercepté via `on_message` — ignore les channels publics
 
 ### Docker
-- docker-compose.yml orchestre les services : bot, ollama (ingestor en launch-on-demand) — **pas de storage vectoriel**
+- docker-compose.yml orchestre les services : bot, ollama (ingestor en launch-on-demand) — **pas de ChromaDB**
 - Ollama sur la machine hôte → `host.docker.internal:11434`
 - Pour Windows : préférer Ollama installé en natif + `host.docker.internal` plutôt que le conteneur ollama intégré
 
@@ -32,92 +32,35 @@
 - Le fichier `.agent_memory.md` a été déplacé dans `agent/` puis découpé en fichiers spécialisés pour limiter les pertes et hallucinations de données.
 - La mémoire est divisée en 6 fichiers indépendants dans `agent/` : GOAL, rules, todo, architecture, memories, syntax.
 
-## Session du 2026-07-02
-P0 audit remediation: fixed collection mapping in engine.py, async health checks in bot/main.py, DRY imports via _import_compat.py, heartbeat + stale lock recovery in governance/lock.py
+## Historique des sessions récentes
 
-## Session du 2026-07-02
-continuation priorite - verification etat
+### 2026-07-07 — Nettoyage projet
+Suppression 12 golden reports obsolètes + 6 fichiers database/ superseded. Projet nettoyé de ses traces ChromaDB dead code.
 
-## Session du 2026-07-02
-Golden set recall@5 test suite (17 tests) + lock.py import fix + notion scripts cleanup
+### 2026-07-06 — Release v0.4.0-alpha + Phase 9 CLI
+- Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour
+- Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) + 36 tests passing
+- Phase 10 Docker validatee: build/run/search cross-collection + mark complete
+- Phase 9 CLI validatee : --file + --dir testés, MIME detection fix, auto-accept non-TTY, 62 tests passing
+- Phase 8 Web crawling termine : cloudscraper CF bypass, PZ wiki extraction, cross-collection search verified
+- Parser restructure + 27 files changed (sync post-commit)
+- Docker ingestor fix, golden report CLI, parser B42 validation
+- doctor repair mode + setup fresh machine install
 
-## Session du 2026-07-02
-Phase 5+11 tests : golden set recall@5 (17/17) + StorageWriter unitaires (22/22), commit 1298527
+### 2026-07-05 — Hardening + Phase 3.1 correction
+- Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires
+- Golden set aligné + promote.py passe a 0.933 recall (promotion reussie)
+- guard production + pre-ingest backup + rollback + CI security gate
+- Phase 3.1: ingest.py metadata fix + promote.py golden set gate + SDK migration
+- Fuzzy matching sync : normalisation accents/apostrophes/tirets + Levenshtein + _fuzzy_match() + 24 nouveaux tests
+- todo.md sync Notion automatique
 
-## Session du 2026-07-02
-Phase Steam + workshop + .pbo : nouveau module steam/ (path_discovery, library_folders, workshop_scanner, steamcmd_client), processeur .pbo, mod_ingester, 4 nouvelles collections storage vectoriel, commandes CLI --steam-scan/--workshop-scan/--mod-ingest, tests 12/12
+### 2026-07-04 — Phase 12 + Phase 6 + Steam module
+- Phase 12 ajoutée : pipeline de génération de mods + sanity check cohérence projet
+- Phase 6: Filtrage B41/B42 natif — game_version filtering, integre dans engine_client/pipeline/bot. 24 nouveaux tests, 84 total.
+- Phase Steam + workshop + .pbo : nouveau module steam/ (path_discovery, library_folders, workshop_scanner, steamcmd_client), processeur .pbo, mod_ingester, 4 nouvelles collections, commandes CLI --steam-scan/--workshop-scan/--mod-ingest, tests 12/12
+- Golden set recall@5 test suite (17 tests) + lock.py import fix + notion scripts cleanup
 
-## Session du 2026-07-04
-Phase 12 ajoutée : pipeline de génération de mods + sanity check cohérence projet
-
-## Session du 2026-07-04
-Phase 6: Filtrage B41/B42 natif — game_version filtering avec storage vectoriel , integre dans [storage vectoriel] client (historique), engine_client, pipeline, et bot main.py. 24 nouveaux tests, 84 tests total.
-
-## Session du 2026-07-04
-feat: incremental ingestion via SHA-256 hash index — 17 tests, tous passant. FIX test isolation : _quarantine_patch pour patcher get_quarantine_path() directement (monkeypatch.setenv ignoré car la fonction ne lit PAS les env vars).
-
-## Session du 2026-07-05
-Phase 6 complet: regression tester + release tagging, 36 nouveaux tests
-
-## Session du 2026-07-05
-Phase 3: ingest.py global ingestion script, 8 objects B41, recipes, mechanics, strict metadata validation, batch anti-OOM, 24 tests
-
-## Session du 2026-07-05
-Phase 3.1: ingest.py metadata fix + promote.py golden set gate + [storage vectoriel] client (historique) SDK migration
-
-## Session du 2026-07-05
-guard production + pre-ingest backup + rollback + CI security gate
-
-## Session du 2026-07-05
-golden set aligné + promote.py passe a 0.933 recall (promotion reussie) + guard production + backup pre-ingest
-
-## Session du 2026-07-05
-todo update: architecture decision SQLite/pgvector + guard/backup complete + golden set 0.933 recall
-
-## Session du 2026-07-05
-Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires
-
-## Session du 2026-07-05
-Correction bugs syntaxe + sécurité/config + gouvernance + 67 tests unitaires + rate limiting
-
-## Session du 2026-07-05
-Fuzzy matching sync : normalisation accents/apostrophes/tirets + Levenshtein + _fuzzy_match() + 24 nouveaux tests
-
-## Session du 2026-07-05
-todo.md sync Notion automatique
-
-## Session du 2026-07-05
-doctor repair mode + setup fresh machine install
-
-## Session du 2026-07-06
-Phase 8 Web crawling termine : cloudscraper CF bypass, PZ wiki extraction 2 pages + storage vectoriel storage, cross-collection search verified. Test file cleanup.
-
-## Session du 2026-07-06
-Phase 9 CLI validatee : --file + --dir testés sur .env/Dockerfile/py/md. MIME detection fix: _peek_text fallback, config file recognition. Auto-accept storage en non-TTY. 62 tests passing.
-
-## Session du 2026-07-06
-A-D: Docker ingestor fix, golden report CLI, parser B42 validation
-
-## Session du 2026-07-06
-Sync post-commit: ingestor hardening + bot Docker/config + parser restructure + 27 files changed
-
-## Session du 2026-07-06
-Phase 10 Docker validatee: build/run/search cross-collection + mark complete
-
-## Session du 2026-07-06
-Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) + 36 tests passing
-
-## Session du 2026-07-06
-Version bump 0.3.0-alpha → 0.4.0-alpha : multi-format engine, bot Discord complet, SQLite storage V1 (36 tests), mod generation pipeline, hardening
-
-## Session du 2026-07-06
-Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour (tout commité + sync)
-
-## Session du 2026-07-06
-Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour (tout commité + sync)
-
-## Session du 2026-07-06
-Status update: following todo list priorities
-
-## Session du 2026-07-06
-todo verification: Phase 1 Lua UI docs, Phase 4 MCP/watchdog/steam upload, Phase 5 CI golden set + regression tests
+### 2026-07-02 — Foundation phases
+- Phase 5+11 tests : golden set recall@5 (17/17) + StorageWriter unitaires (22/22), commit 1298527
+- P0 audit remediation: fixed collection mapping in engine.py, async health checks in bot/main.py, DRY imports via _import_compat.py, heartbeat + stale lock recovery in governance/lock.py

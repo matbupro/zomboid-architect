@@ -17,7 +17,7 @@
 
 | Suffixe  | Signification |
 |----------|---------------|
-| `-alpha` | Dévelopement actif, API susceptible de changer |
+| `-alpha` | Développement actif, API susceptible de changer |
 | `-beta`  | API gelée, stabilisation en cours |
 | `-rc`    | Release candidate, pas de nouvelle feature |
 
