@@ -407,7 +407,7 @@ class WikiJsonProcessor(Processor):
                 "categories_processed": [k for k in data.keys() if not k.startswith("_")],
                 "total_entries": sum(
                     len(v) for v in data.values()
-                    if isinstance(v, dict) and not isinstance(next(iter(v)), dict)
+                    if isinstance(v, dict) and len(v) > 0 and not isinstance(next(iter(v)), dict)
                 ),
             },
         )
