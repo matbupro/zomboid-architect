@@ -333,20 +333,20 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 
 > Ton doc section A.3 donne le squelette LangGraph complet avec state machine, 5 agents + escalade, MAX_RETRIES=5, policy d'escalade.
 
-### S3-i. Implémentation LangGraph
-- [ ] **S3-a** Créer `agent_core/` directory (ou `ingestor/agent_core/`) — le code LangGraph n'existe PAS encore
-  - State: ModAgentState (TypedDict de ta section A.3)
-  - Agents nodes: planning_agent, building_agent, validating_agent, fixing_agent, packaging_agent, escalation_agent
-  - get_next_node() conditional edges (state machine de ton doc)
-- [ ] **S3-b** Validation Level 1 — implémenter validate_level1(): luacheck + mod.info schema + required dirs check (section B.4 Niveau 1)
-- [ ] **S3-c** Validation Level 2 — implémenter validate_level2(): PZ headless container boot test, OnGameBoot errors detection (section B.4 Niveau 2)
-- [ ] **S3-d** Validation Level 3 — implémenter validate_level3(): runtime headless avec test scripts (section B.4 Niveau 3)
-- [ ] **S3-e** Validation Level 4 — implémenter validate_level4(): RCON connection, item existence, recipe visibility, craft success (section B.4 Niveau 4)
+### S3-i. Implémentation LangGraph ✅ fait session courante
+- [x] **S3-a** Créer `ingestor/agent_core/` — 6 fichiers, ~900 lignes ✅ commit session courante
+  - State: ModAgentState (TypedDict complet) + AgentStatus, ValidationLevel, GovernanceTier, BuildTarget enums ✅ (`state.py`)
+  - 6 Nodes : planning_node, building_node, validating_node, fixing_node, packaging_node, escalation_node ✅ (`nodes.py`)
+  - get_next_node() conditional edges via LangGraph StateGraph ✅ (`graph.py`)
+- [x] **S3-b** validate_level1() — luacheck + mod.info schema + required dirs check ✅ (`validation.py:78-156`)
+- [x] **S3-c** validate_level2() — PZ headless boot test + Lua error detection ✅ (`validation.py:159-214`)
+- [x] **S3-d** validate_level3() — runtime headless log analysis + event firing check ✅ (`validation.py:217-279`)
+- [x] **S3-e** validate_level4() — RCON connection + item/recipe/craft functional tests ✅ (`validation.py:282-359`)
 
-### S3-II. Policy d'escalade & retry
-- [ ] **S3-f** Implémenter RETRY_POLICY (section A.5): max_attempts=5, backoff_multiplier=2, initial_delay=5s
-- [ ] **S3-g** should_escalate() — les 6 conditions d'escalade + human escalation requirements
-- [ ] **S3-h** Governance tier system (section A.6): GREEN/ORANGE/RED avec actions autorisées/bloquées
+### S3-II. Policy d'escalade & retry ✅ fait session courante
+- [x] **S3-f** RETRY_POLICY : max_attempts=5, backoff_multiplier=2, initial_delay=5s + compute_backoff_delay() ✅ (`policy.py:28-40`)
+- [x] **S3-g** should_escalate() — 6 conditions d'escalade + human escalation requirements ✅ (`policy.py:48-72`)
+- [x] **S3-h** Governance tier system GREEN/ORANGE/RED : governance_tier_for_run(), can_publish_auto(), requires_human_approval() ✅ (`policy.py:80-130`)
 
 ---
 
