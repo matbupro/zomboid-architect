@@ -364,8 +364,15 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 
 ### S4-II. Extensions CLI
 - [x] **S4-d** `--ingest-wikidrive <path>` ✅ commit `41f250b` — argument (l.104) + handler handle_wikidrive (l.580) + wiring main (l.707)
-- [ ] **S4-e** `--ingest-pz-full` — run tous les ingestion sources en sequence (wiki + web + mods + class z)
-- [ ] **S4-f** `--coverage-report` — query data_coverage table → afficher % par category
+- [x] **S4-e** `--ingest-pz-full` ✅ session courante — pipeline orchestrator complet (wiki.json + workshop mods + web crawl) avec tracking PG par etape
+  - Etape 1 : Wiki.json Data Drive (fichier local, dossier ou URL) → WikiJsonProcessor → StorageWriter
+  - Etape 2 : Workshop scan → mod_ingester pour chaque mod (max 50)
+  - Etape 3 : Crawl PZWiki via Brave Search (si BRAVE_API_KEY definie)
+  - Tracking PG : ingestion_runs + complete avec erreurs par etape (`cli.py:~745`)
+- [x] **S4-f** `--coverage-report` ✅ session courante — rapport de couverture PG avec barres ASCII, % par category, liens croises (`cli.py:~890`)
+  - Query data_coverage + v_coverage_summary via PZStorageExt
+  - Affichage : `[█████░░░░] 62.5% (covered/expected)` par category + total global
+  - Affiche egalement les liens cross-reference (data_links)
 - [ ] **S4-g** `--ingest-classz <github-repo-path>` — parser le code Java decompilé
 
 ### S4-iii. Adaptation StorageWriter pour données PZ massives

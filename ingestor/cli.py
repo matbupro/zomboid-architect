@@ -10,6 +10,10 @@ Commandes principales :
     --list-collections         Liste les collections storage disponibles
     --search-all <query>       Recherche sur TOUTES les collections storage
 
+Commandes Pipeline PZ :
+    --ingest-pz-full           Pipeline complet (wiki + mods workshop + web crawl)
+    --coverage-report          Rapport de couverture % par category
+
 Commandes Steam & Mods :
     --steam-scan               Scanner Steam + decouvrir PZ install
     --steamcmd-download-game   Telecharger PZ via steamcmd (anonymous)
@@ -77,6 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
   %(prog)s --list-collections
   %(prog)s --search-all "comment survivre en B42"
   %(prog)s --report        Rapport qualite (recall, collections, quarantine)
+  %(prog)s --ingest-pz-full Pipeline complet (wiki + mods + web)
+  %(prog)s --coverage-report Couverture par category PZ
 """,
     )
 
@@ -98,6 +104,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG â†’ Brave fallback")
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
     parser.add_argument("--collection", type=str, help="Collection storage cible (ex: pz_guides)")
+
+    # PZ Pipeline commands
+    pipeline_group = parser.add_mutually_exclusive_group()
+    pipeline_group.add_argument("--ingest-pz-full", action="store_true", help="Pipeline complet : wiki + mods workshop + web crawl (tout ingere en une fois)")
+    pipeline_group.add_argument("--coverage-report", action="store_true", help="Rapport de couverture : % coverage par category (query data_coverage)")
 
     # PZ Data Drive command
     drive_group = parser.add_mutually_exclusive_group()
@@ -677,8 +688,299 @@ async def handle_mod_ingest(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Main entry point
+# Pipeline complet — S4/e : --ingest-pz-full
 # ---------------------------------------------------------------------------
+
+async def handle_ingest_pz_full(args: argparse.Namespace) -> None:
+    """Commande : --ingest-pz-full — pipeline complet d'absorption PZ.
+
+    Etapes executees en sequence :
+      1. Ingestion Wiki.json (si source detectee ou fourni par env)
+      2. Scan workshop + ingestion des mods installes
+      3. Crawl web PZWiki (items, recipes, skills guides) — optionnel si BRAVE_KEY
+
+    Chaque etape track sa progression dans PG via PZStorageExt.
+    """
+    from urllib.parse import urlparse
+
+    from .config import load_config
+    from .engine import IngestionEngine
+    from .processors.wikijson import WikiJsonProcessor
+    from .storage.pz_storage import PZStorageExt
+    from .steam.path_discovery import discover_game_path
+    from .steam.workshop_scanner import WorkshopScanner
+    from .storage.storage_writer import write_chunks_to_storage
+
+    config = load_config()
+    ext = PZStorageExt(ollama_url=config.OLLAMA_BASE_URL)
+    engine = IngestionEngine(config)
+
+    # -- Demarrer le tracking global -------------------------------------------
+    run_id = None
+    try:
+        await ext.init_pg()
+        run_id = await ext.start_ingestion_run(source_type="pz_full_pipeline")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("PG non dispo pour tracking (%s) — pipeline execute quand meme", exc)
+
+    totals = {"chunks": 0, "words": 0, "sources": [], "failures": []}
+
+    # -- Etape 1 : Wiki.json (Data Drive) --------------------------------------
+    logger.info("=== Etape 1/3 : Ingestion Data Drive ===")
+    wiki_path = None
+    for candidate in [
+        getattr(config, "WIKI_DATA_PATH", None),   # config.py: WIKI_DATA_PATH
+    ]:
+        if not candidate:
+            continue
+        p = Path(candidate) if not urlparse(candidate).scheme else None
+        if p and p.is_file():
+            wiki_path = str(p)
+            break
+
+    # Si pas de fichier trouve, tenter le dossier
+    if not wiki_path and getattr(config, "WIKI_DATA_PATH", None):
+        d = Path(getattr(config, "WIKI_DATA_PATH", ""))
+        if d.is_dir():
+            wiki_path = str(d)
+
+    if wiki_path:
+        try:
+            src_run_id = None
+            try:
+                await ext.init_pg()
+                src_run_id = await ext.start_ingestion_run(
+                    source_type="wikidrive",
+                    source_url=wiki_path if urlparse(wiki_path).scheme else None,
+                    source_file=wiki_path,
+                )
+            except Exception:
+                pass  # tracking PG optionnel
+
+            processor = WikiJsonProcessor(config, source=wiki_path)
+            res = await processor.extract()
+
+            chunk_written = await write_chunks_to_storage(
+                chunks=res.chunks,
+                source=wiki_path,
+                content_type="application/json",
+                collection="pz_items",
+                metadata={"pipeline_stage": "wikidrive", "sha256": res.file_hash or ""},
+            )
+
+            print(f"\n{'='*70}")
+            print(f"  [1/3] Data Drive : {len(res.chunks)} chunks ({res.word_count} mots) — Storage: {'OK' if chunk_written else 'ERREUR'}")
+            totals["chunks"] += len(res.chunks)
+            totals["words"] += res.word_count
+            totals["sources"].append("wikidrive")
+
+            if src_run_id:
+                try:
+                    await ext.complete_ingestion_run(src_run_id, chunks_generated=len(res.chunks))
+                except Exception:
+                    pass
+
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Etape 1 echouee : %s", exc)
+            totals["failures"].append({"stage": "wikidrive", "error": str(exc)})
+            print(f"  [1/3] Data Drive : ERREUR — {exc}")
+
+    else:
+        logger.info("Aucune source Wiki.json trouvee — skip Etape 1 (execution --ingest-wikidrive PATH pour ingerer manuellement)")
+        print("  [1/3] Data Drive : SKIP (aucune source detectee. Utiliser --ingest-wikidrive <path> si besoin.)")
+
+    # -- Etape 2 : Workshop scan + mod ingest -----------------------------------
+    logger.info("=== Etape 2/3 : Scan Workshop ===")
+    try:
+        game_paths = discover_game_path()
+        content_root = game_paths.workshop_content_root or Path("steamapps/workshop/content/1042170")
+
+        if not content_root.exists():
+            print(f"  [2/3] Workshop : SKIP (root non trouve : {content_root})")
+        else:
+            scanner = WorkshopScanner(content_root)
+            mods = await scanner.scan()
+
+            ingest_count = 0
+            for mod in mods[:50]:  # max 50 mods pour le pipeline auto
+                try:
+                    from .steam.mod_ingester import ingest_mods_from_directory
+                    results = await ingest_mods_from_directory(content_root / str(mod.mod_id), config=config)
+                    for r in results:
+                        if r.success:
+                            ingest_count += 1
+                            totals["chunks"] += r.chunks_written
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Mod #%d ingestion echouee : %s", mod.mod_id, exc)
+
+            print(f"\n  [2/3] Workshop : {len(mods)} mods trouves, {ingest_count} ingeres ({totals['chunks']} chunks total)")
+            totals["sources"].append("workshop")
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Etape 2 echouee : %s", exc)
+        totals["failures"].append({"stage": "workshop", "error": str(exc)})
+        print(f"  [2/3] Workshop : ERREUR — {exc}")
+
+    # -- Etape 3 : Crawl PZWiki (pages cibles) ----------------------------------
+    logger.info("=== Etape 3/3 : Crawl PZWiki ===")
+    try:
+        import os as _os
+        brave_key = _os.getenv("BRAVE_API_KEY")
+
+        if brave_key:
+            from .search.brave import search as _brave_search
+
+            logger.info("Brave API dispo — crawl PZWiki cibles...")
+            pages = await _brave_search("site:pzwiki.net item guide", max_results=10, api_key=brave_key)
+            if pages:
+                all_chunks = []
+                from .processors.base import Chunk as BaseChunk
+                for i, pg in enumerate(pages):
+                    body = getattr(pg, "body", "") or ""
+                    if body:
+                        all_chunks.append(BaseChunk(text=body, index=i, start_offset=0))
+
+                if all_chunks:
+                    success = await write_chunks_to_storage(
+                        chunks=all_chunks, source="pzwiki_web", content_type="web_crawl", collection="pz_web_pages"
+                    )
+                    print(f"\n  [3/3] PZWiki crawl : {len(all_chunks)} pages ingerees — Storage: {'OK' if success else 'ERREUR'}")
+                    totals["chunks"] += len(all_chunks)
+                    totals["sources"].append("pzwiki_web")
+                else:
+                    print("  [3/3] PZWiki crawl : aucune page avec contenu trouvee.")
+            else:
+                print("  [3/3] PZWiki crawl : Brave Search retourne 0 resultats.")
+        else:
+            print("  [3/3] PZWiki crawl : SKIP (BRAVE_API_KEY non definie — requis pour le crawl web)")
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Etape 3 echouee : %s", exc)
+        totals["failures"].append({"stage": "pzwiki_crawl", "error": str(exc)})
+        print(f"  [3/3] PZWiki crawl : ERREUR — {exc}")
+
+    # -- Resume final -----------------------------------------------------------
+    print(f"\n{'='*70}")
+    print("=== Pipeline PZ Complet termine ===")
+    print(f"  Sources ingerees  : {', '.join(totals['sources']) or '(aucune)'}")
+    print(f"  Chunks totaux     : {totals['chunks']}")
+    print(f"  Echecs            : {len(totals['failures'])}")
+    for fail in totals["failures"]:
+        print(f"    - [{fail['stage']}] {fail['error']}")
+
+    if run_id:
+        try:
+            await ext.complete_ingestion_run(
+                run_id, chunks_generated=totals["chunks"],
+                errors=[{"stage": f["stage"], "error": f["error"]} for f in totals["failures"]]
+            )
+            logger.info("Tracking PG complete : %s", run_id[:8])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Echec tracking PG final : %s", exc)
+
+    print(f"{'='*70}\n")
+
+
+# ---------------------------------------------------------------------------
+# Rapport de couverture — S4/f : --coverage-report
+# ---------------------------------------------------------------------------
+
+def handle_coverage_report() -> None:
+    """Commande : --coverage-report — afficher % coverage par category PZ.
+
+    Requiert PG d'accessible. Query la table data_coverage + les vues v_coverage_summary
+    et affiche un rapport de couverture structuré.
+    """
+    from .config import load_config
+    from .storage.pz_storage import PZStorageExt
+
+    ext = PZStorageExt()
+    asyncio.run(ext.init_pg())  # lazy connect PG
+
+    # -- Query coverage par category ---------------------------------------------
+    try:
+        records = asyncio.run(ext.get_coverage_summary())
+    except Exception as exc:  # noqa: BLE001
+        print(f"\nERREUR : impossible de recuperer la couverture ({exc})")
+        print("Assurez-vous que PostgreSQL est accessible et que les donnees existent.")
+        return
+
+    if not records:
+        print("\nAucune donnee de couverture trouvee.")
+        print("Lancez d'abord `python -m ingestor.cli --ingest-pz-full` pour ingerer des donnees.")
+        return
+
+    # -- Query data_links pour le graph cross-reference --------------------------
+    try:
+        links = asyncio.run(ext.get_data_links())
+    except Exception:  # noqa: BLE001
+        links = []
+
+    # -- Affichage structuré -----------------------------------------------------
+    print(f"\n{'='*70}")
+    print("=== Rapport de Couverture PZ ===\n")
+
+    # Par category
+    cats: dict[str, list] = {}
+    for rec in records:
+        cats.setdefault(rec.category, []).append(rec)
+
+    # Totaux estimés du monde PZ (références connues)
+    expected_totals = {
+        "items": 350,
+        "recipes": 250,
+        "mobs": 30,
+        "skills": 42,
+        "crops": 25,
+        "weather": 50,
+        "maps": 12,
+        "building": 60,
+        "vehicles": 35,
+        "achievements": 75,
+        "traps": 10,
+    }
+
+    print("Couverture par category :\n")
+    total_covered = 0
+    total_expected = sum(expected_totals.values())
+
+    for cat in sorted(cats.keys()):
+        items_list = cats[cat]
+        covered = sum(1 for r in items_list if r.is_documented)
+        avg_completeness = (sum(r.data_completeness_score for r in items_list) / len(items_list)) if items_list else 0
+        expected = expected_totals.get(cat, "?")
+
+        # Barre de progression ASCII
+        pct = (covered / expected * 100) if isinstance(expected, int) and expected > 0 else 0
+        bar_len = 30
+        filled = int(bar_len * min(pct, 100) / 100)
+        bar = chr(9608) * filled + chr(9617) * (bar_len - filled)
+
+        print(f"  {cat:<20} [{bar}] {pct:5.1f}%  ({covered}/{expected} entites)")
+        total_covered += covered
+
+    print(f"\n{'─'*70}")
+    avg_overall = total_covered / total_expected * 100 if total_expected > 0 else 0
+    bar_len = 40
+    filled = int(bar_len * min(avg_overall, 100) / 100)
+    bar = chr(9608) * filled + chr(9617) * (bar_len - filled)
+    print(f"  TOTAL global           [{bar}] {avg_overall:5.1f}%")
+
+    # Cross-reference links count
+    if links:
+        link_types: dict[str, int] = {}
+        for link in links:
+            lt = link.link_type
+            link_types[lt] = link_types.get(lt, 0) + 1
+        print(f"\nLiens croises ({len(links)} total) :")
+        for lt, cnt in sorted(link_types.items(), key=lambda x: -x[1]):
+            print(f"  {lt}: {cnt}")
+
+    print(f"\n{'='*70}\n")
+
+
+# ---------------------------------------------------------------------------
+# Steam & Mod handlers
 
 async def main(args: argparse.Namespace) -> None:
     """Point d'entrÃ©e principal."""
@@ -693,8 +995,13 @@ async def main(args: argparse.Namespace) -> None:
     except ImportError:
         pass
 
+    # Pipeline commands (prioritaires)
+    if args.ingest_pz_full:
+        await handle_ingest_pz_full(args)
+    elif args.coverage_report:
+        handle_coverage_report()
     # Steam & Mod commands (prioritaires)
-    if args.steam_scan:
+    elif args.steam_scan:
         await handle_steam_scan(args)
     elif args.steamcmd_download_game is not None:
         await handle_steamcmd_download(args)
