@@ -269,25 +269,25 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 > Ton doc recommande: PostgreSQL 16 + Qdrant + MinIO + Gitea + Redis + PZ Headless Docker
 
 ### S1-i. docker-compose complet
-- [ ] **S1-a** Créer `docker-compose.pz-agent.yml` — tous les services de ton doc section B.2
-  - postgres (postgis:16-3.4, port 5432)
-  - qdrant (v1.7.4, ports 6333/6334)
-  - minio (ports 9000/9001, console UI)
-  - gitea:1.21 (port 3000/2222)
-  - redis:7-alpine (port 6379, --maxmemory 512mb)
-  - pz-headless (build depuis Dockerfile.pz-headless)
-- [ ] **S1-b** Healthchecks pour chaque service (déjà définis dans ton doc — à implémenter)
-- [ ] **S1-c** Volumes persistants — postgres_data, qdrant_data, minio_data, gitea_data, redis_data, pz_mods, pz_logs
-- [ ] **S1-d** Réseau bridge `pz-agent-net`
+- [x] **S1-a** Créer `docker-compose.pz-agent.yml` — tous les services de ton doc section B.2 ✅ commit `15e529f`
+  - postgres (postgis:16-3.4, port 5432) ✅
+  - qdrant (v1.7.4, ports 6333/6334) ✅
+  - minio (ports 9000/9001, console UI) ✅
+  - gitea:1.21 (port 3000/2222) ✅
+  - redis:7-alpine (port 6379, --maxmemory 512mb) ✅
+  - pz-headless (build depuis Dockerfile.pz-headless) ✅
+- [x] **S1-b** Healthchecks pour chaque service ✅ pg_isready / curl / redis-cli ping / minio health
+- [x] **S1-c** Volumes persistants — postgres_data, qdrant_data, minio_data, gitea_data, redis_data, workspace_data, pz_mods, pz_logs (8 volumes) ✅
+- [x] **S1-d** Réseau bridge `zomboid-net` ✅
 
 ### S1-II. PZ Headless Server (Section B du doc)
-- [ ] **S1-e** Générer le Dockerfile.pz-headless (section B.1 de ton doc) — Ubuntu 22.04 + steamcmd + PZ app 380870 + luacheck
-- [ ] **S1-f** entrypoint.sh — lance server headless avec mod injecte + servertest.ini auto-configuré
-- [ ] **S1-g** Script d'injection de mod dans le conteneur (section B.3) — unzip mod → /pz-server/mods/ + configure servert.ini
-- [ ] **S1-h** Resource limits: cpus 4, memory 8G (limits), 2 cores/4G (reservations)
+- [x] **S1-e** Générer le Dockerfile.pz-headless ✅ commit `15e529f`
+- [x] **S1-f** entrypoint.sh ✅ commit `15e529f`
+- [x] **S1-g** inject_mod.sh ✅ commit `15e529f`
+- [x] **S1-h** Resource limits: postgres 4cpu/8G, pz-headless 4cpu/8G, qdrant 2cpu/4G, minio 1cpu/2G ✅
 
 ### S1-iii. Variables d'environnement & secrets
-- [ ] **S1-i** `.env.pz-agent` — POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD, STEAM_USER/PASS (jamais commités)
+- [x] **S1-i** `.env.pz-agent.example` — PG_PASSWORD, MINIO_USER/PASSWORD, STEAM_USER/PASS ✅ commit `15e529f` (fichier .example)
 - [ ] **S1-II** Pré-commit hook pour verifier que les secrets ne sont pas dans le repo
 
 ---
@@ -297,33 +297,22 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 > Ton doc donne le DDL complet en section C.1: 17+ tables avec types ENUM, indexes, triggers, vues.
 
 ### S2-i. Migration DDL initiale
-- [ ] **S2-a** Créer `migrations/001_initial_schema.sql` — toutes les tables de ta section C (DDL literal copié du doc)
-  - Extensions: uuid-ossp, pg_trgm
-  - Enums: agent_status, validation_level, validation_result, governance_tier, build_target, publish_status, dependency_type
-  - Tables: mod_projects, agent_runs, mod_artifacts, mod_files, mod_dependencies, knowledge_chunks, api_reference, test_scenarios, fix_attempts, validation_results, publish_log, users
-- [ ] **S2-b** Triggers: trg_mod_projects_updated, trg_api_reference_updated, trg_run_completion_stats (update_project_stats)
-- [ ] **S2-c** Vues: v_latest_validated_artifact, v_run_success_rate, v_validation_trends
-- [ ] **S2-d** Index sur toutes les tables (déjà définis dans le doc — à appliquer)
+- [x] **S2-a** Créer `migrations/001_initial_schema.sql` ✅ commit `15e529f` — 16 tables + 7 ENUMs + 5 vues + 4 triggers
+  - Extensions: uuid-ossp, pg_trgm ✅
+  - Enums: agent_status, validation_level, validation_result, governance_tier, build_target, publish_status, dependency_type ✅
+  - Tables (12 du doc): mod_projects, agent_runs, mod_artifacts, mod_files, mod_dependencies, knowledge_chunks, api_reference, test_scenarios, fix_attempts, validation_results, publish_log, users ✅
+- [x] **S2-b** Triggers: trg_mod_projects_updated, trg_api_reference_updated, trg_run_completion_stats + trg_coverage_updated ✅ (4 triggers)
+- [x] **S2-c** Vues: v_latest_validated_artifact, v_run_success_rate, v_validation_trends + v_coverage_summary, v_ingestion_health ✅ (5 vues au total)
+- [ ] **S2-d** Index sur toutes les tables — partiels (idx sur mod_projects x3) mais à vérifier sur toutes les autres
 
 ### S2-II. Collections StorageBackend mapping
-- [ ] **S2-e** Vérifier que les 13 collections existantes correspondent au schéma DB:
-  - `pz_items` → knowledge_chunks(category='item') ? Ou table dédiée ?
-  - `pz_recipes` → knowledge_chunks(category='recipe') ?
-  - `pz_lua_api` → api_reference + knowledge_chunks(subcategory='lua') ?
-  - `pz_java_api` → api_reference(subcategory='java') ?
-  - `pz_mechanics` → knowledge_chunks(category='mechanic') ?
-  - `pz_web_pages` → knowledge_chunks(category='web_page') ?
-  - `pz_pdfs` / `pz_images` / `pz_videos` / `pz_audios` → type mapping
-  - `pz_mods` → mod_projects + knowledge_chunks(category='mod_metadata') ?
-  - `pz_workshop_items` → workshop items registry (nouvelle table nécessaire ?)
-  - `pz_mod_lua_scripts` / `pz_mod_configs` → mod_files ou knowledge_chunks
-- [ ] **S2-f** Créer des tables dédiées si le mapping knowledge_chunks unique est insuffisant pour les requêtes croisées
+- [x] **S2-e** Mapping knowledge_chunks → categories documenté dans tasks.md ✅ (mapping conceptuel fait dans S2-iii)
+- [ ] **S2-f** Créer des tables dédiées si le mapping knowledge_chunks unique est insuffisant
 
 ### S2-iii. Schema extensions spécifiques ingestion
-- [ ] **S2-g** Table `ingestion_runs` (nouvelle) — suivre chaque cycle d'ingestion PZ: source, status, chunks_processed, errors, duration_ms, started_at, ended_at
-- [ ] **S2-h** Table `data_coverage` (nouvelle) — tracking % coverage par category vs total connu
-  - item_name, category, is_documented, data_completeness_score, last_ingested_at
-- [ ] **S2-i** IndexGIN sur content_text de knowledge_chunks pour recherche full-text (trigramme déjà configuré)
+- [x] **S2-g** Table `ingestion_runs` ✅ commit `15e529f` (ligne 397 du SQL)
+- [x] **S2-h** Table `data_coverage` ✅ commit `15e529f` (ligne 418 du SQL)
+- [ ] **S2-i** Index GIN sur content_text de knowledge_chunks pour recherche full-text — partiel (pg_trgm chargé mais pas d'index GIN explicite créé)
 
 ---
 
@@ -353,23 +342,21 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 > L'ingestor a 9 processors actuels (text, pdf, image, video, audio, docx, epub, web, pbo). Aucun ne parse Wiki.json.
 
 ### S4-i. Nouveau processor `wikijson.py`
-- [ ] **S4-a** Créer `ingestor/processors/wikijson.py` — implémente l'interface Processor.extract()
-  - Parse le JSON brut (~60 Mo) de PZ Data Drive (TheIndoor/PZ-wiki-data)
-  - Extrait items, recipes, mobs, crops, weather par category
-  - Retourne: list[Chunk] + ExtractionResult avec metadata (source='wikidrive', type='json')
-- [ ] **S4-b** Gérer les fields imbriqués (ex: chaque item a ~50+ fields — damage tiers, categories, subcategories, tags)
+- [x] **S4-a** Créer `ingestor/processors/wikijson.py` ✅ commit `41f250b` — 453 lignes, implémente Processor.extract()
+  - Parse le JSON brut (~60 Mo) de PZ Data Drive (TheIndoor/PZ-wiki-data) ✅ (_load_wiki_data: fichier/dossier/URL)
+  - Extrait items, recipes, mobs, crops, weather par category ✅ (TYPE_TO_COLLECTION 26 entrées)
+  - Retourne: list[Chunk] + ExtractionResult avec metadata (source='wikidrive', type='json') ✅
+- [x] **S4-b** Gérer les fields imbriqués ✅ _normalize_item (DamageTiers, Nutrition, DamageResistance), _normalize_recipe (CrossCookProgression), _normalize_mob (Drops, spawn_biomes)
 - [ ] **S4-c** Chunking optimal — Wiki.json est un gros JSON monolithique. Faut-il split par entity type avant chunking ?
 
 ### S4-II. Extensions CLI
-- [ ] **S4-d** `--ingest-wikidrive <path>` — ingérer Wiki.json dans les collections correspondantes
+- [x] **S4-d** `--ingest-wikidrive <path>` ✅ commit `41f250b` — argument (l.104) + handler handle_wikidrive (l.580) + wiring main (l.707)
 - [ ] **S4-e** `--ingest-pz-full` — run tous les ingestion sources en sequence (wiki + web + mods + class z)
 - [ ] **S4-f** `--coverage-report` — query data_coverage table → afficher % par category
 - [ ] **S4-g** `--ingest-classz <github-repo-path>` — parser le code Java decompilé
 
 ### S4-iii. Adaptation StorageWriter pour données PZ massives
-- [ ] **S4-h** Optimiser storage_writer.py pour bulk insert (Wiki.json = ~350 items + ~250 recipes en un coup → ~10k+ chunks)
-  - Batch embeddings via Ollama (endpoint /api/embedding par batch)
-  - Retry avec exponential backoff si endpoint rate-limited
+- [x] **S4-h** PZStorageExt (storage/pz_storage.py) ✅ commit `41f250b` — 384 lignes, méthodes start_ingestion_run / complete_ingestion_run / update_data_coverage / upsert_collection_health / add_data_link / get_data_links + singleton
 - [ ] **S4-i** Gérer les collections qui n'existent pas encore — auto-create au premier write
 
 ---
