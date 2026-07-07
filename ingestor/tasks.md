@@ -287,8 +287,15 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 - [x] **S1-h** Resource limits: postgres 4cpu/8G, pz-headless 4cpu/8G, qdrant 2cpu/4G, minio 1cpu/2G ✅
 
 ### S1-iii. Variables d'environnement & secrets
-- [x] **S1-i** `.env.pz-agent.example` — PG_PASSWORD, MINIO_USER/PASSWORD, STEAM_USER/PASS ✅ commit `15e529f` (fichier .example)
+- [x] **S1-i** `.env.pz-agent.example` — PG_PASSWORD, MINIO_USER/PASSWORD, STEAM_USER/PASS ✅ commit `15e529f` (fichier .example) + `.env.pz-agent.generated` (MDP réels, gitignored)
 - [ ] **S1-II** Pré-commit hook pour verifier que les secrets ne sont pas dans le repo
+
+### S1-iv. Bootstrap Docker infra ✅ fait session courante
+- [x] **S1-j** Générer `.env.pz-agent.generated` avec MDPs aléatoires (PG_PASSWORD, MINIO_PASSWORD) ✅ commit `3c2f29c`
+- [x] **S1-k** Résoudre port 6379 Windows (conflit) → Redis sur 16379 ✅ commit `3c2f29c`
+- [x] **S1-l** Résoudre port 6333 Windows (conflit) → Qdrant sans ports exp. (réseau bridge seulement) ✅ commit `3c2f29c`
+- [x] **S1-m** Dockerfile.pz-headless fix: luacheck via luarocks (pas apt), SteamCMD download au boot entrypoint, hardcoded paths ✅ commit `3c2f29c`
+- [x] **S1-n** Bootstrap: `docker compose -f docker-compose.pz-agent.yml up -d` — tous les 6 services up + healthy ✅ verified
 
 ---
 
@@ -303,16 +310,22 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
   - Tables (12 du doc): mod_projects, agent_runs, mod_artifacts, mod_files, mod_dependencies, knowledge_chunks, api_reference, test_scenarios, fix_attempts, validation_results, publish_log, users ✅
 - [x] **S2-b** Triggers: trg_mod_projects_updated, trg_api_reference_updated, trg_run_completion_stats + trg_coverage_updated ✅ (4 triggers)
 - [x] **S2-c** Vues: v_latest_validated_artifact, v_run_success_rate, v_validation_trends + v_coverage_summary, v_ingestion_health ✅ (5 vues au total)
-- [ ] **S2-d** Index sur toutes les tables — partiels (idx sur mod_projects x3) mais à vérifier sur toutes les autres
+- [x] **S2-d** Index sur toutes les tables — commit `3c2f29c` + migration fixup: indexes créés pour chaque table via SQL manual ✅ (16 tables × indexes)
 
 ### S2-II. Collections StorageBackend mapping
 - [x] **S2-e** Mapping knowledge_chunks → categories documenté dans tasks.md ✅ (mapping conceptuel fait dans S2-iii)
 - [ ] **S2-f** Créer des tables dédiées si le mapping knowledge_chunks unique est insuffisant
 
 ### S2-iii. Schema extensions spécifiques ingestion
-- [x] **S2-g** Table `ingestion_runs` ✅ commit `15e529f` (ligne 397 du SQL)
-- [x] **S2-h** Table `data_coverage` ✅ commit `15e529f` (ligne 418 du SQL)
-- [ ] **S2-i** Index GIN sur content_text de knowledge_chunks pour recherche full-text — partiel (pg_trgm chargé mais pas d'index GIN explicite créé)
+- [x] **S2-g** Table `ingestion_runs` ✅ commit `15e529f` + live en PG via migration fixup ✅
+- [x] **S2-h** Table `data_coverage` ✅ commit `15e529f` + live en PG via migration fixup ✅
+- [x] **S2-i** Index GIN sur content_text de knowledge_chunks pour recherche full-text — pg_trgm chargé + index GIN créé par manual migration fixup ✅ session courante
+
+### S2-iv. Migration PostgreSQL live ✅ fait session courante
+- [x] **S2-j** Bootstrap: docker compose up -d → initial DB boot, seule mod_projects créée (auto-init PG) ✅ commit `3c2f29c`
+- [x] **S2-k** Manual migration fixup: 16 tables créées par SQL file (psql -f) + 5 vues CREATE OR REPLACE ✅ session courante
+- [x] **S2-l** Tables 16/16 live en PG: agent_runs, api_reference, collection_health, data_coverage, data_links, fix_attempts, ingestion_runs, knowledge_chunks, mod_artifacts, mod_dependencies, mod_files, mod_projects, publish_log, test_scenarios, users, validation_results ✅ verified \dt
+- [x] **S2-m** Vues 5/5 live en PG: v_latest_validated_artifact, v_run_success_rate, v_validation_trends, v_coverage_summary, v_ingestion_health ✅ verified \dv
 
 ---
 
