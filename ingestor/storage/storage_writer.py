@@ -296,5 +296,9 @@ async def write_chunks_to_storage(
 # Aliases backward-compatibilite (pour les imports existants)
 # ---------------------------------------------------------------------------
 
-# StorageWriter → alias vers StorageWriter
+StorageWriter = StorageWriter  # self-alias pour compatibilite globale
+ChromaWriter = StorageWriter  # ancien nom — maintien des imports existants
 # StorageWriter (was StorageWriter alias — removed)
+
+# Aliases vers noms actuels pour compatibilite backward
+write_chunks_to_chroma = write_chunks_to_storage  # ancien nom ChromaDB → storage vectoriel

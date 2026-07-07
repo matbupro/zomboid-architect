@@ -397,10 +397,10 @@ def test_production_env_client(mock_golden_file: Path):
     from ingestor.regression import _run_campaign
 
     # mock_golden_file a 2 questions → query appelee 2 fois
-    mock_chroma = MagicMock()
-    mock_storage_client.query.return_value = {"chunks": [{"id": "Base.Axe"}]}
+    mock_storage = MagicMock()
+    mock_storage.query.return_value = {"chunks": [{"id": "Base.Axe"}]}
 
-    with patch("src.retrieval.get_production_client", return_value=mock_chroma):
+    with patch("src.retrieval.get_production_client", return_value=mock_storage):
         result = _run_campaign(mock_golden_file, env="production")
 
-    assert mock_storage_client.query.call_count == 2
+    assert mock_storage.query.call_count == 2

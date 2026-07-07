@@ -91,7 +91,7 @@ def _run_campaign(
         from src.retrieval import query_staging as query_fn  # type: ignore[misc]
     elif env == "production":
         from src.retrieval import get_production_client  # type: ignore[misc]
-        storage_client = query_staging()
+        storage_client = get_production_client()
         query_fn = storage_client.query
     else:
         raise ValueError(f"Unknown env: {env!r}. Use 'staging' or 'production'.")
