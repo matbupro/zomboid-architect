@@ -24,7 +24,7 @@ Zomboid_Architect/
 ├── agent/                 # Mémoire interne de l'agent (GOAL, rules, todo, etc.)
 ├── bot/                   # Bot Discord — /stats, /survie, /recipe, /search
 │   ├── main.py            # Point d'entrée
-│   ├── engine_client.py   # Client ChromaDB + fallback local
+│   ├── engine_client.py   # Client StorageBackend (SQLite/PostgreSQL) + fallback local
 │   ├── llm_adapter.py     # Ollama (local) → Claude API (fallback)
 │   ├── pipeline.py        # message → search → prompt → LLM → réponse
 │   ├── config.py          # Settings depuis .env
@@ -36,25 +36,25 @@ Zomboid_Architect/
 │   │   ├── schema.py      # Dataclasses: ModSpec, GeneratedModManifest
 │   │   ├── config.py      # Config modgen
 │   │   └── templates/     # 7 templates Jinja2 (mod.info, init.lua, etc.)
-│   └── retrieval/         # Interface ChromaDB (query_staging, query_production)
+│   └── retrieval/         # Interface de retrieval (query_staging, query_production)
 ├── ingestor/              # Moteur d'ingestion multi-format (PDF, images, web…)
 │   ├── engine.py          # Router détection MIME → processeur
 │   ├── cli.py             # CLI : --search, --file, --crawl, --dir
 │   ├── processors/        # text, pdf, image, video, audio, docx, epub, web
-│   ├── storage/           # chroma_writer (écrivain ChromaDB)
+│   ├── storage/           # storage_writer (écrivain StorageBackend)
 │   ├── search/            # DuckDuckGo + Brave Search
 │   ├── promote.py         # Gate promotion staging → production
 │   └── requirements.txt
 ├── data/                  # Données du moteur RAG
-│   ├── staging/           # Zone de travail (ChromaDB test)
+│   ├── staging/           # Zone de travail (données en test)
 │   ├── production/        # Base validée (serveur MCP / bot)
 │   ├── quarantine/        # Fichiers en erreur de parsing
 │   └── raw/               # Sources brutes ingérées
-├── db/                    # Bases ChromaDB persistantes
-│   ├── staging/           # chromadb → data/staging/chromadb/ (symlink ou copy)
-│   └── production/        # chromadb → data/production/chromadb/
+├── db/                    # Bases persistantes (SQLite/PostgreSQL)
+│   ├── staging/           # données staging (SQLite)
+│   └── production/        # données validées (SQLite)
 ├── backups/               # Snapshots horodatés (.tar.gz)
-│   ├── chromadb/          # promote.py écrit ici automatiquement
+│   ├── sqlite/            # snapshots SQLite de promote.py
 │   ├── manual/            # Backups manuels nommés
 │   └── scheduled/         # Backups cron planifiés
 ├── logs/                  # project.log (rotatif) + audit.json (JSONL)
@@ -67,9 +67,9 @@ Zomboid_Architect/
 ├── mods/                  # Mods generes par src/modgen/ (Phase 12)
 ├── VERSION                # Source unique de vérité (majeur.minor.patch[-pre])
 ├── CHANGELOG.md           # Keep a Changelog format
-├── .env.example           # Variables d'environnement (copier en .env)
+├── .env.unified           # Source de vérité unique pour TOUTES les variables
 ├── requirements.txt       # Dépendances unifiées (bot + ingestor + governance)
-├── docker-compose.yml     # Orchestre bot + ollama + chromadb + ingestor
+├── docker-compose.yml     # Orchestre bot + ollama (ingestor en lancement à la demande)
 └── Makefile               # 13 cibles : install-hooks, ingest, test, promote, backup…
 ```
 
@@ -78,9 +78,8 @@ Zomboid_Architect/
 ### 1. Configuration
 
 ```powershell
-# Copier le .env exemple et remplir les valeurs obligatoires
-Copy-Item .env.example .env
-# Éditer .env : DISCORD_TOKEN est OBLIGATOIRE (le bot ne démarre pas sans)
+# Utiliser ou créer .env.unified à la racine (déja un template)
+# Éditer .env.unified : DISCORD_TOKEN est OBLIGATOIRE (le bot ne démarre pas sans)
 ```
 
 Ou via Make (Linux/macOS/WSL) :
@@ -96,8 +95,9 @@ make env-init
 | `OLLAMA_BASE_URL` | non | `http://host.docker.internal:11434` | bot, ingestor | Serveur Ollama pour LLM local. |
 | `OLLAMA_MODEL` | non | `llama3.2` (→ `qwen3.6:35b-a3b` en prod) | bot | Modèle par défaut du LLM. |
 | `LLM_TEMPERATURE` | non | `0.7` | bot | Température [0.0-1.0]. 0 = déterministe. |
-| `ZOMBOID_EMBEDDING_MODEL` | non | `nomic-embed-text` | ingestor | Modèle d'embedding pour ChromaDB. |
-| `CHROMA_HOST` | non | `http://host.docker.internal:8000` | bot, ingestor | Serveur ChromaDB. |
+| `ZOMBOID_EMBEDDING_MODEL` | non | `nomic-embed-text` | ingestor | Modèle d'embedding pour l'index vectoriel (SQLite/PostgreSQL). |
+| `STORAGE_BACKEND` | non | `sqlite` | bot, ingestor | Type de stockage (sqlite, postgres). |
+| `STORAGE_PG_HOST` | non | `localhost` | ingestor | Hôte PostgreSQL. |
 | `CLAUDE_API_KEY` | **optionnel** | — (fallback activé si défini) | bot, ingestor | Fallback LLM si Ollama indisponible. |
 | `CLAUDE_MODEL` | non | `claude-sonnet-4-20250514` | bot | Modèle Claude en fallback. |
 | `DATA_ROOT` | non | `data/` | ingestor | Racine des données brutes/staging/production. |
@@ -113,7 +113,7 @@ make env-init
 | `SYNC_HOOK_URL` | **optionnel** | — | bot | Webhook pour poster le workspace report. |
 | `MAX_RESPONSE_LENGTH` | non | `4000` | bot | Limite de caractères des réponses. |
 
-> Les credentials Steam (ingestor/.env) et Notion (notion_client/.env.notion) sont gérés séparément. Voir les fichiers `.example` associés dans chaque sous-projet.
+> Tous les credentials (Steam, Notion, Discord, etc.) sont centralisés dans `.env.unified` à la racine.
 
 ### 2. Dépendances
 
@@ -134,7 +134,7 @@ Ou avec PowerShell direct : `.\run-bot.ps1` (à la racine).
 ### 4. Lancement avec Docker
 
 ```bash
-docker compose up bot ollama chromadb
+docker compose up bot ollama
 ```
 
 ### 5. Ingestion de données

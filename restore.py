@@ -36,7 +36,7 @@ from src.governance._import_compat import get_logger  # noqa: F401
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
 _ROOT:        Path = Path(__file__).parent.parent.resolve()
-_BACKUP_DIR:  Path = _ROOT / "backups" / "chromadb"
+_BACKUP_DIR:  Path = _ROOT / "backups"
 _PROD_PATHS: list[Path] = [          # Where promote.py writes production
     _ROOT / "data" / "production",   # promote.py canonical path
     _ROOT / "db" / "production",     # legacy compat — keep as fallback

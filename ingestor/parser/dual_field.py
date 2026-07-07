@@ -1,8 +1,8 @@
-"""parser/dual_field — Parseur Dual-Field resilient.
+"""parser/dual_field â€” Parseur Dual-Field resilient.
 
 Extrait DEUX representations d'un meme fichier source :
-  - structured (dict) → metadata pour filtrage/lookup deterministe
-  - prose (str)        → contenu lisible pour embedding RAG
+  - structured (dict) â†’ metadata pour filtrage/lookup deterministe
+  - prose (str)        â†’ contenu lisible pour embedding RAG
 
 Cascade de fallback pour les encodages et formats corrupts.
 
@@ -25,7 +25,7 @@ from typing import Any
 
 from .schemas import ContentType, SchemaValidator  # noqa: E402
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @dataclass
@@ -38,7 +38,7 @@ class DualFieldResult:
     chunk_id: str                  # UUID unique pour ce chunk
 
     def to_dict(self) -> dict[str, Any]:
-        """Exporte en format compatible ChromaDB writer."""
+        """Exporte en format compatible storage vectoriel writer."""
         return {
             "id": self.chunk_id,
             "type": self.content_type.value,
@@ -49,13 +49,13 @@ class DualFieldResult:
         }
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class ResilientParser:
     """Parseur Dual-Field avec cascade d'encodages et fallbacks."""
 
-    # Cascade d'encodages — du plus specifique au plus general
+    # Cascade d'encodages â€” du plus specifique au plus general
     ENCODING_CASCADE = ["utf-8", "utf-16-le", "utf-16-be", "latin-1", "cp1252", "iso-8859-1"]
 
     # Regex helpers pour extraction de metadata depuis du texte brut
@@ -65,12 +65,12 @@ class ResilientParser:
     def __init__(self, quarantine_on_error: bool = True) -> None:
         self.quarantine_on_error = quarantine_on_error
 
-    # ── Lecture resilient ───────────────────────────────────────────────────
+    # â”€â”€ Lecture resilient â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _read_file(self, path: Path) -> str:
         """Lit un fichier avec cascade d'encodages.
 
-        Si tous les encodages echouent → retourne raw bytes hexademicaux
+        Si tous les encodages echouent â†’ retourne raw bytes hexademicaux
         (pas de perte de donnee).
         """
         if not path.exists():
@@ -82,14 +82,14 @@ class ResilientParser:
             except (UnicodeDecodeError, UnicodeError):
                 continue
 
-        # Tous echouent → hex dump safe
+        # Tous echouent â†’ hex dump safe
         raw = path.read_bytes()
         raise UnicodeDecodeError(
             "all encodings exhausted", "", 0, len(raw),
             f"hex dump available ({len(raw)} bytes)",
         )
 
-    # ── Parsing par type ────────────────────────────────────────────────────
+    # â”€â”€ Parsing par type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _parse_xml(self, raw: str, path: Path) -> list[DualFieldResult]:
         """Parse du XML (items.xml, recipes.xml, traits.xml)."""
@@ -221,7 +221,7 @@ class ResilientParser:
         return results
 
     def _extract_structured_from_text(self, text: str) -> dict[str, Any]:
-        """Extrait metadata structurée depuis du texte brut (fallback)."""
+        """Extrait metadata structurÃ©e depuis du texte brut (fallback)."""
         meta: dict[str, Any] = {}
         # Key-value pairs (NAME: value or NAME = value)
         for match in self._META_KV_RE.finditer(text):
@@ -240,17 +240,17 @@ class ResilientParser:
 
         return meta
 
-    # ── Dispatch principal ──────────────────────────────────────────────────
+    # â”€â”€ Dispatch principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def parse_file(self, file_path: str | Path) -> list[DualFieldResult]:
         """Parse un fichier et retourne les dual-field results.
 
         Auto-detecte le type par extension :
-          .xml → XML parser
-          .md/.markdown → Markdown parser
-          .lua → Lua parser
-          .csv/.json → generic text (with structured extraction)
-          autres → raw text parse
+          .xml â†’ XML parser
+          .md/.markdown â†’ Markdown parser
+          .lua â†’ Lua parser
+          .csv/.json â†’ generic text (with structured extraction)
+          autres â†’ raw text parse
         """
         path = Path(file_path)
         if not path.exists():
@@ -267,7 +267,7 @@ class ResilientParser:
             elif suffix in (".lua",):
                 return self._parse_lua(raw, path)
             elif suffix in (".csv",):
-                # Simple CSV → list of key-value dicts
+                # Simple CSV â†’ list of key-value dicts
                 lines = raw.strip().splitlines()
                 if len(lines) > 1:
                     headers = [h.strip() for h in lines[0].split(",")]
@@ -314,7 +314,7 @@ class ResilientParser:
                 chunk_id=self._gen_chunk_id(ContentType.UNKNOWN, path.stem),
             )]
 
-    # ── Extraction d'element XML ────────────────────────────────────────────
+    # â”€â”€ Extraction d'element XML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _extract_from_element(self, elem: Any) -> tuple[dict[str, Any], str]:
         """Extrait metadata + prose depuis un element XML."""
@@ -347,7 +347,7 @@ class ResilientParser:
 
         return structured, prose
 
-    # ── ID generation anti-collision ──────────────────────────────────────────
+    # â”€â”€ ID generation anti-collision â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @staticmethod
     def _gen_chunk_id(content_type: ContentType, identifier: str) -> str:
@@ -364,7 +364,7 @@ class ResilientParser:
         pax_id = f"{content_type.value}.{identifier}"
         return hashlib.sha256(pax_id.encode()).hexdigest()[:32]
 
-    # ── Quarantaine ───────────────────────────────────────────────────────────
+    # â”€â”€ Quarantaine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _quarantine(self, error_msg: str, path: Path) -> None:
         """Ecrit une erreur de parsing dans quarantine.jsonl."""
@@ -387,13 +387,13 @@ class ResilientParser:
             }
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    # ── Validation post-parse ───────────────────────────────────────────────
+    # â”€â”€ Validation post-parse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def validate_results(self, results: list[DualFieldResult]) -> tuple[list[bool], list[str]]:
-        """Valide les results parses avec les schémas.
+        """Valide les results parses avec les schÃ©mas.
 
         Returns:
-            (success_flags, errors) — [(True/False), [error_messages]]
+            (success_flags, errors) â€” [(True/False), [error_messages]]
         """
         success = []
         errors = []

@@ -1,11 +1,5 @@
-﻿"""
-Config — chargement .env et settings du bot Discord Zomboid.
-Variables d'environnement requises (voir .env.example) :
-  DISCORD_TOKEN      — token du bot Discord
-  OLLAMA_BASE_URL    — URL du serveur Ollama (défaut: http://host.docker.internal:11434)
-  OLLAMA_MODEL       — modèle local par défaut (défaut: llama3.2)
-  LLM_TEMPERATURE    — température du LLM (0.0-1.0, défault: 0.7)
-  ZOMBOID_EMBEDDING_MODEL — modèle d'embedding pour ChromaDB (défaut: nomic-embed-text)
+﻿"""Config — chargement .env.unified et settings du bot Discord Zomboid.
+Source de vérité : `.env.unified` a la racine du projet (tout le reste a ete supprime).
 """
 
 import os
@@ -14,22 +8,19 @@ from pathlib import Path
 
 
 def _load_env():
-    """Charge le fichier .env.unified à la racine du projet (source de vérité)."""
+    """Charge le fichier .env.unified à la racine du projet (source de vérité unique)."""
     env_file = Path(__file__).parent.parent / ".env.unified"
     if not env_file.exists() or not env_file.is_file():
-        # fallback : cherche .env ou .env.example
-        for alt in [Path(__file__).parent / ".env", Path(__file__).parent.parent / ".env"]:
-            if alt.exists():
-                env_file = alt
-                break
-    if env_file.exists():
-        with open(env_file) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                key, _, value = line.partition("=")
-                os.environ.setdefault(key.strip(), value.strip())
+        raise RuntimeError(
+            ".env.unified introuvable. Vérifier qu'il existe à la racine du projet."
+        )
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
 
 
 @dataclass
@@ -52,7 +43,6 @@ class Settings:
     # Pipeline
     LLM_TEMPERATURE: float = 0.7
     MAX_RESPONSE_LENGTH: int = 4000
-    CHROMA_HOST: str = "http://host.docker.internal:8000"
 
     # Defaults pour les commandes
     DEFAULT_SYSTEM_PROMPT: str = (
@@ -93,7 +83,6 @@ def load_settings() -> Settings:
         CLAUDE_MODEL=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514"),
         LLM_TEMPERATURE=float(os.getenv("LLM_TEMPERATURE", "0.7")),
         MAX_RESPONSE_LENGTH=int(os.getenv("MAX_RESPONSE_LENGTH", "4000")),
-        CHROMA_HOST=os.getenv("CHROMA_HOST", "http://host.docker.internal:8000"),
         WORKSPACE_CHANNEL_NAME=os.getenv("WORKSPACE_CHANNEL_NAME", "💻 WORKSPACE Z-ARCHITECT"),
         WORKSPACE_CHANNEL_ID=int(os.getenv("WORKSPACE_CHANNEL_ID")) if os.getenv("WORKSPACE_CHANNEL_ID") else None,
         DISCORD_GUILD_ID=int(os.getenv("DISCORD_GUILD_ID")) if os.getenv("DISCORD_GUILD_ID") else None,

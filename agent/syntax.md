@@ -77,7 +77,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/pz_game_ingester.py
   |-- ingestor/quarantine_manager.py
   |-- ingestor/README.md
-  |-- ingestor/rebuild_chroma.py
+|-- ingestor/[supprimé]
   |-- ingestor/regression.py
   |-- ingestor/requirements.txt
   |-- ingestor/search/__init__.py
@@ -90,7 +90,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/steam/qr_auth.py
   |-- ingestor/steam/steamcmd_client.py
   |-- ingestor/steam/workshop_scanner.py
-  |-- ingestor/storage/chroma_writer.py
+|-- ingestor/storage/[supprimé — storage_writer.py]
   |-- ingestor/tag_release.py
   |-- ingestor/watchdog.py
   |-- INSTALL.md
@@ -145,14 +145,14 @@ Version moteur : 0.4.0-alpha
   |-- src/modgen/templates/shared_script.lua.j2
   |-- src/modgen/templates/ZomboidModDescriptor.txt.j2
   |-- src/retrieval/__init__.py
-  |-- src/retrieval/chroma_client.py
+|-- src/retrieval/[supprimé — sqlite_storage.py]
   |-- src/storage/__init__.py
   |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
   |-- tests/test_brave_search.py
-  |-- tests/test_chroma_writer.py
+  |-- tests/test_storage_writer.py
   |-- tests/test_cli.py
   |-- tests/test_game_version_filtering.py
   |-- tests/test_golden_set.py

@@ -47,7 +47,7 @@ ROOT        = Path(__file__).parent.parent
 DATA_DIR    = ROOT / "data"
 STAGING_DIR = DATA_DIR / "staging"
 PROD_DIR    = DATA_DIR / "production"
-BACKUP_DIR  = ROOT / "backups" / "chromadb"
+BACKUP_DIR  = ROOT / "backups"
 GOLDEN_FILE = ROOT / "tests" / "golden_set" / "golden.json"
 AUDIT_FILE  = ROOT / "logs"   / "audit.json"
 
@@ -139,7 +139,7 @@ def _run_golden_set(golden_path: Path) -> GateResult:
     recall_scores: list[float] = []
     failed_ids: list[str] = []
 
-    # Import lazy — utilise src/retrieval (ChromaDB staging) pour le golden set
+    # Import lazy — utilise StorageBackend (SQLite/postgres) pour le golden set
     from src.retrieval import query_staging  # noqa: F401
 
     game_version = get_current_game_version().value
@@ -154,7 +154,7 @@ def _run_golden_set(golden_path: Path) -> GateResult:
             continue
 
         # Mapper les filtres du golden set vers les noms de champs reels des metadata ingestees
-        # Puis convertir en filtre ChromaDB valide (toujours $and pour multi-champs)
+        # Puis convertir en filtre storage vectoriel valide (toujours $and pour multi-champs)
         normalized_raw = {}
         if raw_filters:
             key_map = {"type": "item_type", "version": "game_version"}
@@ -169,7 +169,7 @@ def _run_golden_set(golden_path: Path) -> GateResult:
         # Ajouter game_version explicite (le golden set peut l'omettre)
         normalized_raw.setdefault("game_version", game_version)
 
-        # Construire un filtre ChromaDB valide — toujours $and pour la compatibilite SDK
+        # Construire un filtre storage vectoriel valide — toujours $and pour la compatibilite SDK
         conditions = [{k: {"$eq": v}} for k, v in normalized_raw.items()]
         filters = {"$and": conditions} if len(conditions) > 1 else conditions[0]
 

@@ -5,7 +5,7 @@ Modules:
   path_discovery   → Découverte chemin Steam + PZ (registry, libraryfolders.vdf)
   steamcmd_client  → Wrapper CLI de steamcmd.exe (download game / workshop mods)
   workshop_scanner → Scan des mods installes depuis steamapps/workshop/content/1042170/
-  mod_ingester     → Pipeline haut-niveau: scan → extraction → ingestion ChromaDB
+  mod_ingester     → Pipeline haut-niveau: scan → extraction → ingestion storage vectoriel
 """
 
 from .path_discovery import discover_game_path, find_steam_install_path

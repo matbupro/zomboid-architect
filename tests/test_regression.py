@@ -3,7 +3,7 @@
 Couvre :
   - _load_golden() chargement et validation du golden.json
   - RegressionResult dataclass (passed, to_dict)
-  - _run_campaign() avec mock ChromaDB (patch src.retrieval.query_staging)
+  - _run_campaign() avec mock StorageBackend (patch src.retrieval.query_staging)
   - Comparaison baseline (regressions / improvements detection)
   - CLI output JSON vs text
 """
@@ -139,7 +139,7 @@ def test_regression_result_to_dict():
 
 
 # ===========================================================================
-# Tests : _run_campaign avec mock ChromaDB
+# Tests : _run_campaign avec mock StorageBackend
 # ===========================================================================
 
 # IMPORTANT : query_staging est importe lazy dans _run_campaign (from src.retrieval import ...)
@@ -194,13 +194,13 @@ def test_run_campaign_handles_missing_chunks(tmp_path: Path):
 
 
 def test_run_campaign_handles_query_exception(tmp_path: Path):
-    """ChromaDB down → recall=0 pour cette question (pas d'exception)."""
+    """storage down → recall=0 pour cette question (pas d'exception)."""
     from ingestor.regression import _run_campaign
 
     golden = tmp_path / "golden_exc.json"
     golden.write_text('[{"id":"q1","question":"Q?","expected_ids":["x"],"filter":{}},{"id":"q2","question":"Q2?","expected_ids":["y"],"filter":{}}]')
 
-    with patch("src.retrieval.query_staging", side_effect=ConnectionError("no chroma")):
+    with patch("src.retrieval.query_staging", side_effect=ConnectionError("no storage vectoriel")):
         result = _run_campaign(golden, env="staging")
 
     assert len(result.per_question) == 2
@@ -398,9 +398,9 @@ def test_production_env_client(mock_golden_file: Path):
 
     # mock_golden_file a 2 questions → query appelee 2 fois
     mock_chroma = MagicMock()
-    mock_chroma.query.return_value = {"chunks": [{"id": "Base.Axe"}]}
+    mock_storage_client.query.return_value = {"chunks": [{"id": "Base.Axe"}]}
 
     with patch("src.retrieval.get_production_client", return_value=mock_chroma):
         result = _run_campaign(mock_golden_file, env="production")
 
-    assert mock_chroma.query.call_count == 2
+    assert mock_storage_client.query.call_count == 2

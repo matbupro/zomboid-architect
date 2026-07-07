@@ -20,8 +20,8 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   ingestor   │────▶│  ChromaDB    │◀────│    bot      │
-│  multi-format│     │  (vector DB) │     │  (Discord)  │
+│   ingestor   │────▶│  StorageBack │◀────│    bot      │
+│  multi-format│     │ (SQLite)     │     │  (Discord)  │
 └─────────────┘     └──────────────┘     └─────────────┘
         │                                             │
         ▼                                             ▼
@@ -31,7 +31,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ```
 
 ### A. `ingestor/` — Moteur d'ingestion multi-format
-**Rôle** : Détecter le type de fichier/URL, extraire son contenu, créer des chunks vectorisés et les envoyer à ChromaDB.
+**Rôle** : Détecter le type de fichier/URL, extraire son contenu, créer des chunks vectorisés et les envoyer au StorageBackend (SQLite).
 
 **Entrées supportées** : PDF, images (OCR), audio (transcription), vidéo (transcription), documents (.docx, .epub), texte brut, HTML (web crawling), archives PBO (mods), scripts Lua, configs de jeu (.lua, .tiles, .lotpack, etc.)
 
@@ -47,12 +47,12 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 - `web.py` → crawling web (avec rate limiting)
 - `pbo.py` → extraction archives PBO (mods Workshop)
 
-**Config** : [`ingestor/config.py`](../ingestor/config.py) — `IngestorConfig` dataclass, chargé depuis `.env.unified`. Variables env principales : `CHROMA_HOST`, `OLLAMA_BASE_URL`, `EMBEDDING_MODEL`, `DATA_ROOT`, `CLAUDE_API_KEY`, etc.
+**Config** : [`ingestor/config.py`](../ingestor/config.py) — `IngestorConfig` dataclass, chargé depuis `.env.unified`. Variables env principales : `STORAGE_BACKEND`, `OLLAMA_BASE_URL`, `EMBEDDING_MODEL`, `DATA_ROOT`, `CLAUDE_API_KEY`, etc.
 
 **CLI** : [`ingestor/cli.py`](../ingestor/cli.py) — point d'entrée en ligne de commande (`python -m ingestor.cli`).
 
 ### B. `bot/` — Bot Discord
-**Rôle** : Interface conversationnelle du moteur. Reçoit les messages → cherche dans ChromaDB → construit un prompt LLM → répond via Discord.
+**Rôle** : Interface conversationnelle du moteur. Reçoit les messages → cherche dans StorageBackend (SQLite vectoriel) → construit un prompt LLM → répond via Discord.
 
 **Fichier clé** : [`bot/main.py`](../bot/main.py) — point d'entrée (`python -m bot.main`). Slash commands + DM automatique.
 
@@ -67,22 +67,22 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 | `/modgen <desc>` | Génère un mod Zomboid depuis une description |
 | `/workspace` | Rapport d'état du projet envoyé dans le canal workspace |
 
-**Pipeline** : [`bot/pipeline.py`](../bot/pipeline.py) — chaîne complète : `message → intent detection → ChromaDB search → prompt building → LLM call → réponse`.
+**Pipeline** : [`bot/pipeline.py`](../bot/pipeline.py) — chaîne complète : `message → intent detection → vector search (StorageBackend) → prompt building → LLM call → réponse`.
 
 **Llm adapter** : [`bot/llm_adapter.py`](../bot/llm_adapter.py) — providers Ollama (priorité) + Claude API (fallback).
-**Engine client** : [`bot/engine_client.py`](../bot/engine_client.py) — wrapper ChromaDB pour le bot.
+**Engine client** : [`bot/engine_client.py`](../bot/engine_client.py) — wrapper StorageBackend pour le bot.
 
 ### C. `src/` — Core du moteur
 **Sous-modules** :
 - `src/governance/` — logiques de contrôle : logger, worker, lock, game_version filter, production_guard
-- `src/retrieval/` — client ChromaDB (`chroma_client.py`)
+- `src/retrieval/` — client retrieval (`sqlite_storage.py` via StorageBackend)
 - `src/modgen/` — générateur de mods Zomboid (ModSpec, ModGenerator)
 
 **governance/logger.py** : Logger centralisé avec logs JSON horodatés. Utilisé partout dans le code.
 
 ---
 
-## 3. Base de données vectorielle (ChromaDB)
+## 3. Stockage vectoriel (SQLite via StorageBackend)
 
 **5 collections principales** :
 | Collection | Contenu |
@@ -102,10 +102,10 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ```
 1. INGESTION
    source (fichier/URL) → IngestionEngine.detect_type() → processeur spécialisé
-   → chunks + embedding (Ollama nomic-embed-text) → ChromaDB
+   → chunks + embedding (Ollama nomic-embed-text) → StorageBackend (SQLite vectoriel)
 
 2. RECHERCHE (via bot ou MCP)
-   message utilisateur → detect_intent() → enrich_context() [ChromaDB search]
+   message utilisateur → detect_intent() → enrich_context() [vector search StorageBackend]
    → build_prompt() [JSON brut + prose] → LLM.complete() → réponse formatée
 
 3. PROMOTION (staging → production)
@@ -113,7 +113,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
    (refusé si recall@5 < seuil, échoué → quarantine/)
 
 4. BACKUP
-   data/production/chromadb/ → backups/ avec rotation
+   data/production/storage/ → backups/ avec rotation
 ```
 
 ---
@@ -123,7 +123,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ### Fichiers de config
 | Fichier | Rôle |
 |---------|------|
-| `.env.unified` | Config centralisée (CHROMA_HOST, OLLAMA_BASE_URL, EMBEDDING_MODEL, etc.) |
+| `.env.unified` | Config centralisée (STORAGE_BACKEND, OLLAMA_BASE_URL, EMBEDDING_MODEL, etc.) |
 | `bot/config.py` | `load_settings()` pour le bot Discord |
 | `ingestor/config.py` | `load_config()` pour l'ingestor |
 
@@ -132,7 +132,6 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 |---------|---------------|------|------|
 | `bot` | `./bot/` | — | Bot Discord (restart: unless-stopped) |
 | `ollama` | `ollama/ollama:latest` | 11434 | LLM local + embeddings |
-| `chromadb` | `chromadb/chroma:latest` | 8000 | Base vectorielle |
 | `ingestor` | `./ingestor/` | — | Ingestion (launch-on-demand, memory: 4G) |
 
 ### Démarrage
@@ -140,8 +139,8 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 # Tous les services
 docker compose up -d
 
-# Uniquement le bot + chromadb (ollama sur l'hôte Windows)
-docker compose up -d bot chromadb
+# Uniquement le bot (ollama sur l'hôte Windows, SQLite local)
+docker compose up -d bot
 
 # Ingestion manuelle
 docker compose run --rm ingestor python -m ingestor.cli
@@ -151,7 +150,7 @@ docker compose run --rm ingestor python -m ingestor.cli
 | Variable | Défaut | Rôle |
 |----------|--------|------|
 | `DISCORD_TOKEN` | — | Token du bot Discord (obligatoire) |
-| `CHROMA_HOST` | `http://host.docker.internal:8000` | URL ChromaDB |
+| `STORAGE_BACKEND` | `sqlite` | Type de stockage vectoriel (sqlite, postgres) |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | URL Ollama |
 | `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle d'embedding |
 | `CLAUDE_API_KEY` | — | Clé Claude (fallback, optionnel) |
@@ -166,9 +165,9 @@ docker compose run --rm ingestor python -m ingestor.cli
 data/
 ├── raw/              # Extractions brutes (jamais modifiées) — source of truth
 ├── staging/          # Zone de travail temporaire
-│   └── chromadb/     # ChromaDB en test
+│   └── storage/      # StorageBackend SQLite en test
 ├── production/       # Données validées (intouchables sans process)
-│   └── chromadb/     # ChromaDB servi à l'agent
+│   └── storage/      # StorageBackend SQLite servi au bot
 ├── quarantine/       # Entités rejetées + .seen_hashes (incrémental)
 └── backups/          # Snapshots horodatés + rotation
 ```
@@ -178,7 +177,7 @@ data/
 ## 7. Architecture technique — points clés
 
 ### Dual-Field (obligatoire pour chaque entité)
-Chaque chunk dans ChromaDB a **deux champs** :
+Chaque chunk dans le stockage vectoriel a **deux champs** :
 - `prose` : description en langage naturel → vectorisé pour recherche sémantique
 - `metadata_` : métadonnées JSON brutes → restituées telles quelles, jamais reformulées
 
@@ -202,7 +201,7 @@ Chaque fichier ingéré a son SHA-256 hashé dans `data/quarantine/.seen_hashes`
 
 **Emplacement** : [`tests/`](../tests/)
 - `test_golden_set.py` — Q/R de référence pour validation des réponses (gardien du temple)
-- `test_chroma_writer.py` — écriture ChromaDB
+- `test_storage_writer.py` — écriture StorageBackend (StorageWriter via alias StorageWriter)
 - `test_ingest.py`, `test_ingestor_processors.py` — ingestion et processeurs
 - `test_modgen.py` + `test_modgen_integration.py` — générateur de mods
 - `test_cli.py` — CLI ingestor
@@ -262,10 +261,10 @@ Le projet synchronise `agent/todo.md` avec une base Notion via [`notion_client/`
 
 | Besoin | Fichiers à lire en premier |
 |--------|---------------------------|
-| Comprendre un flux de réponse | `bot/pipeline.py` → `bot/engine_client.py` → `src/retrieval/chroma_client.py` |
+| Comprendre un flux de réponse | `bot/pipeline.py` → `bot/engine_client.py` → `src/storage/sqlite_storage.py` |
 | Ajouter un processeur d'ingestion | `ingestor/processors/base.py` (base) + ajouter dans `ingestor/engine.py` |
 | Modifier le bot Discord | `bot/main.py` + `bot/pipeline.py` |
-| Changer les collections ChromaDB | `src/retrieval/chroma_client.py` + `ingestor/config.py` |
+| Changer les collections vectorielles | `ingestor/config.py` + `src/storage/sqlite_storage.py` |
 | Comprendre la logique de gouvernance | `src/governance/` (logger, worker, lock, production_guard) |
 | Lancer l'ingestion | `ingestor/cli.py` ou `docker compose run --rm ingestor` |
 | Générer un mod | `src/modgen/generator.py` + `bot/main.py:cmd_modgen` |

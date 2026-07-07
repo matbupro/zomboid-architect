@@ -12,8 +12,7 @@ Usage CLI :
     python -m notion_client --schema        # imprimer le schéma de la DB
     python -m notion_client --stats         # stats des phases
 
-Config : charger notion_client/.env.notion (NOTION_API_KEY + NOTION_DATABASE_ID).
-         Un template est disponible dans .env.notion.example.
+Config : charger les variables depuis .env.unified a la racine du projet (NOTION_API_KEY + NOTION_DATABASE_ID).
 """
 
 __all__ = ["api", "parser", "sync", "cli"]

@@ -20,7 +20,10 @@ services:
     environment:
       DISCORD_TOKEN: "${DISCORD_TOKEN}"            # depuis .env du host ou variables d'environnement
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      CHROMA_HOST: http://host.docker.internal:8000
+      STORAGE_BACKEND: postgresql
+      STORAGE_PG_HOST: host.docker.internal
+      STORAGE_PG_PORT: 5432
+      STORAGE_PG_DB: zomboid_storage
       WORKSPACE_CHANNEL_NAME: "💻 WORKSPACE Z-ARCHITECT"
     networks:
       - zomboid-net
@@ -49,22 +52,6 @@ services:
       "
 
   # ---------------------------------------------------------------------------
-  # ChromaDB — base vectorielle du knowledge engine
-  # ---------------------------------------------------------------------------
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: zomboid-chromadb
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    volumes:
-      - chroma-data:/chroma/chroma
-    environment:
-      - CHROMA_SERVER_ALLOW_SIGNUP=true
-    networks:
-      - zomboid-net
-
-  # ---------------------------------------------------------------------------
   # Ingestor — moteur d'ingestion multi-format (PDF, images, vidéo, audio, web)
   # ---------------------------------------------------------------------------
   ingestor:
@@ -86,7 +73,10 @@ services:
       # Logs du conteneur → dossier local (rw)
       - "logs-data:/app/logs:rw"
     environment:
-      CHROMA_HOST: http://host.docker.internal:8000
+      STORAGE_BACKEND: postgresql
+      STORAGE_PG_HOST: host.docker.internal
+      STORAGE_PG_PORT: 5432
+      STORAGE_PG_DB: zomboid_storage
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       EMBEDDING_MODEL: "nomic-embed-text"
       CLAUDE_API_KEY: ""       # optionnel : mettre la clé Claude pour vision API
@@ -95,7 +85,7 @@ services:
       PYTHONPATH: "/app:/app/src"  # permet import src.governance.* + ingestor packages
     networks:
       - zomboid-net
-    depends_on: [chromadb]
+    depends_on: []
     deploy:
       resources:
         limits:
@@ -106,7 +96,6 @@ services:
 # ---------------------------------------------------------------------------
 volumes:
   ollama-data:
-  chroma-data:
   logs-data:    # logs ingestor/ bot (rw depuis le container)
   reports-data: # golden_report JSON/MD générés (rw)
 

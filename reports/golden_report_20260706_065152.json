@@ -270,8 +270,8 @@
       "nomic-embed-text:v1.5",
       "llama3.2:3b"
     ],
-    "chroma_online": true,
-    "chroma_version": "{\"nanoseco",
+    "storage_online": true,
+    "storage_version": "{\"nanoseco",
     "disk_free_gb": 0.0
   }
 }

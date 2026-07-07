@@ -119,25 +119,12 @@ if($Repair){
         }
     }
 
-    # 6. .env files from templates
-    $envFiles = @(
-        @{ src=".env.example";      dest=".env" },
-        @{ src="notion_client/.env.notion.example"; dest="notion_client/.env.notion" },
-        @{ src="bot/.env.example";  dest="bot/.env" },
-        @{ src="ingestor/.env.example"; dest="ingestor/.env" }
-    )
-    foreach($ef in $envFiles){
-        if(-not (Test-Path $ef.dest)){
-            if(Test-Path $ef.src){
-                Write-Host "`n  [!!] .env $($ef.dest) manquant -- copie du template..." -ForegroundColor $Yellow
-                Copy-Item $ef.src $ef.dest -Force
-                Write-Host "  [OK] $( $ef.dest ) cree depuis template" -ForegroundColor Green; AddRepair ok
-            }else{
-                Write-Host "`n  [XX] $($ef.src) inexistant -- impossible de réparer" -ForegroundColor Red; AddRepair fail
-            }
-        }else{
-            Write-Host "  [OK] .env $( $ef.dest ) existe" -ForegroundColor Green; AddRepair ok
-        }
+    # 6. .env.unified (unique source de config)
+    if(-not (Test-Path ".env.unified")){
+        Write-Host "`n  [!!] .env.unified manquant -- créer manuellement dans la racine" -ForegroundColor $Yellow
+        AddRepair fail
+    }else{
+        Write-Host "  [OK] .env.unified existe" -ForegroundColor Green; AddRepair ok
     }
 
     # 7. Git hooks (copier depuis le template -- evite parsing batch en PS)
@@ -247,7 +234,7 @@ foreach($d in $deps){
 }
 
 DrawSectionHeader "Services Docker"
-# Verifier que Docker daemon tourne et chaque container (postgres, chromadb) est Up/Exited/Dead
+# Verifier que Docker daemon tourne et chaque container (postgres, storage vectoriel) est Up/Exited/Dead
 if(Test-Cmd docker){
     try{
         $ver = (docker --version 2>&1 | Out-String).Trim()
@@ -299,22 +286,19 @@ if(Test-Cmd ollama){
 
 DrawSectionHeader "Database"
 
-$chromaUrl = "http://localhost:8000"
+$storageUrl = "http://localhost:8000"
 try{
-    $resp = Invoke-WebRequest -Uri "$chromaUrl/api/v1/heartbeat" -TimeoutSec 3 -UseBasicParsing
-    if($resp.StatusCode -eq 200){ Write-Row "ChromaDB" "ok"; AddCheck "ok" }
-    else{ Write-Row "ChromaDB" "warn"; AddCheck "warn" }
+    $resp = Invoke-WebRequest -Uri "$storageUrl/health" -TimeoutSec 3 -UseBasicParsing
+    if($resp.StatusCode -eq 200){ Write-Row "Storage (SQLite)" "ok"; AddCheck "ok" }
+    else{ Write-Row "Storage (SQLite)" "warn"; AddCheck "warn" }
 }catch{
-    Write-Row "ChromaDB" "fail"; AddCheck "fail"
+    Write-Row "Storage (SQLite)" "warn"; AddCheck "warn"
 }
 
 DrawSectionHeader ".env Configurations"
 
 $envFiles = @(
-    @{ path=".env";                  desc="Variables globales (Discord, Ollama)";      crit=$true },
-    @{ path="notion_client/.env.notion"; desc="Clé API Notion + DB ID";                crit=$false },
-    @{ path="bot/.env";              desc="Token bot Discord";                          crit=$true },
-    @{ path="ingestor/.env";         desc="Config ingestor (Steam...)";                 crit=$false }
+    @{ path=".env.unified"; desc="Toutes les variables du projet (Discord, Ollama, Notion, Steam...)"; crit=$true }
 )
 
 foreach($ef in $envFiles){

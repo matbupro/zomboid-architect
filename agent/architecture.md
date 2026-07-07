@@ -6,7 +6,7 @@
 |-----------|-------|----------|
 | Embedding | bge-m3 | Bilingue FR/EN, adapté au corpus mixte |
 | Reranker | cross-encoder | Précision finale après rappel vectoriel |
-| Base DB | ChromaDB | Légère, locale, intégration Python native |
+| Base DB | SQLite + StorageBackend | Locale, zéro dépendance externe, vectoriel optionnel |
 
 ## 5 Collections dédiées (pas de pollution inter-domaine)
 
@@ -60,8 +60,8 @@ project-zomboid-knowledge-engine/
 │   ├── quarantine/           # Entités rejetées
 │   └── production/           # Données validées (intouchables sans process)
 ├── db/
-│   ├── staging/              # Chroma de test
-│   └── production/           # Chroma servi à l'agent
+│   ├── staging/              # [storage vectoriel] de test
+│   └── production/           # [storage vectoriel] servi à l'agent
 ├── backups/                  # Snapshots horodatés + rotation
 ├── tests/
 │   └── golden_set/           # Q/R de référence
@@ -70,7 +70,7 @@ project-zomboid-knowledge-engine/
 │   ├── ARCHITECTURE.md
 │   └── VERSIONING.md
 ├── logs/                     # Logs JSON horodatés
-├── .env.example
+├── .env.unified
 ├── requirements.txt
 └── VERSION                   # "0.1.0-alpha"
 ```
@@ -133,7 +133,7 @@ fix(parser): gère les accolades imbriquées des recipes
 docs(changelog): prépare la 1.2.0-beta
 refactor(ingest): batch adaptatif anti-OOM
 test(golden): +5 questions sur l'artisanat B42
-chore(deps): pin chromadb==0.5.x
+chore(deps): pin sqlite-storage backend
 ```
 
 Bénéfice : CHANGELOG généré automatiquement depuis l'historique Git.

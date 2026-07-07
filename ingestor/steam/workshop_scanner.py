@@ -35,7 +35,7 @@ class WorkshopModInfo:
     tags: list[str] = field(default_factory=list)
 
     def to_metadata(self) -> dict[str, Any]:
-        """Convertir en metadata pour ChromaDB."""
+        """Convertir en metadata pour storage vectoriel."""
         return {
             "mod_id": self.mod_id,
             "name": self.name,

@@ -25,7 +25,7 @@ def load_token() -> str:
     import os
     from pathlib import Path
 
-    env_file = Path(__file__).parent / ".env"
+    env_file = Path(__file__).parent.parent / ".env.unified"
     if env_file.exists():
         with open(env_file) as f:
             for line in f:

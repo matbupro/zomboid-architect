@@ -38,9 +38,6 @@ readability-lxml>=0.8        # Extraction contenu propre (port JS readability, s
 # ------------------------------------------------------------------------------
 py7zr>=0.21.0              # Extraction .pbo archives (LZMA compression)
 
-# Vector DB
-chromadb>=0.5              # Base vectorielle (retrieval RAG)
-
 # HTTP & utilitaires
 # ------------------------------------------------------------------------------
 httpx>=0.27                # HTTP async client (shared avec bot/)

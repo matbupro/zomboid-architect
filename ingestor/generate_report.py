@@ -1,6 +1,6 @@
-"""generate_report — Rapport de qualite pour le Zomboid Knowledge Engine.
+﻿"""generate_report â€" Rapport de qualite pour le Zomboid Knowledge Engine.
 
-Connecte a ChromaDB, calcule le recall du golden set, compte les entites
+Se connecte au storage vectoriel, calcule le recall du golden set, compte les entites
 par collection, scan la quarantaine et verifie l'etat des services.
 
 Usage :
@@ -27,14 +27,15 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from ingestor.config import load_config          # noqa: E402
-from src.retrieval.chroma_client import ChromaClient  # noqa: E402
+from src.retrieval import list_collections, query_staging  # noqa: E402
+from src.storage.sqlite_storage import StorageBackend, _load_storage_config  # noqa: E402
 from src.governance.logger import get_logger     # noqa: E402
 
 logger = get_logger("ingestor.generate_report")
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Golden set helpers — reuse de tests/test_golden_set.py
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Golden set helpers â€” reuse de tests/test_golden_set.py
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 GOLDEN_PATH = PROJECT_ROOT / "tests" / "golden_set" / "golden.json"
 
@@ -47,9 +48,9 @@ def _load_golden() -> list[dict[str, Any]]:
         return json.load(fh)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Terminal colors — ANSI (désactivé sur Windows par defaut)
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Terminal colors â€” ANSI (dÃ©sactivÃ© sur Windows par defaut)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _GREEN = "\033[92m"
 _RED = "\033[91m"
@@ -66,9 +67,9 @@ def _c(text: str, color: str) -> str:
     return f"{color}{text}{_RESET}"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Report data model
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @dataclass
 class GoldenHit:
@@ -97,8 +98,8 @@ class QuarantineSummary:
 class ServiceHealth:
     ollama_online: bool = False
     ollama_models: list[str] = field(default_factory=list)
-    chroma_online: bool = False
-    chroma_version: str = ""
+    storage_online: bool = False
+    storage_version: str = ""
     disk_free_gb: float = 0.0
 
 
@@ -122,13 +123,13 @@ class GoldenReport:
         }
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Data collection
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def _collect_collections(chroma: ChromaClient) -> list[CollectionInfo]:
-    """Liste les collections ChromaDB et compte les documents via API raw."""
-    import chromadb  # noqa: E402
+def _collect_collections() -> list[CollectionInfo]:
+    """Liste les collections du storage et compte les documents."""
+    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
 
     infos: list[CollectionInfo] = []
     known = (
@@ -138,38 +139,18 @@ def _collect_collections(chroma: ChromaClient) -> list[CollectionInfo]:
         "pz_mods", "pz_workshop_items", "pz_mod_lua_scripts", "pz_mod_configs",
     )
 
-    # Connexion directe via HTTP ou file store (comme ChromaClient)
-    host = chroma._chroma_host if hasattr(chroma, "_chroma_host") else "http://localhost:8000"  # noqa: SLF001
-    client: Any | None = None
+    cfg = _load_storage_config()
+    backend = StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
 
-    try:
-        client = chromadb.HttpClient(host=host)
-    except Exception:  # noqa: BLE001
-        # Fallback local (si pas de serveur Docker)
-        try:
-            client = chromadb.PersistentClient(path=str(PROJECT_ROOT / "data" / "staging"))
-        except Exception:  # noqa: BLE001
-            pass
-
-    collections = []
     collection_names: set[str] = set()
-    if client:
-        try:
-            collections = list(client.list_collections())
-            collection_names = {c.name for c in collections}
-        except Exception:  # noqa: BLE001
-            pass
+    try:
+        for name in backend.list_collections():
+            collection_names.add(name)
+            count = backend.count_collection(name)
+            infos.append(CollectionInfo(name=name, count=count if count >= 0 else 0))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Impossible de lister les collections : %s", exc)
 
-    # Collections existantes
-    for col in collections:
-        count = 0
-        try:
-            count = col.count()
-        except Exception:  # noqa: BLE001
-            pass
-        infos.append(CollectionInfo(name=col.name, count=count))
-
-    # Collections connues sans docs (non creees dans ChromaDB)
     for name in known:
         if name not in collection_names:
             infos.append(CollectionInfo(name=name, count=0))
@@ -178,171 +159,49 @@ def _collect_collections(chroma: ChromaClient) -> list[CollectionInfo]:
 
 
 def _compute_golden_recall(
-    chroma: ChromaClient, golden: list[dict]
+    golden: list[dict],
 ) -> dict[str, GoldenHit]:
-    """Calcule recall@5 par question du golden set via ChromaDB reel.
+    """Calcule recall@5 par question du golden set via le storage (SQLite/Postgres).
 
-    Tente d'abord HTTP (serveur Docker/remote), puis fallback local PersistentClient.
-    Utilise base_id metadata matching + text keyword search sur les documents.
+    Utilise query_staging (deleguÃ© au StorageBackend) pour interroger les collections.
     """
-    import chromadb  # noqa: E402
-    from pathlib import Path as _P  # noqa: E402
-
     hits: dict[str, GoldenHit] = {}
-    root = PROJECT_ROOT
-    col_names = {"pz_items", "pz_mechanics", "pz_recipes"}  # set pour intersection &
-    all_chunks: list[tuple[str, str, dict]] = []  # (id, doc_str, meta)
+    col_names = ("pz_items", "pz_mechanics", "pz_recipes")
 
-    # --- Connect to ChromaDB (try multiple endpoints in priority order) ---
-    target_collections_map: dict[str, Any] = {}
-    chroma_available = False
+    for item in golden:
+        question = item["question"]
+        expected_ids = set(item.get("expected_ids", []))
 
-    def _try_http(host: str) -> bool:
-        """Tente connexion HTTP → si collections cibles trouvées, retourne True."""
+        # Requete sur chaque collection pertinente
+        found_ids: set[str] = set()
+        total_chunks = 0
+
         try:
-            client = chromadb.HttpClient(host=host)
-            cols = client.list_collections()
-            if col_names & {c.name for c in cols}:
-                target_collections_map.clear()
-                target_collections_map.update({c.name: client.get_collection(c.name) for c in cols if c.name in col_names})
-                logger.info("ChromaDB HTTP OK: %s", host)
-                return True
+            for col in col_names:
+                results = query_staging(question, k=5)
+                chunks = results.get("chunks", [])
+                total_chunks += len(chunks)
+                for chunk in chunks:
+                    chunk_id = chunk.get("id", "")
+                    if isinstance(chunk_id, list):
+                        chunk_id = chunk_id[0] if chunk_id else ""
+                    found_ids.add(str(chunk_id))
         except Exception as exc:  # noqa: BLE001
-            logger.debug("HTTP %s echou: %s", host, exc)
-        return False
+            logger.warning("Golden recall query echou pour '%s' : %s", question[:40], exc)
 
-    # Try all known endpoints in order
-    candidate_hosts = []
-    try:
-        config = load_config()
-        candidate_hosts.append(config.CHROMA_HOST)
-    except Exception:  # noqa: BLE001
-        pass
-    candidate_hosts += ["http://localhost:8000", "http://127.0.0.1:8000"]
-
-    for host in candidate_hosts:
-        if _try_http(host):
-            chroma_available = True
-            break
-
-    # 3. Local file store
-    if not chroma_available:
-        local_path = root / "data" / "staging" / "chromadb"
-        try:
-            local_client = chromadb.PersistentClient(path=str(local_path))
-            local_cols = {c.name: c for c in local_client.list_collections() if c.name in col_names}
-            if local_cols:
-                target_collections_map = local_cols
-                chroma_available = True
-                logger.info("Golden recall utilise ChromaDB Local fallback")
-        except Exception as exc2:  # noqa: BLE001
-            logger.warning("ChromaDB Local file store injoignable: %s", exc2)
-
-    if not chroma_available or not target_collections_map:
-        logger.warning("Aucun ChromaDB accessible — recall non calculé")
-        return hits
-
-    # --- Retrieve all items from target collections (metadata matching is exact, no embedding needed) ---
-    for col_name, col in target_collections_map.items():
-        try:
-            all_data = col.get(limit=10000)  # fetch all (safe since we know collection sizes)
-            ids_list = all_data.get("ids", [])
-            docs_list = all_data.get("documents", [])
-            metas_list = all_data.get("metadatas", [])
-            for cid, doc, meta in zip(ids_list, docs_list, metas_list):
-                all_chunks.append((cid, str(doc), meta or {}))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Collection %s non accessible: %s", col_name, exc)
-
-    if not all_chunks:
-        logger.warning("Aucun document récupéré pour le golden recall")
-        return hits
-
-    for entry in golden:
-        qid = entry.get("id", "unknown")
-        question = entry.get("question", "")
-        expected_ids = set(entry.get("expected_ids", []))
-        filter_params = entry.get("filter")
-
-        try:
-            # Build keyword search from question
-            stop_words = {"how", "to", "do", "i", "what", "is", "the", "of", "a", "an", "in", "for", "project", "zomboid", "avec", "dans", "sur"}
-            keywords = set()
-            for word in question.lower().split():
-                clean = word.strip(".,;:!?\"'()[]{}")
-                if len(clean) > 2 and clean not in stop_words:
-                    keywords.add(clean)
-
-            hit_at_rank: int | None = None
-            found_ids: set[str] = set()
-            missed_ids_set = expected_ids.copy()
-
-            for rank, (cid, doc_str, meta) in enumerate(all_chunks, start=1):
-                # Build candidate IDs from metadata
-                candidates = {cid}
-                if isinstance(meta, dict):
-                    for key in ("base_id", "item_id", "id", "result", "name"):
-                        val = meta.get(key)
-                        if val:
-                            candidates.add(str(val))
-
-                # 1. Direct base_id match
-                for exp in expected_ids:
-                    if exp in candidates:
-                        found_ids.add(exp)
-                        missed_ids_set.discard(exp)
-                        if hit_at_rank is None and rank <= 5:
-                            hit_at_rank = rank
-                        continue
-
-                    # Partial match: last part of dotted ID (e.g., Axe from Base.Axe)
-                    exp_last = exp.split(".")[-1].lower()
-                    for cand in candidates:
-                        if exp_last in cand.lower():
-                            found_ids.add(exp)
-                            missed_ids_set.discard(exp)
-                            if hit_at_rank is None and rank <= 5:
-                                hit_at_rank = rank
-
-                # 2. Keyword search in document text
-                if not found_ids & expected_ids:
-                    doc_lower = doc_str.lower()
-                    if any(kw in doc_lower for kw in keywords):
-                        for exp in expected_ids - found_ids:
-                            exp_last = exp.split(".")[-1].lower()
-                            # If the keyword appears near the item name pattern
-                            exp_name_part = exp.split(".")[-1]
-                            if exp_name_part.lower() in doc_lower:
-                                candidates_check = {cid}
-                                if isinstance(meta, dict):
-                                    for key in ("base_id", "item_id"):
-                                        val = meta.get(key)
-                                        if val:
-                                            candidates_check.add(str(val))
-                                    if exp_last in {c.lower() for c in candidates_check}:
-                                        found_ids.add(exp)
-                                        missed_ids_set.discard(exp)
-                                        if hit_at_rank is None and rank <= 5:
-                                            hit_at_rank = rank
-
-            recall = len(found_ids & expected_ids) / max(1, len(expected_ids))
-
-            hits[qid] = GoldenHit(
-                recall=round(recall, 3),
-                expected=len(expected_ids),
-                found=len(found_ids),
-                hit_at_rank=hit_at_rank,
-                missed_ids=sorted(missed_ids_set),
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Golden recall %s échoué : %s", qid, exc)
-            hits[qid] = GoldenHit(recall=-1, expected=len(expected_ids), found=0, missed_ids=sorted(expected_ids))
+        hit_count = len(expected_ids & found_ids)
+        hits[question] = GoldenHit(
+            expected_ids=len(expected_ids),
+            found_ids=hit_count,
+            total_chunks=total_chunks,
+            recall=hit_count / len(expected_ids) if expected_ids else 0.0,
+        )
 
     return hits
 
 
 def _compute_recall_summary(hits: dict[str, GoldenHit]) -> dict[str, Any]:
-    """Résumé du recall sur toutes les questions."""
+    """RÃ©sumÃ© du recall sur toutes les questions."""
     valid = [h for h in hits.values() if h.recall >= 0]
     if not valid:
         return {"avg_recall": 0.0, "questions_with_perfect_recall": 0, "total_questions": len(hits)}
@@ -397,7 +256,7 @@ def _collect_quarantine() -> QuarantineSummary:
 
 
 def _check_services() -> ServiceHealth:
-    """Vérifie la disponibilité des services."""
+    """VÃ©rifie la disponibilitÃ© des services."""
     health = ServiceHealth()
 
     # Ollama
@@ -412,19 +271,14 @@ def _check_services() -> ServiceHealth:
     except Exception:  # noqa: BLE001
         pass
 
-    # ChromaDB
+    # Storage vectoriel (check de compatibilité)
     try:
-        import urllib.request
-        resp = urllib.request.urlopen("http://host.docker.internal:8000/api/v2/heartbeat", timeout=5)
-        if resp.status == 200:
-            health.chroma_online = True
-            health.chroma_version = resp.read().decode()[:10]
-    except Exception:  # noqa: BLE001
-        try:
-            import urllib.request
-            resp = urllib.request.urlopen("http://host.docker.internal:8000/api/v2", timeout=5)
-            if resp.status == 200:
-                health.chroma_online = True
+        from src.storage.sqlite_storage import _load_storage_config, StorageBackend
+        cfg = _load_storage_config()
+        backend = StorageBackend(data_dir=cfg.data_dir if hasattr(cfg, 'data_dir') else None,
+                                 ollama_url=cfg.ollama_url if hasattr(cfg, 'ollama_url') else None)
+        health.storage_online = True
+        health.storage_version = f"v{backend.backend_type}"
         except Exception:  # noqa: BLE001
             pass
 
@@ -439,22 +293,22 @@ def _check_services() -> ServiceHealth:
     return health
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Report formatting
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _format_terminal(report: GoldenReport) -> None:
-    """Affiche le rapport dans le terminal coloré."""
+    """Affiche le rapport dans le terminal colorÃ©."""
     sep = "============================================================"
 
     print()
     print(sep)
-    print("Zomboid Knowledge Engine — Rapport de Qualité")
-    print(f"Généré : {report.timestamp}")
+    print("Zomboid Knowledge Engine â€” Rapport de QualitÃ©")
+    print(f"GÃ©nÃ©rÃ© : {report.timestamp}")
     print(sep)
 
     # Collections
-    print("\nCollections ChromaDB")
+    print("\nCollections storage vectoriel")
     for col in sorted(report.collections, key=lambda c: c.name):
         if col.count < 0:
             status = " [ERREUR]"
@@ -465,7 +319,7 @@ def _format_terminal(report: GoldenReport) -> None:
         print(f"   {col.name:<25} {col.count:>6d} docs  (avg_meta: {col.avg_metadata_fields}){status}")
 
     # Golden Recall
-    print("\nGolden Set — Recall@5")
+    print("\nGolden Set â€” Recall@5")
     for qid, hit in report.golden_recall.items():
         if hit.recall < 0:
             bar = f"[ERREUR]"
@@ -474,18 +328,18 @@ def _format_terminal(report: GoldenReport) -> None:
         else:
             bar = (f"recall={hit.recall:.3f} ({hit.found}/{hit.expected}"
                    + (f", hit@{hit.hit_at_rank}" if hit.hit_at_rank else "")
-                   + f" — manquants: {', '.join(hit.missed_ids)}])")
+                   + f" â€” manquants: {', '.join(hit.missed_ids)}])")
         print(f"   {qid:<30}  {bar}")
 
     # Summary
     summary = report.golden_recall_summary
     avg = summary.get("avg_recall", 0)
-    stars_ok = "★" * int(avg * 10)
-    stars_bad = "·" * (10 - int(avg * 10))
+    stars_ok = "â˜…" * int(avg * 10)
+    stars_bad = "Â·" * (10 - int(avg * 10))
     print(f"\n   {stars_ok}{stars_bad} recall moyen: {avg:.3f}")
     print(f"   parfait: {summary.get('questions_with_perfect_recall', 0)}/{summary.get('total_questions', 0)}")
     if summary.get("missed_ids"):
-        print(f"   IDs jamais trouvés : {', '.join(summary['missed_ids'][:10])}")
+        print(f"   IDs jamais trouvÃ©s : {', '.join(summary['missed_ids'][:10])}")
 
     # Quarantine
     print("\nQuarantaine")
@@ -498,41 +352,41 @@ def _format_terminal(report: GoldenReport) -> None:
                 snippet = err.get("snippet", str(err.get("exc_info", "N/A")))[:80]
                 print(f"     {snippet}")
     else:
-        print("   Aucune donnée quarantainée")
+        print("   Aucune donnÃ©e quarantainÃ©e")
 
     # Health
     print("\nServices")
-    ol = "✓ En ligne" if report.health.ollama_online else "✘ Hors ligne"
-    ol += f" — {', '.join(report.health.ollama_models[:3])}" if report.health.ollama_online else ""
-    ch = "✓ En ligne" if report.health.chroma_online else "✘ Hors ligne"
-    ch += f" v{report.health.chroma_version}" if report.health.chroma_online and report.health.chroma_version else ""
+    ol = "âœ“ En ligne" if report.health.ollama_online else "âœ˜ Hors ligne"
+    ol += f" â€” {', '.join(report.health.ollama_models[:3])}" if report.health.ollama_online else ""
+    ch = "âœ“ En ligne" if report.health.storage_online else "âœ˜ Hors ligne"
+    ch += f" v{report.health.storage_version}" if report.health.storage_online and report.health.storage_version else ""
     disk_color = "+" if report.health.disk_free_gb > 2 else "~"
     print(f"   Ollama : {ol}")
-    print(f"   ChromaDB : {ch}")
+    print(f"   Storage vectoriel : {ch}")
     print(f"   Disque libre : {report.health.disk_free_gb} GB {disk_color}")
 
     print(f"\n{sep}\n")
 
 
 def _format_markdown(report: GoldenReport) -> str:
-    """Génère un rapport Markdown."""
+    """GÃ©nÃ¨re un rapport Markdown."""
     lines = [
-        "# Rapport de Qualité — Zomboid Knowledge Engine",
+        "# Rapport de QualitÃ© â€” Zomboid Knowledge Engine",
         "",
-        f"*Généré le {report.timestamp}*",
+        f"*GÃ©nÃ©rÃ© le {report.timestamp}*",
         "",
-        "## Collections ChromaDB",
+        "## Collections Storage Vectoriel",
         "",
         "| Collection | Nom | Docs | Avg Metadata |",
         "|---|---|---|---|",
     ]
 
     for col in sorted(report.collections, key=lambda c: c.name):
-        lines.append(f"| • | `{col.name}` | {col.count} | {col.avg_metadata_fields} |")
+        lines.append(f"| â€¢ | `{col.name}` | {col.count} | {col.avg_metadata_fields} |")
 
-    lines += ["", "## Golden Set — Recall@5", ""]
+    lines += ["", "## Golden Set â€” Recall@5", ""]
 
-    header = "| Question ID | Recall | Trouvés/Attendus | Hit @ Rank | IDs manqués |"
+    header = "| Question ID | Recall | TrouvÃ©s/Attendus | Hit @ Rank | IDs manquÃ©s |"
     sep_line = "|---|---|---|---|---|"
     lines.extend([header, sep_line])
 
@@ -554,7 +408,7 @@ def _format_markdown(report: GoldenReport) -> str:
         f"**recall moyen** : {s.get('avg_recall', 0):.3f}   **parfait** : {s.get('questions_with_perfect_recall', 0)}/{s.get('total_questions', 0)}",
     ]
     if s.get("missed_ids"):
-        lines.append(f"IDs jamais trouvés : {', '.join(s['missed_ids'])}")
+        lines.append(f"IDs jamais trouvÃ©s : {', '.join(s['missed_ids'])}")
 
     lines += ["", "## Quarantaine"]
     if report.quarantine.total_entries:
@@ -562,31 +416,31 @@ def _format_markdown(report: GoldenReport) -> str:
         for date, count in sorted(report.quarantine.by_date.items()):
             lines.append(f"- `{date}` : {count}")
         if report.quarantine.recent_errors:
-            lines.append("**Dernières erreurs :**")
+            lines.append("**DerniÃ¨res erreurs :**")
             for err in report.quarantine.recent_errors[-3:]:
                 snippet = err.get("snippet", str(err.get("exc_info", "N/A")))[:80]
                 lines.append(f"- `{snippet}`")
     else:
-        lines.append("*Aucune donnée quarantainée*")
+        lines.append("*Aucune donnÃ©e quarantainÃ©e*")
 
     lines += ["", "## Services"]
-    ol = f"{'✓' if report.health.ollama_online else '✘'} Ollama"
+    ol = f"{'âœ“' if report.health.ollama_online else 'âœ˜'} Ollama"
     if report.health.ollama_online:
-        ol += f" — {', '.join(report.health.ollama_models[:3])}"
-    ch = f"{'✓' if report.health.chroma_online else '✘'} ChromaDB"
-    if report.health.chroma_online and report.health.chroma_version:
-        ch += f" v{report.health.chroma_version}"
+        ol += f" â€” {', '.join(report.health.ollama_models[:3])}"
+    ch = f"{'âœ“' if report.health.storage_online else 'âœ˜'} Storage vectoriel"
+    if report.health.storage_online and report.health.storage_version:
+        ch += f" v{report.health.storage_version}"
     lines.extend([ol, ch, f"**Disque libre** : {report.health.disk_free_gb} GB"])
 
     return "\n".join(lines)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Main entry point
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def generate_report() -> GoldenReport:
-    """Génère le rapport complet et retourne l'objet structuré."""
+    """GÃ©nÃ¨re le rapport complet et retourne l'objet structurÃ©."""
     report = GoldenReport(
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M UTC"),
     )
@@ -594,8 +448,7 @@ def generate_report() -> GoldenReport:
     # Collections
     try:
         config = load_config()
-        chroma = ChromaClient(host=config.CHROMA_HOST)
-        report.collections = _collect_collections(chroma)
+        report.collections = _collect_collections()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Collections non accessibles : %s", exc)
 
@@ -603,12 +456,10 @@ def generate_report() -> GoldenReport:
     golden = _load_golden()
     if golden:
         try:
-            config = load_config()
-            chroma = ChromaClient(host=config.CHROMA_HOST)
-            report.golden_recall = _compute_golden_recall(chroma, golden)
+            report.golden_recall = _compute_golden_recall(golden)
             report.golden_recall_summary = _compute_recall_summary(report.golden_recall)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Golden recall non calculé : %s", exc)
+            logger.warning("Golden recall non calculÃ© : %s", exc)
 
     # Quarantine
     report.quarantine = _collect_quarantine()
@@ -620,7 +471,7 @@ def generate_report() -> GoldenReport:
 
 
 def main(output_json: bool = False, output_md: bool = False) -> GoldenReport:
-    """Point d'entrée CLI — génération + affichage du rapport."""
+    """Point d'entrÃ©e CLI â€” gÃ©nÃ©ration + affichage du rapport."""
     report = generate_report()
 
     # Affichage terminal couleur

@@ -7,7 +7,7 @@ Couverture :
 - Metadata filtering ($and, $eq, version)
 - get_by_id deterministe
 - cross_collection_search
-- StorageBackend fallback (ChromaDB → SQLite)
+- StorageBackend avec fallback local
 - OllamaEmbedder (mocké)
 
 Lancer : pytest tests/test_sqlite_storage.py -v
@@ -330,7 +330,7 @@ class TestCrossCollectionSearch:
 
 
 # ---------------------------------------------------------------------------
-# Tests : StorageBackend (fallback ChromaDB → SQLite)
+# Tests : StorageBackend (StorageBackend uniquement)
 # ---------------------------------------------------------------------------
 
 class TestStorageBackend:
@@ -341,7 +341,7 @@ class TestStorageBackend:
         from src.storage.sqlite_storage import StorageBackend
 
         tmp = tempfile.mkdtemp()
-        backend = StorageBackend(data_dir=tmp, chroma_host="http://localhost:19999")  # port inexistant → SQLite
+        backend = StorageBackend(data_dir=tmp)  # SQLite local
         health = backend.health()
         assert health["mode"] == "sqlite"
         assert health["available"] is True
@@ -350,7 +350,7 @@ class TestStorageBackend:
         from src.storage.sqlite_storage import StorageBackend
 
         tmp = tempfile.mkdtemp()
-        backend = StorageBackend(data_dir=tmp, chroma_host="http://localhost:19999")
+        backend = StorageBackend(data_dir=tmp, storage_dir="http://localhost:19999")
         backend.ensure_collection("test_col")
         assert backend.count_collection("test_col") == 0
 

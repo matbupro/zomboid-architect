@@ -3,11 +3,16 @@ pipeline — Chaîne de traitement des messages Discord → réponse Zomboid.
 
 Flux :
     message utilisateur
-        → router (détecte le type de commande / la collection pertinente)
-        → engine.search() ou engine.get_by_id() pour récupérer le contexte Zomboid
+        → router (detecte le type de commande / la collection pertinente)
+        → engine.search() ou engine.get_by_id() pour recuperer le contexte Zomboid
         → construction du prompt LLM (contexte JSON brut + question)
-        → LLM.complete() (Ollama en priorité, Claude en fallback)
-        → retour du texte de réponse
+        → LLM.complete() (Ollama en priorite, Claude en fallback)
+        → retour du texte de reponse
+
+Gestion d'erreurs unifiee :
+    - Les erreurs LLM sont capturees et converties en messages utilisateur clairs
+    - Le circuit-breaker dans llm_adapter.py evite les tentatives repetees sur un
+      provider en erreur, permettant le fallback automatique au second provider.
 """
 
 from __future__ import annotations
@@ -17,23 +22,43 @@ from dataclasses import dataclass
 from typing import Any
 
 from .engine_client import KnowledgeEngineClient, SearchResult
-from .llm_adapter import LLMProvider, OllamaProvider, ClaudeProvider
+from .llm_adapter import LLMProvider, OllamaProvider, ClaudeProvider, LLMError, CircuitBreakerOpen
 
 from src.governance.logger import get_logger
 
 logger = get_logger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Messages d'erreur unifies pour l'utilisateur (jamais de tech-dump)
+# ---------------------------------------------------------------------------
+
+LLM_ERROR_MESSAGES: dict[str, str] = {
+    "timeout": (
+        "⏱ La reponse du modele a expire. Merci de reessayer dans quelques instants."
+    ),
+    "unavailable": (
+        "🔌 Le modele LLM est temporairement inaccessible. Tentative du fallback..."
+    ),
+    "rate_limit": (
+        "⚠️ La limite d'appels API a ete atteinte. Veuillez recommencer plus tard."
+    ),
+    "unknown": (
+        "❌ Une erreur inattendue s'est produite lors de la generation de la reponse."
+    ),
+}
+
+
 @dataclass
 class PromptResult:
     """Résultat d'une passe du pipeline."""
-    raw_context: list[SearchResult]   # Résultats bruts du knowledge engine (JSON brut)
+    raw_context: list[SearchResult]   # Resultats bruts du knowledge engine (JSON brut)
     prompt_text: str                  # Prompt construit pour le LLM
-    llm_response: str                 # Réponse du LLM
+    llm_response: str                 # Reponse du LLM
 
 
 # ---------------------------------------------------------------------------
-# Routing — détection de l'intention et sélection de collections
+# Routing — detection de l'intention et selection de collections
 # ---------------------------------------------------------------------------
 
 COLLECTION_ROUTES = {
@@ -44,13 +69,13 @@ COLLECTION_ROUTES = {
     "search": ["pz_items", "pz_recipes", "pz_mechanics", "pz_lua_api", "pz_java_api"],
 }
 
-# Regex patterns pour détection automatique de commandes implicites
+# Regex patterns pour detection automatique de commandes implicites
 PATTERN_ITEM_ID = re.compile(r"(?:stat[s]?|stats?)\s*(?:de\s*)?([A-Z][a-zA-Z]+\.[A-Za-z]+)", re.IGNORECASE)
 PATTERN_RECIPE = re.compile(r"(?:recette[es]?\s+(?:pour\s+)?)([A-Z][a-zA-Z]+(?:\s+[A-Za-z]+)?)", re.IGNORECASE)
 
 
 def detect_intent(message: str) -> tuple[str, str]:
-    """Détecte le type de commande et extrait la requête.
+    """Detecte le type de commande et extrait la requete.
 
     Returns:
         (command_type, query_text)
@@ -69,7 +94,7 @@ def detect_intent(message: str) -> tuple[str, str]:
     if msg.startswith("/search"):
         return ("search", message.replace("/search ", ""))
 
-    # Détection implicite
+    # Detection implicite
     match_id = PATTERN_ITEM_ID.search(msg)
     if match_id:
         return ("stats", match_id.group(1))
@@ -80,12 +105,12 @@ def detect_intent(message: str) -> tuple[str, str]:
     if any(kw in msg for kw in ["moddoc", "lua api", "java api", "modding", "hook"]):
         return ("moddoc", msg)
 
-    # Défaut : recherche libre sur toutes les collections
+    # Defaut : recherche libre sur toutes les collections
     return ("search", msg)
 
 
 # ---------------------------------------------------------------------------
-# Context enrichment — requête au knowledge engine
+# Context enrichment — requete au knowledge engine
 # ---------------------------------------------------------------------------
 
 def enrich_context(
@@ -95,18 +120,18 @@ def enrich_context(
     n_results: int = 5,
     game_version: str | None = None,
 ) -> list[SearchResult]:
-    """Récupère le contexte pertinent depuis le knowledge engine.
+    """Recupere le contexte pertinent depuis le knowledge engine.
 
     Args:
         client: KnowledgeEngineClient instance.
-        command_type: Type de commande détecté (stats, survie, etc.).
-        query_text: Texte de la requête utilisateur.
-        n_results: Nombre maximal de résultats.
-        game_version: Optionnel — filtre les résultats par version PZ (b41/b42).
+        command_type: Type de commande detecte (stats, survie, etc.).
+        query_text: Texte de la requete utilisateur.
+        n_results: Nombre maximal de resultats.
+        game_version: Optionnel — filtre les resultats par version PZ (b41/b42).
     """
     collections = COLLECTION_ROUTES.get(command_type, ["pz_items"])
 
-    # Pour /stats : essayer d'abord un lookup déterministe par ID
+    # Pour /stats : essayer d'abord un lookup deterministe par ID
     if command_type == "stats":
         item_id = _extract_item_id(query_text)
         if item_id:
@@ -114,7 +139,7 @@ def enrich_context(
             if result:
                 return [result]
 
-    # Requête vectorielle sur les collections pertinentes
+    # Requete vectorielle sur les collections pertinentes
     results = client.search(
         queries=[(col, query_text) for col in collections],
         n_results=n_results,
@@ -136,15 +161,15 @@ def build_prompt(
     """Construit le prompt complet pour le LLM.
 
     Inclut :
-    - Le système (règles de l'assistant)
-    - Le contexte JSON brut du knowledge engine (non reformulé)
+    - Le Systeme (regles de l'assistant)
+    - Le contexte JSON brut du knowledge engine (non reformule)
     - La question de l'utilisateur
     """
     # Section contexte : valeurs exactes du knowledge engine
     context_sections = []
     for item in context:
         section = f"--- [{item.collection}] ID:{item.id} ---\n"
-        # Champ JSON brut (métadonnées exactes)
+        # Champ JSON brut (metadonnees exactes)
         if item.metadata_:
             section += f"JSON_BRUT:\n{json_dumps_safe(item.metadata_)}\n"
         # Champ prose (description lisible)
@@ -152,27 +177,27 @@ def build_prompt(
             section += f"PROSE:\n{item.prose}\n"
         context_sections.append(section)
 
-    context_text = "\n".join(context_sections) if context_sections else "(Aucune donnée trouvée dans le knowledge engine)"
+    context_text = "\n".join(context_sections) if context_sections else "(Aucune donnee trouvee dans le knowledge engine)"
 
     # Format du prompt
     parts = [system_prompt, ""]
 
     if command_type == "stats":
-        parts.append(f"""Données exactes de l'objet :
+        parts.append(f"""Donnees exactes de l'objet :
 {context_text}
 
 Question : {question}
 
-Réponds avec les stats précises. N'invente jamais de valeurs chiffrées.""")
+Reponds avec les stats precises. N'invente jamais de valeurs chiffrées.""")
     elif command_type == "survie":
-        parts.append(f"""Données mécaniques pertinentes :
+        parts.append(f"""Donnees mecaniques pertinentes :
 {context_text}
 
 Scénario du joueur : {question}
 
-Donne un conseil de survie précis basé sur ces données.""")
+Donne un conseil de survie precis base sur ces donnees.""")
     elif command_type == "recipe":
-        parts.append(f"""Données recettes :
+        parts.append(f"""Donnees recettes :
 {context_text}
 
 Recette demandée : {question}
@@ -184,14 +209,14 @@ Liste les ingrédients exacts et l'étape de craft si disponible.""")
 
 Question sur le modding : {question}
 
-Réponds avec la documentation technique exacte.""")
+Reponds avec la documentation technique exacte.""")
     else:  # search
-        parts.append(f"""Données trouvées :
+        parts.append(f"""Donnees trouvees :
 {context_text}
 
 Question : {question}
 
-Synthétise une réponse utile basée sur les données ci-dessus.""")
+Synthétise une reponse utile basee sur les donnees ci-dessus.""")
 
     return "\n".join(parts)
 
@@ -199,7 +224,7 @@ Synthétise une réponse utile basée sur les données ci-dessus.""")
 def format_context_for_display(context: list[SearchResult]) -> str:
     """Formate le contexte pour affichage dans Discord (embed ou message)."""
     lines = []
-    for item in context[:3]:  # Max 3 résultats affichés
+    for item in context[:3]:  # Max 3 resultats affiches
         lines.append(f"### [{item.collection}] {item.id}")
         if item.prose:
             lines.append(item.prose[:500])
@@ -223,18 +248,44 @@ def execute_llm(
     temperature: float = 0.7,
     max_tokens: int = 4096,
 ) -> str:
-    """Exécute le LLM et retourne la réponse textuelle."""
-    response = llm.complete(
-        prompt=prompt_text,
-        system_prompt=system_prompt,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    return response.strip()
+    """Execute le LLM et retourne la reponse textuelle.
+
+    Capture les erreurs LLM (timeout, circuit-breaker, etc.) et les convertit
+    en messages utilisateurs clairs au lieu de crasher le pipeline.
+
+    Args:
+        llm: Provider LLM utilise (Ollama ou Claude).
+        prompt_text: Prompt a envoyer au modele.
+        system_prompt: Instructions du systeme.
+        temperature: Temperature [0.0-1.0].
+        max_tokens: Limite de tokens.
+
+    Returns:
+        Reponse textuelle, ou un message d'erreur si l'appel echoue.
+    """
+    try:
+        response = llm.complete(
+            prompt=prompt_text,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.strip()
+    except LLMError as exc:
+        logger.warning("LLM error from %s: %s", llm.name, exc)
+        # Choisir le message utilisateur adapte au type d'erreur
+        msg_key = "unknown"
+        if "timeout" in str(exc).lower():
+            msg_key = "timeout"
+        elif "unavailable" in str(exc).lower() or "unreachable" in str(exc).lower():
+            msg_key = "unavailable"
+        elif "rate limit" in str(exc).lower():
+            msg_key = "rate_limit"
+        return LLM_ERROR_MESSAGES.get(msg_key, LLM_ERROR_MESSAGES["unknown"])
 
 
 # ---------------------------------------------------------------------------
-# Pipeline complet — point d'entrée public
+# Pipeline complet — point d'entree public
 # ---------------------------------------------------------------------------
 
 async def process_message(
@@ -248,31 +299,34 @@ async def process_message(
     n_results: int = 5,
     game_version: str | None = None,
 ) -> PromptResult:
-    """Pipeline complet : message Discord → recherche engine → prompt → LLM → réponse.
+    """Pipeline complet : message Discord → recherche engine → prompt → LLM → reponse.
+
+    Les erreurs LLM sont capturees et converties en messages utilisateur clairs
+    sans crasher le bot Discord.
 
     Args:
         message: Message utilisateur brut.
         engine: KnowledgeEngineClient instance.
         llm: LLMProvider instance (Ollama/Claude).
-        system_prompt: Prompt système de l'assistant.
-        temperature: Température du LLM [0.0-1.0].
-        max_tokens: Limite de tokens pour la réponse.
-        n_results: Nombre maximal de résultats du moteur de recherche.
+        system_prompt: Prompt Systeme de l'assistant.
+        temperature: Temperature du LLM [0.0-1.0].
+        max_tokens: Limite de tokens pour la reponse.
+        n_results: Nombre maximal de resultats du moteur de recherche.
         game_version: Optionnel — filtre les requêtes par version PZ (b41/b42).
-            La valeur est résolue automatiquement depuis ``src/governance/game_version``
-            si ``None`` est passé explicitement.
+            La valeur est resolue automatiquement depuis ``src/governance/game_version``
+            si ``None`` est passe explicitement.
     """
     # 1. Router l'intention
     command_type, query_text = detect_intent(message)
 
-    # 2. Enrichir le contexte (avec filtre version si spécifié)
+    # 2. Enrichir le contexte (avec filtre version si specifie)
     context = enrich_context(engine, command_type, query_text, n_results=n_results, game_version=game_version)
     logger.info("Message → commande=%s, query=%q, results=%d", command_type, query_text, len(context))
 
     # 3. Construire le prompt
     prompt_text = build_prompt(context, query_text, command_type, system_prompt)
 
-    # 4. Exécuter le LLM
+    # 4. Executer le LLM (avec capture d'erreurs unifiée)
     response = execute_llm(llm, prompt_text, system_prompt, temperature, max_tokens)
 
     return PromptResult(
@@ -287,7 +341,7 @@ async def process_message(
 # ---------------------------------------------------------------------------
 
 def json_dumps_safe(obj: Any) -> str:
-    """ sérialise en JSON avec fallback."""
+    """ serialise en JSON avec fallback."""
     import json as _json
     try:
         return _json.dumps(obj, ensure_ascii=False, indent=2)

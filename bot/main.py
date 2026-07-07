@@ -54,7 +54,7 @@ except ValueError:
     _current_game_version = None
 
 if not settings.DISCORD_TOKEN:
-    logger.error("DISCORD_TOKEN est vide. Copie .env.example → .env et configure-le.")
+    logger.error("DISCORD_TOKEN est vide. Remplir .env.unified a la racine du projet.")
     sys.exit(1)
 
 # Intents nécessaires
@@ -68,7 +68,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="", intents=intents)
 
 # Client knowledge engine + LLM provider
-engine = KnowledgeEngineClient(settings.CHROMA_HOST)
+engine = KnowledgeEngineClient()  # SQLite/PostgreSQL via StorageBackend
 ollama, claude = create_providers(
     ollama_url=settings.OLLAMA_BASE_URL,
     ollama_model=settings.OLLAMA_MODEL,
@@ -157,7 +157,8 @@ async def cmd_help(interaction: discord.Interaction):
         "/recipe <ingredient> — Recettes d'artisanat\n"
         "/moddoc <api> — Documentation modding Lua/Java\n"
         "/search <query> — Recherche sémantique libre\n"
-        "/modgen <desc> — Genere un mod Project Zomboid a partir d'une description\n\n"
+        "/modgen <desc> — Genere un mod Project Zomboid a partir d'une description\n"
+        "/modpublish <nom_du_mod> — Publie un mod genere vers le Steam Workshop\n\n"
         "**DM** — Envoie-moi un message en DM, je réponds automatiquement !"
     )
 
@@ -166,7 +167,7 @@ async def cmd_help(interaction: discord.Interaction):
         description=help_text,
         color=discord.Color.dark_green(),
     )
-    embed.set_footer(text="Propulsé par Ollama local + ChromaDB")
+    embed.set_footer(text="Propulsé par Ollama local + SQLite")
     await interaction.response.send_message(embed=embed)
 
 
@@ -313,6 +314,220 @@ async def cmd_modgen(interaction: discord.Interaction, description: str):
 
 
 # ---------------------------------------------------------------------------
+# Commande /modpublish — publication Steam Workshop
+# ---------------------------------------------------------------------------
+
+def _find_mod_dir(mod_name: str) -> Path | None:
+    """Recherche un dossier de mod genere dans `mods/` par nom ou ID partiel.
+
+    Parcourt tous les sous-dossiers de `mods/` et cherche une correspondance
+    partielle (case-insensitive) sur le nom du mod ou son ID canonique.
+
+    Args:
+        mod_name: Nom ou partie de l'ID du mod a trouver.
+
+    Returns:
+        Path vers le dossier du mod, ou None si pas trouve.
+    """
+    mods_dir = _PROJECT_ROOT / "mods"
+    if not mods_dir.is_dir():
+        return None
+
+    needle = mod_name.strip().lower()
+    for entry in sorted(mods_dir.iterdir()):
+        if not entry.is_dir():
+            continue
+        # Correspondance sur le nom du dossier (ignore prefic "modgen_*_" de l'ID)
+        folder_name = entry.name.lower()
+        # Extraire le nom reel : enleve "modgen_<slug>_<uuid>" pour comparer le slug
+        if folder_name.startswith("modgen_"):
+            parts = folder_name.split("_", 2)
+            if len(parts) >= 3:
+                real_name = parts[1]
+                if needle in real_name or needle in entry.name.lower():
+                    logger.info("Mod trouve : %s", entry)
+                    return entry.resolve()
+        else:
+            if needle in folder_name:
+                logger.info("Mod trouve (par dossier brut) : %s", entry)
+                return entry.resolve()
+
+    # Fallback : chercher dans mod.info JSON (champ "name")
+    for entry in sorted(mods_dir.iterdir()):
+        if not entry.is_dir():
+            continue
+        mod_info = entry / "mod.info"
+        if not mod_info.is_file():
+            continue
+        try:
+            import json
+            data = json.loads(mod_info.read_text(encoding="utf-8"))
+            name_field = (data.get("name", "") or data.get("Title", "") or "").lower()
+            if needle in name_field:
+                logger.info("Mod trouve via mod.info : %s", entry)
+                return entry.resolve()
+        except Exception:
+            continue
+
+    logger.warning("Mod introuvable pour '%s' dans %s", mod_name, mods_dir)
+    return None
+
+
+def _extract_mod_metadata(mod_dir: Path) -> tuple[str, str, list[str]]:
+    """Extrait title/description/tags depuis le dossier du mod.
+
+    Args:
+        mod_dir: Chemin vers le dossier du mod genere.
+
+    Returns:
+        Tuple (title, description, tags). Si impossible, retourne des valeurs par defaut.
+    """
+    # Essayer de lire mod.info (JSON)
+    mod_info = mod_dir / "mod.info"
+    if mod_info.is_file():
+        try:
+            import json
+            data = json.loads(mod_info.read_text(encoding="utf-8"))
+            title = data.get("name", data.get("Title", "")) or ""
+            desc = data.get("description", "") or ""
+            tags = [t for t in (data.get("tags", []) or []) if isinstance(t, str)]
+            return title, desc, tags
+        except Exception:
+            pass
+
+    # Fallback : lire ZomboidModDescriptor.txt
+    descriptor = mod_dir / "ZomboidModDescriptor.txt"
+    if descriptor.is_file():
+        lines = descriptor.read_text(encoding="utf-8", errors="replace").splitlines()
+        title = desc = ""
+        tags: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("name="):
+                title = stripped[5:].strip() or ""
+            elif stripped.startswith("description="):
+                desc = stripped[12:].strip() or ""
+            elif stripped.startswith("tags="):
+                tags = [t.strip() for t in stripped[5:].split(",") if t.strip()]
+        if title:
+            return title, desc, tags
+
+    # Dernier fallback : utiliser le nom du dossier (sans prefic modgen)
+    folder_name = mod_dir.name
+    if folder_name.startswith("modgen_"):
+        parts = folder_name.split("_", 2)
+        folder_name = parts[1] if len(parts) >= 3 else folder_name
+    return folder_name, "", []
+
+
+async def _handle_modpublish_command(interaction: discord.Interaction, mod_name: str | None, folder_path: str | None):
+    """Publie un mod vers le Steam Workshop via SteamCMD."""
+    await interaction.response.defer()
+
+    # 1. Resoudre le dossier du mod
+    if folder_path:
+        mod_dir = Path(folder_path)
+    else:
+        name_to_use = mod_name or ""
+        mod_dir = _find_mod_dir(name_to_use)
+        if not mod_dir:
+            await interaction.followup.send(
+                f"⚠️ Mod introuvable. Verifie que le mod a ete genere par `/modgen`.\n\n"
+                f"Hint : utiliser `/modpublish <nom_du_mod>` ou `/modpublish folder_path:C:\\path\\to\\mod`"
+            )
+            return
+
+    if not mod_dir.is_dir():
+        await interaction.followup.send(f"⚠️ Dossier inexistant : `{mod_dir}`")
+        return
+
+    # 2. Valider que c'est un mod valide (contient mod.info)
+    mod_info = mod_dir / "mod.info"
+    if not mod_info.is_file():
+        await interaction.followup.send(
+            f"⚠️ `{mod_dir}` ne semble pas etre un mod valide (manque `mod.info`).\n"
+            f"Genere d'abord le mod avec `/modgen`."
+        )
+        return
+
+    # 3. Extraire metadata
+    title, description, _tags = _extract_mod_metadata(mod_dir)
+
+    # 4. Importer SteamCMDClient (lazy pour eviter dependance au demarrage)
+    try:
+        from ingestor.steam.steamcmd_client import SteamCMDClient
+    except ImportError as exc:
+        logger.exception("Import SteamCMDClient echoue")
+        await interaction.followup.send(f"⚠️ Impossible de charger le client SteamCMD : {exc}")
+        return
+
+    client = SteamCMDClient()
+    if not client.steamcmd_exe:
+        await interaction.followup.send(
+            "⚠️ steamcmd.exe introuvable.\n\n"
+            "Installe-le dans `tools/steamcmd/` ou sur ton PATH.\n"
+            "Telechargement : https://store.steampowered.com/About"
+        )
+        return
+
+    # 5. Executer l'upload
+    logger.info("Upload Workshop du mod : %s", mod_dir)
+    result = await client.upload_workshop_item(
+        folder_path=mod_dir,
+        title=title or f"Zomboid Mod: {mod_dir.name}",
+        description=description or f"Mod genere par Zomboid Architect.",
+    )
+
+    if result.success:
+        # Essayer d'extraire le workshop item ID du resultat
+        workshop_id = None
+        for line in result.lines:
+            if "workshop_item_id" in line.lower() or "Workshop Item ID" in line:
+                import re
+                match = re.search(r"(\d+)", line)
+                if match:
+                    workshop_id = match.group(1)
+                    break
+
+        url = f"https://steamcommunity.com/workshop/filedetails/?id={workshop_id}" if workshop_id else None
+        emoji_ok = "✅" if result.success else "⚠️"
+        status = "Succes !" if result.success else "Termine (verifie l'output)"
+        message = f"{emoji_ok} **{status}**\n\nDossier : `{mod_dir}`\n"
+        if url:
+            message += f"[Lien Workshop]({url})"
+        await interaction.followup.send(message)
+    else:
+        error_msg = result.error or "Erreur inconnue"
+        logger.warning("Upload Workshop echoue : %s", error_msg)
+        # Montrer l'output steamcmd pour debugging (tronque si trop long)
+        output_preview = result.output[:1500] if result.output else "(vide)"
+        await interaction.followup.send(
+            f"❌ Upload Workshop echoue.\n\n"
+            f"**Erreur** : {error_msg}\n\n"
+            f"**Output SteamCMD** :\n```\n{output_preview}\n```"
+        )
+
+
+@bot.tree.command(name="modpublish", description="Publie un mod genere vers le Steam Workshop")
+@discord.app_commands.describe(
+    mod_name="Nom du mod a publier (ou partie de l'ID, recherché dans mods/)",
+    folder_path="Chemin manuel au dossier du mod (optionnel — remplace mod_name)",
+)
+async def cmd_modpublish(interaction: discord.Interaction, mod_name: str | None = None, folder_path: str | None = None):
+    """Commande /modpublish — publication d'un mod Zomboid vers le Steam Workshop."""
+    # Au moins un argument doit etre fourni
+    if not mod_name and not folder_path:
+        await interaction.response.send_message(
+            "⚠️ Fournis soit `mod_name` soit `folder_path`.\n\n"
+            "Exemple : `/modpublish MonEpée` ou `/modpublish folder_path:C:\\path\\to\\mod`",
+            ephemeral=True,
+        )
+        return
+
+    await _handle_modpublish_command(interaction, mod_name, folder_path)
+
+
+# ---------------------------------------------------------------------------
 # Rapport workspace — génération du contenu
 # ---------------------------------------------------------------------------
 
@@ -390,19 +605,17 @@ def _generate_workspace_report() -> str:
     except Exception:
         ollama_status = "❌ Hors ligne ou injoignable"
 
-    # ChromaDB health
-    chroma_status = "⚠️ Non testé"
+    # Health du storage vectoriel (SQLite/PostgreSQL)
+    storage_status = "⚠️ Non testé"
     try:
-        import urllib.request
-        resp = urllib.request.urlopen(f"{settings.CHROMA_HOST}/api/v2/heartbeat", timeout=5)
-        if resp.status == 200:
-            chroma_status = f"✅ En ligne (v{resp.read().decode()[:10]})"
-    except Exception:
-        try:
-            resp = urllib.request.urlopen(f"{settings.CHROMA_HOST}/api/v2", timeout=5)
-            chroma_status = "✅ En ligne" if resp.status == 200 else f"❌ HTTP {resp.status}"
-        except Exception:
-            chroma_status = "❌ Hors ligne ou injoignable"
+        from src.storage import StorageBackend
+        health = StorageBackend().health()
+        if health["available"]:
+            storage_status = f"✅ En ligne ({health['mode']}) — {health.get('db_path', '')}"
+        else:
+            storage_status = f"❌ Indisponible ({health.get('error', 'inconnu')})"
+    except Exception as exc:
+        storage_status = f"❌ Erreur : {exc}"
 
     # LLM provider
     llm_info = f"{llm.name} (local={llm.is_local})"
@@ -427,7 +640,7 @@ def _generate_workspace_report() -> str:
 
 **🔌 Services :**
 - Ollama : {ollama_status}
-- ChromaDB : {chroma_status}
+- Storage (SQLite/PostgreSQL) : {storage_status}
 
 **📌 Canaux actifs :**
 - Discord : `{bot.user.name}` en ligne ✅

@@ -29,7 +29,7 @@ INITIAL_BACKOFF: float = 1.0  # secondes, exponential backoff
 
 
 # ---------------------------------------------------------------------------
-# Config : charger NOTION_API_KEY et NOTION_DATABASE_ID depuis .env.notion
+# Config : charger NOTION_API_KEY et NOTION_DATABASE_ID depuis .env.unified (racine)
 # ---------------------------------------------------------------------------
 
 def _load_env_vars() -> dict[str, str]:
@@ -38,21 +38,14 @@ def _load_env_vars() -> dict[str, str]:
     # Source de vérité : .env.unified à la racine du projet
     env_path = Path(__file__).parent.parent / ".env.unified"
     if not env_path.exists():
-        # fallback : cherche .env.notion localement ou .env à la racine
-        for alt in [Path(__file__).parent / ".env.notion", Path(__file__).parent.parent / ".env"]:
-            if alt.exists():
-                env_path = alt
-                break
-    if not env_path.exists():
         return {}  # aucune source trouvée, les vraies env vars priment
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            if "=" in stripped:
-                key, _, value = stripped.partition("=")
-                env[key.strip()] = value.strip().strip('"').strip("'")
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "=" in stripped:
+            key, _, value = stripped.partition("=")
+            env[key.strip()] = value.strip().strip('"').strip("'")
     # Les vraies variables d'environnement priment sur .env.unified
     for key in ("NOTION_API_KEY", "NOTION_DATABASE_ID"):
         if key not in env:
@@ -74,7 +67,7 @@ def get_config() -> NotionConfig:
     if not key or not db_id:
         raise RuntimeError(
             "NOTION_API_KEY et NOTION_DATABASE_ID sont requis. "
-            "Copier .env.notion.example en .env.notion et remplir les valeurs."
+            "Remplir ces variables dans .env.unified à la racine du projet."
         )
     return NotionConfig(api_key=key, database_id=db_id)
 

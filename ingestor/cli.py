@@ -1,27 +1,27 @@
-"""
-cli — Interface CLI de l'ingestion multi-format Zomboid Knowledge Engine.
+﻿"""
+cli â€” Interface CLI de l'ingestion multi-format Zomboid Knowledge Engine.
 
 Commandes principales :
-    --search "query"           Recherche web via DuckDuckGo + crawl des résultats
+    --search "query"           Recherche web via DuckDuckGo + crawl des rÃ©sultats
     --url <url>                Crawl une seule URL (tout le contenu d'une page)
-    --crawl <seed_url>         Crawl BFS (follow liens internes, depth=5 par défaut)
-    --file <path>              Ingestion d'un fichier unique (auto-détection du format)
+    --crawl <seed_url>         Crawl BFS (follow liens internes, depth=5 par dÃ©faut)
+    --file <path>              Ingestion d'un fichier unique (auto-dÃ©tection du format)
     --dir <path>               Ingestion de tout un dossier
-    --list-collections         Liste les collections ChromaDB disponibles
-    --search-all <query>       Recherche sur TOUTES les collections ChromaDB
+    --list-collections         Liste les collections storage disponibles
+    --search-all <query>       Recherche sur TOUTES les collections storage
 
 Commandes Steam & Mods :
     --steam-scan               Scanner Steam + decouvrir PZ install
     --steamcmd-download-game   Telecharger PZ via steamcmd (anonymous)
     --steamcmd-install-mod ID  Installer un mod workshop via steamcmd
     --workshop-scan            Scanner les mods installes dans le Steam Workshop
-    --mod-ingest <dir>         Ingerer tous les mods d'un repertoire → ChromaDB
+    --mod-ingest <dir>         Ingerer tous les mods d’un repertoire → storage vectoriel
 
 Exemples :
     # Web search + crawl
     python -m ingestor.cli --search "Project Zomboid wiki guide"
 
-    # Crawl d'un site complet (depth limité)
+    # Crawl d'un site complet (depth limitÃ©)
     python -m ingestor.cli --crawl "https://pzmods.net"
 
     # Ingestion PDF / .pbo
@@ -36,7 +36,7 @@ Exemples :
     # Recherche dans la base de connaissances
     python -m ingestor.cli --search-all "comment fabriquer un feu de camp"
 
-    # Vérifier les collections disponibles
+    # VÃ©rifier les collections disponibles
     python -m ingestor.cli --list-collections
 """
 
@@ -67,7 +67,7 @@ logger = get_logger("ingestor.cli")
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ingestor",
-        description="Zomboid Knowledge Engine — Multi-Modal Ingestor v0.2.0-alpha",
+        description="Zomboid Knowledge Engine â€” Multi-Modal Ingestor v0.2.0-alpha",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Exemples :
   %(prog)s --search "Project Zomboid modding guide"
@@ -84,10 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--search", type=str, help="Recherche web + crawl (DDG en priorite, Brave fallback)")
     group.add_argument("--url", type=str, help="Ingestion d'une seule URL")
     group.add_argument("--crawl", type=str, help="Crawl BFS d'un site depuis une seed URL")
-    group.add_argument("--file", type=str, help="Ingestion d'un fichier unique (auto-détection)")
+    group.add_argument("--file", type=str, help="Ingestion d'un fichier unique (auto-dÃ©tection)")
     group.add_argument("--dir", type=str, help="Ingestion d'un dossier complet")
-    group.add_argument("--list-collections", action="store_true", help="Liste les collections ChromaDB disponibles")
-    group.add_argument("--search-all", type=str, help="Recherche sur TOUTES les collections ChromaDB")
+    group.add_argument("--list-collections", action="store_true", help="Liste les collections storage disponibles")
+    group.add_argument("--search-all", type=str, help="Recherche sur TOUTES les collections storage")
     group.add_argument("--report", action="store_true", help="Rapport de qualite (recall golden set, collections, quarantaine)")
 
     # Options globales
@@ -95,16 +95,16 @@ def build_parser() -> argparse.ArgumentParser:
     # Options globales
     parser.add_argument("--max-depth", type=int, default=5, help="Profondeur max de crawl (defaut: 5)")
     parser.add_argument("--max-pages", type=int, default=20, help="Pages max par search/args (defaut: 20)")
-    parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG → Brave fallback")
+    parser.add_argument("--engine", choices=["auto", "ddg", "brave"], default="auto", help="Moteur de recherche : auto = DDG â†’ Brave fallback")
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
-    parser.add_argument("--collection", type=str, help="Collection ChromaDB cible (ex: pz_guides)")
+    parser.add_argument("--collection", type=str, help="Collection storage cible (ex: pz_guides)")
 
     # Steam & Mod commands (groupse a part)
     steam_group = parser.add_mutually_exclusive_group()
     steam_group.add_argument("--steam-scan", action="store_true", help="Scanner Steam pour Project Zomboid (registry + bibliotheques)")
     steam_group.add_argument("--steamcmd-download-game", type=str, metavar="DIR", help="Telecharger PZ via steamcmd")
     steam_group.add_argument("--steamcmd-install-mod", type=int, metavar="MOD_ID", help="Installer un mod workshop via steamcmd")
-    steam_group.add_argument("--workshop-scan", action="store_true", help="Scanner les mods installés dans le Steam Workshop")
+    steam_group.add_argument("--workshop-scan", action="store_true", help="Scanner les mods installÃ©s dans le Steam Workshop")
     steam_group.add_argument("--mod-ingest", type=str, metavar="DIR", help="Ingerer tous les mods d'un repertoire (ex: workshop/content/1042170)")
 
     return parser
@@ -134,7 +134,7 @@ async def handle_search(args: argparse.Namespace) -> None:
     results: list | None = None
     source = ""
 
-    # 1. Forced Brave ou DDG impossible → directement Brave
+    # 1. Forced Brave ou DDG impossible â†’ directement Brave
     if args.engine == "brave":
         logger.info("Brave Search force (engine=%s)", args.engine)
         results = await _try_brave(_brave_search, args.search, min(args.max_pages, 10), brave_key)
@@ -155,7 +155,7 @@ async def handle_search(args: argparse.Namespace) -> None:
                 )
                 source = "ddg"
             else:
-                logger.info("DDG → 0 resultats, tentative Brave fallback")
+                logger.info("DDG â†’ 0 resultats, tentative Brave fallback")
         except Exception as exc:
             logger.warning("DDG echoue (%s), tentative Brave fallback", exc)
 
@@ -166,10 +166,10 @@ async def handle_search(args: argparse.Namespace) -> None:
         source = "brave"
 
     if not results:
-        logger.warning("Aucun résultat trouvé pour '%s'", args.search)
+        logger.warning("Aucun rÃ©sultat trouvÃ© pour '%s'", args.search)
         return
 
-    logger.info("Source : %s — %d pages extraites", source, len(results))
+    logger.info("Source : %s â€” %d pages extraites", source, len(results))
 
     for i, r in enumerate(results, 1):
         title = (r.title or "Sans titre")[:60]
@@ -189,34 +189,34 @@ async def handle_search(args: argparse.Namespace) -> None:
                 preview += "..."
             print(f"\n   Extrait :\n   {preview}")
 
-    # Stocker dans ChromaDB (auto-accept si stdin pipé / non-terminal, sinon demande confirmation)
-    _auto_accept = not sys.stdin.isatty()  # piped/CI → auto yes
+    # Stocker dans le storage vectoriel (auto-accept si stdin pipÃ© / non-terminal, sinon demande confirmation)
+    _auto_accept = not sys.stdin.isatty()  # piped/CI â†’ auto yes
     if _auto_accept:
         store = "y"
     else:
         try:
-            store = input("\nIngrérer ces résultats dans ChromaDB ? [y/N] ").strip().lower()
+            store = input("\nIngrÃ©rer ces rÃ©sultats dans le storage vectoriel ? [y/N] ").strip().lower()
         except EOFError:
-            store = "y"  # pipe fermé → auto yes
+            store = "y"  # pipe fermÃ© â†’ auto yes
     if store == "y":
-        print(f"\nIngestion de {len(results)} pages dans ChromaDB...")
+        print(f"\nIngestion de {len(results)} pages dans le storage vectoriel...")
         from .processors.base import Chunk as BaseChunk
-        from .storage.chroma_writer import write_chunks_to_chroma
+        from .storage.storage_writer import write_chunks_to_storage
 
         all_chunks = []
         for i, r in enumerate(results):
             if r.body:
                 all_chunks.append(BaseChunk(text=r.body, index=i, start_offset=0))  # chunk_index=i, start_offset obligatoire
-        success = await write_chunks_to_chroma(
+        success = await write_chunks_to_storage(
             chunks=all_chunks,
             source=args.search,
             content_type="web_search",
             collection="pz_web_pages",
             metadata={"search_query": args.search, "search_engine": source},
         )
-        print(f"ChromaDB : {'OK' if success else 'ÉCHEC'}")
+        print(f"Storage   : {'OK' if success else 'Ã‰CHEC'}")
     else:
-        logger.info("Stockage ChromaDB ignoré par l'utilisateur.")
+        logger.info("Stockage ignore par l'utilisateur.")
 
 
 async def _try_brave(brave_fn, query: str, max_results: int, api_key: str | None) -> list | None:
@@ -225,7 +225,7 @@ async def _try_brave(brave_fn, query: str, max_results: int, api_key: str | None
         res = await brave_fn(query, max_results=min(max_results, 50), api_key=api_key)
         return res if res else None
     except Exception as exc:
-        logger.warning("Brave Search échoué : %s", exc)
+        logger.warning("Brave Search Ã©chouÃ© : %s", exc)
         return None
 
 
@@ -233,7 +233,7 @@ async def handle_url(args: argparse.Namespace) -> None:
     """Commande : --url <url>"""
     from .engine import IngestionEngine
     from .config import load_config
-    from .storage.chroma_writer import write_chunks_to_chroma
+    from .storage.storage_writer import write_chunks_to_storage
 
     config = load_config()
     engine = IngestionEngine(config)
@@ -252,15 +252,15 @@ async def handle_url(args: argparse.Namespace) -> None:
         print(f"\nPremier chunk :\n{result.chunks[0].text[:500].replace(chr(10), ' ')}")
 
     # Store
-    store = input("\nStocker dans ChromaDB ? [y/N] ").strip().lower()
+    store = input("\nStocker dans le storage vectoriel ? [y/N] ").strip().lower()
     if store == "y":
-        success = await write_chunks_to_chroma(
+        success = await write_chunks_to_storage(
             chunks=result.chunks,
             source=args.url,
             content_type="web",
             collection="pz_web_pages",
         )
-        print(f"ChromaDB : {'OK' if success else 'ÉCHEC'}")
+        print(f"Storage   : {'OK' if success else 'Ã‰CHEC'}")
 
 
 async def handle_crawl(args: argparse.Namespace) -> None:
@@ -278,11 +278,11 @@ async def handle_crawl(args: argparse.Namespace) -> None:
 
     print(f"\n{'='*70}")
     print(f"Crawl BFS : {args.crawl}")
-    print(f"  Pages visitées : {stats.pages_visited}")
-    print(f"  Pages échouées : {stats.pages_failed}")
-    print(f"  Liens trouvés : {stats.links_found}")
+    print(f"  Pages visitÃ©es : {stats.pages_visited}")
+    print(f"  Pages Ã©chouÃ©es : {stats.pages_failed}")
+    print(f"  Liens trouvÃ©s : {stats.links_found}")
     print(f"  Liens suivis   : {stats.links_followed}")
-    print(f"  Bloqués robots : {stats.links_robots_blocked}")
+    print(f"  BloquÃ©s robots : {stats.links_robots_blocked}")
     print(f"  Temps total     : {stats.download_time_s:.1f}s")
 
     for i, page in enumerate(pages[:3], 1):
@@ -304,11 +304,11 @@ async def handle_file(args: argparse.Namespace) -> None:
     from pathlib import Path
     from .engine import IngestionEngine, detect_type
     from .config import load_config
-    from .storage.chroma_writer import write_chunks_to_chroma
+    from .storage.storage_writer import write_chunks_to_storage
 
     file_path = Path(args.file)
     if not file_path.exists():
-        logger.error("Fichier non trouvé : %s", args.file)
+        logger.error("Fichier non trouvÃ© : %s", args.file)
         return
 
     content_type, processor_key = detect_type(file_path)
@@ -338,18 +338,18 @@ async def handle_file(args: argparse.Namespace) -> None:
         if _auto_file:
             store = "y"
         else:
-            store = input(f"\nStocker dans ChromaDB ('{collection}') ? [y/N] ").strip().lower()
+            store = input(f"\nStocker dans le storage vectoriel ('{collection}') ? [y/N] ").strip().lower()
     except EOFError:
         store = "y"
     if store == "y":
-        success = await write_chunks_to_chroma(
+        success = await write_chunks_to_storage(
             chunks=result.chunks,
             source=str(file_path),
             content_type=content_type,
             collection=collection,
             metadata={"original_file": str(file_path)},
         )
-        print(f"ChromaDB : {'OK' if success else 'ÉCHEC'}")
+        print(f"Storage   : {'OK' if success else 'Ã‰CHEC'}")
 
 
 async def handle_dir(args: argparse.Namespace) -> None:
@@ -360,7 +360,7 @@ async def handle_dir(args: argparse.Namespace) -> None:
 
     dir_path = Path(args.dir) if isinstance(args.dir, str) else args.dir
     if not dir_path.is_dir():
-        logger.error("Dossier non trouvé : %s", dir_path)
+        logger.error("Dossier non trouvÃ© : %s", dir_path)
         return
 
     logger.info("Ingestion dossier : %s", dir_path)
@@ -373,72 +373,72 @@ async def handle_dir(args: argparse.Namespace) -> None:
     total_files = len(results)
     total_chunks = sum(len(r.chunks) for r in results)
     total_words = sum(r.word_count for r in results)
-    failed = 0  # comptés dans quarantine_manager.py
+    failed = 0  # comptÃ©s dans quarantine_manager.py
     print(f"\n{'='*70}")
     print(f"Dossier : {dir_path}")
-    print(f"  Fichiers traités : {total_files}")
+    print(f"  Fichiers traitÃ©s : {total_files}")
     print(f"  Total chunks     : {total_chunks}")
     print(f"  Total mots       : {total_words}")
 
-    # Stocker dans ChromaDB (optionnel) — auto-accept si stdin non-TTY
+    # Stocker dans le storage vectoriel (optionnel) â€” auto-accept si stdin non-TTY
     _auto_dir = not sys.stdin.isatty()
     if _auto_dir:
-        store = "y"
+        store = 'y'
     else:
         try:
-            store = input("\nStocker tous les fichiers dans ChromaDB ? [y/N] ").strip().lower()
+            store = input('\nStocker tous les fichiers dans le storage vectoriel ? [y/N] ').strip().lower()
         except EOFError:
             store = "y"
     if store == "y":
-        from .storage.chroma_writer import write_chunks_to_chroma
+        from .storage.storage_writer import write_chunks_to_storage
         for result in results:
-            await write_chunks_to_chroma(
+            await write_chunks_to_storage(
                 chunks=result.chunks,
                 source=result.source,
                 content_type=result.content_type or "(auto)",
                 collection=args.collection or result.collection or "pz_pdfs",
                 metadata={"directory": str(dir_path)},
             )
-        print("ChromaDB : stockage terminé.")
+        print("Storage : stockage terminÃ©.")
 
 
 async def handle_list_collections(args: argparse.Namespace) -> None:
     """Commande : --list-collections"""
-    from .storage.chroma_writer import ChromaWriter
-    writer = ChromaWriter()
+    from .storage.storage_writer import StorageWriter
+    writer = StorageWriter()
     collections = await writer.list_collections()
 
     print(f"\n{'='*70}")
-    print("Collections ChromaDB disponibles :")
+    print("Collections Storage disponibles :")
     for col in sorted(collections):
         # Essayer de compter les documents dans la collection
         try:
             count = await writer.count_collection(col)
-            marker = "  ★ nouveau" if col.startswith("pz_") and col not in [
+            marker = "  â˜… nouveau" if col.startswith("pz_") and col not in [
                 "pz_items", "pz_recipes", "pz_mechanics", "pz_lua_api", "pz_java_api"
             ] else ""
-            print(f"  • {col} ({count} documents){marker}")
+            print(f"  â€¢ {col} ({count} documents){marker}")
         except Exception:
-            print(f"  • {col} (non accessible)")
+            print(f"  â€¢ {col} (non accessible)")
 
 
 async def handle_search_all(args: argparse.Namespace) -> None:
     """Commande : --search-all <query>"""
-    from .storage.chroma_writer import ChromaWriter
+    from .storage.storage_writer import StorageWriter
 
     query = args.search_all
     logger.info("Recherche cross-collection : '%s'", query)
 
-    writer = ChromaWriter()
+    writer = StorageWriter()
     results = await writer.cross_collection_search(query, n_results=10)
 
     if not results:
-        logger.warning("Aucun résultat trouvé pour '%s'", query)
+        logger.warning("Aucun rÃ©sultat trouvÃ© pour '%s'", query)
         return
 
     print(f"\n{'='*70}")
     print(f"Recherche cross-collection : '{query}'")
-    print(f"{len(results)} résultats trouvés\n")
+    print(f"{len(results)} rÃ©sultats trouvÃ©s\n")
 
     for i, r in enumerate(results, 1):
         col = getattr(r, "collection", "unknown")
@@ -458,7 +458,7 @@ async def handle_search_all(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 def handle_report() -> None:
-    """Commande : --report — genere le rapport qualite."""
+    """Commande : --report â€” genere le rapport qualite."""
     from .generate_report import main as gen_report_main
 
     gen_report_main(output_json=True, output_md=True)
@@ -607,7 +607,7 @@ async def handle_mod_ingest(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 async def main(args: argparse.Namespace) -> None:
-    """Point d'entrée principal."""
+    """Point d'entrÃ©e principal."""
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
@@ -615,7 +615,7 @@ async def main(args: argparse.Namespace) -> None:
     # Afficher la version
     try:
         import ingestor  # type: ignore[import-not-found]
-        print(f"\nZomboid Knowledge Engine — Multi-Modal Ingestor v{ingestor.__version__}\n")
+        print(f"\nZomboid Knowledge Engine â€” Multi-Modal Ingestor v{ingestor.__version__}\n")
     except ImportError:
         pass
 
@@ -650,7 +650,7 @@ async def main(args: argparse.Namespace) -> None:
 
 
 def run() -> None:
-    """Fonction principale (appelée par `python -m ingestor.cli`)."""
+    """Fonction principale (appelÃ©e par `python -m ingestor.cli`)."""
     parser = build_parser()
     args = parser.parse_args()
 
@@ -660,7 +660,7 @@ def run() -> None:
     try:
         asyncio.run(main(args))
     except KeyboardInterrupt:
-        print("\nAnnulé par l'utilisateur.")
+        print("\nAnnulÃ© par l'utilisateur.")
     except Exception as exc:
         logger.exception("Erreur critique : %s", exc)
         sys.exit(1)
@@ -668,3 +668,4 @@ def run() -> None:
 
 if __name__ == "__main__":
     run()
+

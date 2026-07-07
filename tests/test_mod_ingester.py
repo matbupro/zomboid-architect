@@ -1,7 +1,7 @@
 """test_mod_ingester — Tests du module mod_ingester.
 
 Focus : gestion dossiers inexistants, fichiers manquants, structure retour.
-Tous les appels ChromaDB sont mockes.
+Tous les appels [storage vectoriel] sont mockes.
 """
 
 from __future__ import annotations
@@ -66,9 +66,9 @@ async def test_ingest_single_numeric_mod():
             mock_scanner.scan = _scan
             Mock.return_value = mock_scanner
 
-            # Mock ChromaWriter pour eviter connexion reale
-            with patch("ingestor.steam.mod_ingester.ChromaWriter") as MockWriter:
-                MockWriter.return_value.write_chunks_to_chroma = MagicMock(return_value=False)
+            # Mock StorageWriter pour eviter connexion reale
+            with patch("ingestor.steam.mod_ingester.StorageWriter") as MockWriter:
+                MockWriter.return_value.write_chunks = MagicMock(return_value=0)
                 results = await ingest_mods_from_directory(mods_dir)
 
                 assert len(results) >= 1

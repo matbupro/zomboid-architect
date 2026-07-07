@@ -49,13 +49,15 @@ data/raw/*
 logs/
 !logs/.gitkeep
 
-# Backups (chromadb only; manual/scheduled snapshots may be tracked)
-backups/chromadb/
-!backups/chromadb/.gitkeep
+# Backups (manual/scheduled snapshots)
+backups/manual/
+backups/staging/
+backups/production/
 
-# DB (ChromaDB persistence)
+# Vector storage (SQLite data dirs)
 db/staging/
 db/production/
+data/storage/
 
 # Database brut — 10+ Go de donnees brutes, jamais committe
 database/

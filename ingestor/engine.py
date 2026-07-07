@@ -3,6 +3,8 @@ engine — Router de traitement.
 
 Détecte le type de fichier/URL et délègue au processeur approprié.
 Interface principale utilisée par cli.py pour orchestrer l'ingestion complète.
+Ce module s'appuie sur `src/constants_shared.py` pour les mappings de fichiers
+afin d'éviter la duplication (DRY).
 """
 
 from __future__ import annotations
@@ -15,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# Centralisation des constantes partagées via constants_shared.py
+from src.constants_shared import FILE_TYPE_MAP, MIME_TO_PROCESSOR_MAP
 from .config import IngestorConfig, load_config
 from .processors.base import Chunk, ExtractionResult
 
@@ -26,58 +30,6 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Détecteur de type MIME / format
 # ---------------------------------------------------------------------------
-
-FORMAT_EXTENSIONS: dict[str, str] = {
-    # Textes bruts
-    ".txt": "text/plain",
-    ".md": "text/markdown",
-    ".csv": "text/csv",
-    ".json": "application/json",
-    ".xml": "text/xml",
-    ".html": "text/html",
-    ".yml": "text/yaml",
-    ".yaml": "text/yaml",
-    ".toml": "text/toml",
-    # Scripts et configs de jeux (Zomboid / ArmA / etc.)
-    ".lua": "text/x-lua",
-    ".tile": "text/plain",      # PZ tile definitions
-    ".tiles": "text/plain",     # PZ tile definition tables
-    ".lotpack": "text/plain",   # PZ lot (land-on-table) data
-    ".lotheader": "text/plain", # PZ LOD texture header
-    # Documents
-    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ".doc": "application/msword",
-    ".epub": "application/epub+zip",
-    # PDF
-    ".pdf": "application/pdf",
-    # Images
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".bmp": "image/bmp",
-    ".webp": "image/webp",
-    ".tiff": "image/tiff",
-    ".tif": "image/tiff",
-    ".svg": "image/svg+xml",
-    # Audio
-    ".mp3": "audio/mpeg",
-    ".wav": "audio/wav",
-    ".ogg": "audio/ogg",
-    ".flac": "audio/flac",
-    ".aac": "audio/aac",
-    ".m4a": "audio/mp4",
-    # Vidéo
-    ".mp4": "video/mp4",
-    ".avi": "video/x-msvideo",
-    ".mkv": "video/x-matroska",
-    ".webm": "video/webm",
-    ".mov": "video/quicktime",
-    ".wmv": "video/x-ms-wmv",
-    # Archives
-    ".pbo": "application/x-pbo",          # ArmA packed archive (PZ Workshop)
-    ".pbosync": "application/x-pbosync",  # Synchronized .pbo variant
-}
 
 
 def _peek_text(path: Path | str) -> bool:
@@ -106,15 +58,15 @@ def detect_type(path: Path | str) -> tuple[str, str]:
 
     # D'abord essayer l'extension
     ext = p.suffix.lower()
-    extension_mime = FORMAT_EXTENSIONS.get(ext, None)  # MIME pour cette extension (si connue)
+    extension_key = FILE_TYPE_MAP.get(ext, None)  # catégorie pour cette extension (si connue)
     content_type = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
 
-    # Si MIME guess échoue, utiliser le mapping extension
+    # Si MIME guess échoue, utiliser le mapping extension centralisé
     if content_type == "application/octet-stream":
         content_type = ext_to_mime(ext)
 
     # Fallback : inspection du contenu (fichiers sans extension ou inconnus comme .env, Dockerfile)
-    if not extension_mime:
+    if not extension_key:
         try:
             is_text = _peek_text(p) or not p.stat().st_size  # texte OU fichier vide
         except FileNotFoundError:
@@ -148,41 +100,40 @@ def detect_is_url(text: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def ext_to_mime(ext: str) -> str:
-    """Conversion de l'extension vers MIME."""
-    mapping = {
-        ".txt": "text/plain",
-        ".md": "text/markdown",
-        ".csv": "text/csv",
-        ".json": "application/json",
-        ".xml": "application/xml",
-        ".html": "text/html",
-        ".yml": "text/yaml",
-        ".yaml": "text/yaml",
-        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".epub": "application/epub+zip",
-        ".pdf": "application/pdf",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".gif": "image/gif",
-        ".bmp": "image/bmp",
-        ".webp": "image/webp",
-        ".mp3": "audio/mpeg",
-        ".wav": "audio/wav",
-        ".ogg": "audio/ogg",
-        ".flac": "audio/flac",
-        ".mp4": "video/mp4",
-        ".mkv": "video/x-matroska",
-        ".webm": "video/webm",
-        ".pbo": "application/x-pbo",
-        ".pbosync": "application/x-pbosync",
-        # Scripts / configs de jeux (Zomboid / ArmA)
-        ".lua": "text/x-lua",
-        ".tiles": "text/plain",
-        ".lotpack": "text/plain",
-        ".lotheader": "text/plain",
+    """Conversion de l'extension vers MIME en utilisant FILE_TYPE_MAP.
+
+    Ce mapping est dérivé des catégories de FILE_TYPE_MAP : chaque catégorie
+    possède un préfixe MIME correspondant (ex: 'text' → 'text/plain').
+    Les valeurs exactes sont vérifiées via les tests unitaires (test_engine.py).
+    """
+    category_to_mime = {
+        "text": "text/plain",
+        "web": "text/html",
+        "xml": "application/xml",
+        "lua": "text/x-lua",
+        "pdf": "application/pdf",
+        "image": "image/png",
+        "audio": "audio/mpeg",
+        "video": "video/mp4",
+        "pbo": "application/x-pbo",
+        "config_bin": "application/octet-stream",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "epub": "application/epub+zip",
+        "texture": "image/png",
     }
-    return mapping.get(ext, "application/octet-stream")
+    category = FILE_TYPE_MAP.get(ext)
+    if not category:
+        return "application/octet-stream"
+    mime = category_to_mime.get(category, "text/plain")
+    # Fallback : pour les images/audio/vidéo spécifiques, utiliser le mapping MIME_TO_PROCESSOR
+    for mime_key, proc in MIME_TO_PROCESSOR_MAP.items():
+        if mime_key.startswith("image/") and category == "image":
+            return mime_key
+        if mime_key.startswith("audio/") and category == "audio":
+            return mime_key
+        if mime_key.startswith("video/") and category == "video":
+            return mime_key
+    return mime
 
 
 def mime_to_processor(content_type: str) -> str | None:
@@ -269,7 +220,7 @@ class IngestionEngine:
 
         Args:
             source: Chemin vers un fichier ou une URL.
-            collection: Collection ChromaDB cible (détection automatique si None).
+            collection: Collection vectorielle cible (détection automatique si None).
 
         Returns:
             ExtractionResult avec chunks et metadata.
@@ -324,7 +275,7 @@ class IngestionEngine:
 
         result.collection = collection
 
-        # -- Sauvegarde brute (source de vérité pour reconstruction ChromaDB) --
+        # -- Sauvegarde brute (source de vérité pour recharger le stockage vectoriel) --
         raw_dir = self.config.DATA_ROOT / "raw"
         try:
             saved_path = result.save_raw(raw_dir / collection)

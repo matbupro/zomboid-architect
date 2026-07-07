@@ -257,7 +257,7 @@ def test_parse_addoninfo_tags(tmp_path):
 
 
 def test_mod_info_to_metadata():
-    """Conversion en dict ChromaDB — coupe description a 500 chars."""
+    """Conversion en dict storage — coupe description a 500 chars."""
     meta = WorkshopModInfo(
         mod_id=1234,
         folder_path=Path("/fake"),

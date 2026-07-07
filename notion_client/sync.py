@@ -131,7 +131,7 @@ PRIORITY_KEYWORDS = {
     "P1": {"prioritaire", "essentiel", "fondamental", "docker", "readme",
             "golden", "evaluation", "qualite", "recall",
             "integration", "promote", "backup", "securite", "circuit breaker",
-            "test unitaire", "chroma_writer", "lock", "engine", "text"},
+            "test unitaire", "storage_writer", "lock", "engine", "text"},
 }
 
 

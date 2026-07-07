@@ -44,7 +44,7 @@ logger = getLogger("ingestor.watchdog")
 
 DEFAULT_PID_FILE = PROJECT_ROOT / "data" / "watchdog" / "server.pid"
 DEFAULT_LOG_DIR = PROJECT_ROOT / "logs" / "watchdog"
-CONFIG_PATH = PROJECT_ROOT / ".env"
+CONFIG_PATH = PROJECT_ROOT / ".env.unified"
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────

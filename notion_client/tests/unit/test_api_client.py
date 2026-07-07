@@ -29,7 +29,7 @@ class TestConfig:
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
     ):
         """get_config() retourne un NotionConfig depuis les variables d'environnement."""
-        # Creer un .env.notion fake vide pour eviter le fichier reel
+        # Creer un .env.unified fake vide pour eviter le fichier reel
         fake_env = tmp_path / "fake"
         fake_env.write_text("", encoding="utf-8")
 
@@ -51,7 +51,7 @@ class TestConfig:
 
     def test_get_config_leve_si_manchant(self, monkeypatch: pytest.MonkeyPatch):
         """get_config() leve RuntimeError si une variable est manquante."""
-        # Supprimer les variables et simuler absence de fichier .env.notion
+        # Supprimer les variables et simuler absence de .env.unified
         monkeypatch.delenv("NOTION_API_KEY", raising=False)
         monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
         from pathlib import Path

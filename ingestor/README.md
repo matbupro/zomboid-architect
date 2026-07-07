@@ -1,6 +1,6 @@
 # Zomboid Knowledge Engine — Moteur d'Ingestion Multi-Format
 
-Le moteur d'ingestion lit **tout format de fichier** et le transforme en chunks vectorisés pour ChromaDB. Il peut aussi **naviguer sur le web**, **scanner Steam/Workshop**, et **extraire le contenu de mods PZ**.
+Le moteur d'ingestion lit **tout format de fichier** et le transforme en chunks vectorisés pour StorageBackend (SQLite vectoriel). Il peut aussi **naviguer sur le web**, **scanner Steam/Workshop**, et **extraire le contenu de mods PZ**.
 
 ## Table des matières
 
@@ -39,23 +39,27 @@ pip install -r requirements.txt
 
 ### 3. Environnement
 
-Créer un fichier `.env` dans `ingestor/` :
+Utiliser `.env.unified` à la racine du projet :
 
 ```powershell
-cp .env.example ..\.env  # copier depuis le .env du projet racine
-# OU créer manuellement :
-CHROMA_HOST=http://localhost:8000
+# Il est déjà fourni — remplir les valeurs nécessaires dans .env.unified
+STORAGE_BACKEND=sqlite
+STORAGE_PG_HOST=localhost
+STORAGE_PG_PORT=5432
+STORAGE_PG_DB=zomboid_storage
+STORAGE_PG_USER=postgres
+STORAGE_PG_PASS=
 OLLAMA_BASE_URL=http://localhost:11434
 EMBEDDING_MODEL=nomic-embed-text
 ```
 
-> **Obligatoire** : `CHROMA_HOST`, `OLLAMA_BASE_URL`
+> **Obligatoire** : `STORAGE_BACKEND`, `OLLAMA_BASE_URL`
 > **Optionnel** : `BRAVE_API_KEY` (Brave Search fallback), `CLAUDE_API_KEY` (vision API pour images)
 
 ### 4. Premier test
 
 ```powershell
-# Lister les collections ChromaDB
+# Lister les collections StorageBackend (SQLite vectoriel)
 python -m ingestor.cli --list-collections
 
 # Recherche web simple
@@ -73,7 +77,7 @@ python -m ingestor.cli --file "C:/docs/manual.pdf"
 ingestor/
 ├── cli.py                    # Entrée CLI (--search, --file, --dir, --crawl, --steam-scan, ...)
 ├── engine.py                 # Router MIME → processeur + IngestionEngine orchestrateur
-├── config.py                 # Settings (ChromaDB, Ollama, crawling, OCR, Steam)
+├── config.py                 # Settings (StorageBackend (SQLite vectoriel), Ollama, crawling, OCR, Steam)
 ├── processors/
 │   ├── base.py               # Interface Processor + Chunk + ExtractionResult
 │   ├── text.py               # .txt .md .csv .json — stdlib only
@@ -96,7 +100,7 @@ ingestor/
 │   ├── library_folders.py    # Parsing libraryfolders.vdf
 │   └── qr_auth.py            # Authentification QR SteamCMD
 ├── storage/
-│   └── chroma_writer.py      # Écriture ChromaDB + embedding Ollama + cross-search
+│   └── storage_writer.py     # Écriture StorageBackend (SQLite vectoriel) + embedding Ollama + cross-search
 ├── quarantine_manager.py     # Dédup SHA-256, circuit breaker, monitoring disque
 ├── requirements.txt          # Dépendances Python
 └── Dockerfile                # Containerisation (optionnel)
@@ -125,7 +129,7 @@ ingestor/
 
 | Commande | Description |
 |----------|-----------|
-| `--search-all "query"` | Recherche vectorielle sur **toutes** les collections ChromaDB |
+| `--search-all "query"` | Recherche vectorielle sur **toutes** les collections StorageBackend (SQLite vectoriel) |
 | `--list-collections` | Liste les collections disponibles + nombre de documents |
 
 ### Steam & Workshop
@@ -136,7 +140,7 @@ ingestor/
 | `--steamcmd-download-game [DIR]` | Télécharge PZ via SteamCMD (anonyme) |
 | `--steamcmd-install-mod <ID>` | Installe un mod workshop via SteamCMD |
 | `--workshop-scan` | Scanne les mods installés dans le Steam Workshop |
-| `--mod-ingest <DIR>` | Ingestion ChromaDB de tous les mods d'un dossier (.pbo, lua, cfg) |
+| `--mod-ingest <DIR>` | Ingestion StorageBackend (SQLite vectoriel) de tous les mods d'un dossier (.pbo, lua, cfg) |
 
 ### Options globales
 
@@ -159,7 +163,7 @@ python -m ingestor.cli --crawl "https://pzmods.net" --max-depth 3 --max-pages 10
 # 3. Ingestion PDF d'un manuel PZ
 python -m ingestor.cli --file "C:/docs/pz_cooking.pdf"
 
-# 4. Scanner les mods installés + ingestion dans ChromaDB
+# 4. Scanner les mods installés + ingestion dans StorageBackend (SQLite vectoriel)
 python -m ingestor.cli --workshop-scan
 python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 
@@ -174,13 +178,13 @@ python -m ingestor.cli --list-collections
 
 ## Configuration
 
-Toutes les variables se chargent depuis `.env` dans le dossier `ingestor/`.
+Toutes les variables se chargent depuis `.env.unified` à la racine du projet.
 
 ### Obligatoires
 
 | Variable | Par défaut | Description |
 |----------|-----------|-------------|
-| `CHROMA_HOST` | `http://host.docker.internal:8000` | URL du serveur ChromaDB |
+| `STORAGE_BACKEND` | `sqlite` | Type de stockage vectoriel (sqlite, postgres) |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | URL du serveur Ollama |
 | `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle d'embedding utilisé |
 
@@ -245,9 +249,9 @@ processor.extract() → list[Chunk] + ExtractionResult
     ├── metadata         : source, type, hash, extension, etc.
     │
     ▼
-chroma_writer.write_chunks_to_chroma()
+storage_writer.StorageWriter.write_chunks_to_storage()
     ├── embedding via Ollama (nomic-embed-text)
-    └── stockage dans collection ChromaDB
+    └── stockage dans collection StorageBackend (SQLite vectoriel)
         pz_items       — Entités jeu (objets, ressources)
         pz_recipes     — Recettes de craft
         pz_mechanics   — Mécaniques de jeu
@@ -279,7 +283,7 @@ python -m ingestor.cli --steam-scan
 # 2. Scanner les mods installés (affiche un résumé)
 python -m ingestor.cli --workshop-scan
 
-# 3. Ingest les mods dans ChromaDB pour la recherche vectorielle
+# 3. Ingest les mods dans StorageBackend (SQLite vectoriel) pour la recherche vectorielle
 python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 ```
 
@@ -289,7 +293,7 @@ Chaque mod est traité par `mod_ingester.py` :
 1. Parse `ZomboidModDescriptor.txt` → metadata (nom, description, author, fichiers)
 2. Extrait chaque `.lua` / `.cfg` / `.txt` du mod → chunks
 3. Extrait le contenu des `.pbo` si présents (architecture ArmA/Steam)
-4. Injecte dans ChromaDB (`pz_mod_lua_scripts` + `pz_mod_configs`)
+4. Injecte dans StorageBackend (SQLite vectoriel) (`pz_mod_lua_scripts` + `pz_mod_configs`)
 
 ---
 
@@ -303,7 +307,7 @@ Brave Search est utilisé automatiquement quand DuckDuckGo retourne 0 résultats
 # Option 1: Variable d'environnement
 $env:BRAVE_API_KEY = "BSA-xxxxxxxxxxxxxxxxxxxx"
 
-# Option 2: Dans .env (ingestor/.env)
+# Option 2: Dans `.env.unified` à la racine
 BRAVE_API_KEY=BSA-xxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -340,9 +344,9 @@ python -m ingestor.cli --search "query" --engine brave
 
 ## Dépannage
 
-### `CHROMA_HOST` ne fonctionne pas depuis Docker
-Utilise `http://host.docker.internal:8000` au lieu de `localhost:8000`.
-Depuis le host Windows : `http://host.docker.internal:8000` ou `http://172.17.0.1:8000`.
+### Ollama inaccessible depuis Docker
+Utilise `http://host.docker.internal:11434` au lieu de `localhost:11434`.
+Depuis le host Windows : `http://host.docker.internal:11434` ou `http://172.17.0.1:11434`.
 
 ### Ollama inaccessible
 Vérifie que le service est running :
@@ -365,10 +369,10 @@ playwright install chromium --with-deps
 ### `.pbo` extraction fails (LZMA)
 Les `.pbo` signés utilisent une signature au début du fichier qui doit être ignorée. Le processeur `pbo.py` detecte et saute automatiquement la signature (header + data length). Si le .pbo est compressé avec autre chose que LZMA, l'extraction peut echouer.
 
-### Collections ChromaDB vides après ingestion
-1. Verifie que ChromaDB est accessible : `python -m ingestor.cli --list-collections`
+### Collections StorageBackend (SQLite vectoriel) vides après ingestion
+1. Verifie que StorageBackend (SQLite vectoriel) est accessible : `python -m ingestor.cli --list-collections`
 2. Les chunks sont-ils generés ? Regarde les logs (`--verbose`)
-3. La confirmation ChromaDB a-t-elle été faite (prompt [y/N]) ?
+3. La confirmation StorageBackend (SQLite vectoriel) a-t-elle été faite (prompt [y/N]) ?
 
 ---
 
@@ -376,7 +380,7 @@ Les `.pbo` signés utilisent une signature au début du fichier qui doit être i
 
 L'ingestor est utilisé en arrière-plan par le bot `bot/` pour :
 
-1. **ChromaDB retrieval** — Le bot interroge les collections via `src/retrieval/chroma_client.py`
+1. **Recherche vectorielle** — Le bot interroge les collections via `src.retrieval` + `StorageBackend` (SQLite/PostgreSQL)
 2. **Ingestion web automatique** — `/search "query"` dans Discord déclenche la même pipeline que `--search`
 3. **Modding assisté** — Les mods ingérés via `--mod-ingest` alimentent la base de connaissances du bot
 

@@ -20,7 +20,7 @@ Chaque fiche suit ce schéma :
 4. **Stratégies tactiques** : applications pratiques pour la survie
 5. **Données ingérées** : source et format des chunks correspondants
 
-## Ingestion dans ChromaDB
+## Ingestion dans le stockage vectoriel
 
 ```bash
 python -m ingestor.cli --file docs/mechanics/*.md

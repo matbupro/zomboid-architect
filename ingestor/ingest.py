@@ -1,13 +1,13 @@
-"""ingestor/ingest.py — Script global d'ingestion pour le Zomboid Knowledge Engine.
+﻿"""ingestor/ingest.py â€” Script global d'ingestion pour le Zomboid Knowledge Engine.
 
 Orchestre l'ensemble du pipeline d'ingestion :
-  1. Ingestion de contenu structuré (objets B41/B42 avec métadonnées strictes)
-  2. Ingestion de fichiers/répertoires via l'engine multi-format
+  1. Ingestion de contenu structurÃ© (objets B41/B42 avec mÃ©tadonnÃ©es strictes)
+  2. Ingestion de fichiers/rÃ©pertoires via l'engine multi-format
   3. Batch adaptatif + checkpoints anti-OOM
-  4. Validation des métadonnées obligatoires
+  4. Validation des mÃ©tadonnÃ©es obligatoires
 
 Usage :
-  python -m ingestor.ingest items           # ingérer les données structurées (objets, recettes)
+  python -m ingestor.ingest items           # ingÃ©rer les donnÃ©es structurÃ©es (objets, recettes)
   python -m ingestor.ingest file PATH       # ingestion d'un fichier unique
   python -m ingestor.ingest dir PATH        # ingestion d'un dossier complet
   python -m ingestor.ingest --collections   # afficher les collections existantes
@@ -30,22 +30,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Generator
 
-# ── Logger ---
+# â”€â”€ Logger ---
 
 from src.governance.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-# ── Configuration par défaut ────────────────────────────────────────────────────
+# â”€â”€ Configuration par dÃ©faut â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 DEFAULT_B41_GAME_PATH = "f:/Games/Steam/steamapps/common/ProjectZomboid"
 STAGING_DIR = Path("data/staging")
-BATCH_SIZE_DEFAULT = 50        # chunks par batch (adaptatif selon taille mémoire)
+BATCH_SIZE_DEFAULT = 50        # chunks par batch (adaptatif selon taille mÃ©moire)
 MAX_BATCH_BYTES = 10_000_000   # ~10 MB max par batch
 
 
-# ── Métadonnées strictes ────────────────────────────────────────────────────────
+# â”€â”€ MÃ©tadonnÃ©es strictes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 GAME_VERSIONS = frozenset({"b41", "b42"})
 VALID_ITEM_TYPES = frozenset({
@@ -63,7 +63,7 @@ REQUIRED_META_FIELDS = {
 
 @dataclass
 class MetadataConstraint:
-    """Définit les contraintes de métadonnées pour un objet PZ."""
+    """DÃ©finit les contraintes de mÃ©tadonnÃ©es pour un objet PZ."""
     item_type: str                # item | weapon | food | ...
     game_version: str             # b41 | b42
     base_id: str                  # Base.Axe, Base.Bread, ...
@@ -75,37 +75,37 @@ class MetadataConstraint:
 
 
 def validate_metadata(constraint: MetadataConstraint, meta: dict) -> list[str]:
-    """Valide les métadonnées selon le schema strict. Retourne la liste des erreurs."""
+    """Valide les mÃ©tadonnÃ©es selon le schema strict. Retourne la liste des erreurs."""
     errors: list[str] = []
 
     for field_name, expected_type in REQUIRED_META_FIELDS.items():
         if field_name not in meta:
             errors.append(f"Champ obligatoire manquant : {field_name}")
         elif not isinstance(meta[field_name], expected_type):
-            errors.append(f"{field_name} doit être de type {expected_type.__name__}, "
+            errors.append(f"{field_name} doit Ãªtre de type {expected_type.__name__}, "
                          f"got {type(meta[field_name]).__name__}")
 
     # Validation item_type
     if "item_type" in meta and meta["item_type"] not in VALID_ITEM_TYPES:
-        errors.append(f"item_type invalide : {meta['item_type']!r} — attendu dans {VALID_ITEM_TYPES}")
+        errors.append(f"item_type invalide : {meta['item_type']!r} â€” attendu dans {VALID_ITEM_TYPES}")
 
     # Validation game_version
     if "game_version" in meta and meta["game_version"] not in GAME_VERSIONS:
-        errors.append(f"game_version invalide : {meta['game_version']!r} — attendu b41|b42")
+        errors.append(f"game_version invalide : {meta['game_version']!r} â€” attendu b41|b42")
 
     return errors
 
 
-# ── Contenu structuré PZ (objets B41/B42) ──────────────────────────────────────
+# â”€â”€ Contenu structurÃ© PZ (objets B41/B42) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def get_b41_items() -> list[MetadataConstraint]:
-    """Données structurées des objets principaux de la B41 (gameplay core)."""
+    """DonnÃ©es structurÃ©es des objets principaux de la B41 (gameplay core)."""
     return [
         MetadataConstraint(
             item_type="weapon", game_version="b41", base_id="Base.Axe",
             display_name="Axe", description=(
                 "Hatchet standard. Outil polyvalent pour couper le bois, "
-                "tuer les zombie (50 degats en un coup), et se défendre en combat rapproché. "
+                "tuer les zombie (50 degats en un coup), et se dÃ©fendre en combat rapprochÃ©. "
                 "Se degrade avec l'utilisation. Plus efficace que la machette contre les zombies."
             ),
             tags=["weapon", "melee", "woodcutting", "core"],
@@ -121,9 +121,9 @@ def get_b41_items() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="weapon", game_version="b41", base_id="Base.WoodenStick",
             display_name="Wooden Stick", description=(
-                "Bâton de bois rudimentaire. Arme de défense basique, facile à fabriquer. "
+                "BÃ¢ton de bois rudimentaire. Arme de dÃ©fense basique, facile Ã  fabriquer. "
                 "Moins efficace que le hatchet mais toujours mieux que rien. "
-                "Peut etre utilisé pour briser les portes."
+                "Peut etre utilisÃ© pour briser les portes."
             ),
             tags=["weapon", "melee", "crafting"],
             crafting_category="weapon",
@@ -145,7 +145,7 @@ def get_b41_items() -> list[MetadataConstraint]:
             display_name="Canned Food", description=(
                 "Boite de conserve generique. Nourriture a longue conservation. "
                 "Se trouve dans les supermarches, garages et entrepots. "
-                "Ne se perime pas — le principal avantage en survie long terme."
+                "Ne se perime pas â€” le principal avantage en survie long terme."
             ),
             tags=["food", "non-perishable", "core"],
             crafting_category="food",
@@ -154,9 +154,9 @@ def get_b41_items() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="tool", game_version="b41", base_id="Base.SledgeHammer",
             display_name="Sledge Hammer", description=(
-                "Masse de démolition. Outil de demolition puissant pour briser les portes, "
-                "déblayer les débris et infliger des degats massifs aux zombies (60 degats). "
-                "Lent mais redoutable en combat rapproché."
+                "Masse de dÃ©molition. Outil de demolition puissant pour briser les portes, "
+                "dÃ©blayer les dÃ©bris et infliger des degats massifs aux zombies (60 degats). "
+                "Lent mais redoutable en combat rapprochÃ©."
             ),
             tags=["tool", "melee", "demolition"],
             crafting_category="weapon",
@@ -165,8 +165,8 @@ def get_b41_items() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="clothing", game_version="b41", base_id="Base.WoodenShield",
             display_name="Wooden Shield", description=(
-                "Bouclier en bois fabrique maison. Protège des dégats de melee et des attaques zombie. "
-                "Peut etre fabriqué à l'atelier de menuiserie avec du contre-plaqué."
+                "Bouclier en bois fabrique maison. ProtÃ¨ge des dÃ©gats de melee et des attaques zombie. "
+                "Peut etre fabriquÃ© Ã  l'atelier de menuiserie avec du contre-plaquÃ©."
             ),
             tags=["clothing", "crafting", "defense"],
             crafting_category="clothing",
@@ -175,8 +175,8 @@ def get_b41_items() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="meat", game_version="b41", base_id="Base.ChickenLegRaw",
             display_name="Raw Chicken Leg", description=(
-                "Poule de poulet crue. Nourriture riche en proteine mais dangereuse si consommée crue — "
-                "cause la maladie de Lyme a 20% des cas. Toujours cuire avant consommation pour éviter les infections."
+                "Poule de poulet crue. Nourriture riche en proteine mais dangereuse si consommÃ©e crue â€” "
+                "cause la maladie de Lyme a 20% des cas. Toujours cuire avant consommation pour Ã©viter les infections."
             ),
             tags=["meat", "raw_food", "dangerous"],
             crafting_category="food",
@@ -185,7 +185,7 @@ def get_b41_items() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="medication", game_version="b41", base_id="Base.Antibiotics",
             display_name="Antibiotics", description=(
-                "Comprimés d'antibiotiques. Traite la maladie de Lyme et les infections des plaies ouvertes. "
+                "ComprimÃ©s d'antibiotiques. Traite la maladie de Lyme et les infections des plaies ouvertes. "
                 "Essentiel pour survivre aux morsures et griffures zombie."
             ),
             tags=["medication", "survival", "core"],
@@ -202,7 +202,7 @@ def get_b41_recipes() -> list[MetadataConstraint]:
             item_type="tool", game_version="b41", base_id="Recipe.Hatchet",
             display_name="Hatchet Crafting Recipe", description=(
                 "Recette de fabrication du hatchet (hachette) : 2x Metal Sheet + 1x Length of Wood. "
-                "Se fabrique à l'atelier de menuiserie. Outil polyvalent essentiel pour la survie."
+                "Se fabrique Ã  l'atelier de menuiserie. Outil polyvalent essentiel pour la survie."
             ),
             tags=["recipe", "crafting", "weapon"],
             crafting_category="recipe",
@@ -216,8 +216,8 @@ def get_b41_recipes() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="food", game_version="b41", base_id="Recipe.BreadFromWheat",
             display_name="Bread from Wheat Recipe", description=(
-                "Recette du pain : froment → meule avec le moulin → farine blanche → fourne a feu de bois. "
-                "La chaine de production complète permet de fabriquer un pain durable (30 jours)."
+                "Recette du pain : froment â†’ meule avec le moulin â†’ farine blanche â†’ fourne a feu de bois. "
+                "La chaine de production complÃ¨te permet de fabriquer un pain durable (30 jours)."
             ),
             tags=["recipe", "food", "production"],
             crafting_category="recipe",
@@ -231,13 +231,13 @@ def get_b41_recipes() -> list[MetadataConstraint]:
 
 
 def get_b41_mechanics() -> list[MetadataConstraint]:
-    """Mécaniques de jeu B41 documentees."""
+    """MÃ©caniques de jeu B41 documentees."""
     return [
         MetadataConstraint(
             item_type="item", game_version="b41", base_id="Mechanic.Panic",
             display_name="Panic Mechanic", description=(
                 "Mecanique de panique : les zombies entendent les bruits et se regroupent autour du bruit. "
-                "Les zombie en état de 'panic' courent plus vite (40% plus rapide). "
+                "Les zombie en Ã©tat de 'panic' courent plus vite (40% plus rapide). "
                 "Les sons attirent les zombie sur une distance proportionnelle a l'intensite du bruit."
             ),
             tags=["mechanic", "combat", "ai"],
@@ -257,7 +257,7 @@ def get_b41_mechanics() -> list[MetadataConstraint]:
         MetadataConstraint(
             item_type="item", game_version="b41", base_id="Mechanic.Farming",
             display_name="Farming Mechanic", description=(
-                "Mecanique d'agriculture : labourer le sol avec une houe → planter des graines (froment, patates). "
+                "Mecanique d'agriculture : labourer le sol avec une houe â†’ planter des graines (froment, patates). "
                 "Arroser quotidiennement pour la croissance. Recolte en 1-2 jours selon les cultures."
             ),
             tags=["mechanic", "crafting", "food"],
@@ -278,7 +278,7 @@ def get_b41_mechanics() -> list[MetadataConstraint]:
 
 
 def get_b42_diffs() -> list[MetadataConstraint]:
-    """Différences majeures B42 vs B41."""
+    """DiffÃ©rences majeures B42 vs B41."""
     return [
         MetadataConstraint(
             item_type="item", game_version="b42", base_id="Mechanic.Multiplayer",
@@ -293,10 +293,10 @@ def get_b42_diffs() -> list[MetadataConstraint]:
     ]
 
 
-# ── Génération de chunks structurés ─────────────────────────────────────────────
+# â”€â”€ GÃ©nÃ©ration de chunks structurÃ©s â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def generate_chunks_for_object(constraint: MetadataConstraint) -> list[dict]:
-    """Genere une liste de chunks depuis un objet structuré."""
+    """Genere une liste de chunks depuis un objet structurÃ©."""
     game_ver = constraint.game_version
     base_id = constraint.base_id
     item_type = constraint.item_type
@@ -324,7 +324,7 @@ async def generate_chunks_for_object(constraint: MetadataConstraint) -> list[dic
         "collection": _resolve_collection(constraint),
     }
 
-    # Chunk 2 : données gameplay structurées (si applicable)
+    # Chunk 2 : donnÃ©es gameplay structurÃ©es (si applicable)
     chunks = [chunk_full]
     if game_data and isinstance(game_data, dict):
         chunk_stats = {
@@ -340,7 +340,7 @@ async def generate_chunks_for_object(constraint: MetadataConstraint) -> list[dic
 
 
 def _resolve_collection(constraint: MetadataConstraint) -> str:
-    """Resolve la collection ChromaDB cible selon le type d'objet."""
+    """Resolve la collection storage cible selon le type d'objet."""
     mapping = {
         "recipe": "pz_recipes",
         "mechanic": "pz_mechanics",
@@ -350,13 +350,13 @@ def _resolve_collection(constraint: MetadataConstraint) -> str:
         "clothing": "pz_items",
         "meat": "pz_items",
         "medication": "pz_items",
-        "item": "pz_mechanics",  # pour les mécaniques de jeu
+        "item": "pz_mechanics",  # pour les mÃ©caniques de jeu
     }
     cat = constraint.crafting_category or constraint.item_type
     return mapping.get(cat, "pz_items")
 
 
-# ── Backup pre-ingest + rollback ---
+# â”€â”€ Backup pre-ingest + rollback ---
 
 _BACKUP_DIR = Path("backups") / "ingest"  # backups de staging avant ingestion
 
@@ -377,11 +377,11 @@ def _pre_ingest_backup() -> Optional[Path]:
     snapshot_path = _BACKUP_DIR / f"staging_backup_{stamp}.tar.gz"
 
     with tarfile.open(snapshot_path, "w:gz") as tar:
-        # Ne pas sauvegarder les fichiers de lock ChromaDB
+        # Ne pas sauvegarder les fichiers de lock SQLite
         for root, dirs, files in os.walk(STAGING_DIR):
             for fname in files:
                 fpath = Path(root) / fname
-                if ".lock" not in fpath.name and "chroma.sqlite3-shm" not in fpath.name:
+                if ".lock" not in fpath.name and "-wal" not in fpath.name and "-shm" not in fpath.name:
                     tar.add(fpath, arcname=fpath.relative_to(STAGING_DIR))
 
     logger.info(f"[Backup] Pre-ingest staging backup: {snapshot_path}")
@@ -418,7 +418,7 @@ def _rotate_staging_backups() -> None:
         logger.info(f"[Backup] Rotate out old backup: {old.name}")
 
 
-# ── Ingestion structurée (cœur de Phase 3) ─────────────────────────────────────
+# â”€â”€ Ingestion structurÃ©e (cÅ“ur de Phase 3) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @dataclass
 class IngestSummary:
@@ -438,11 +438,11 @@ async def ingest_structured_data(
     mechanics: Optional[list[MetadataConstraint]] = None,
     b42_diffs: Optional[list[MetadataConstraint]] = None,
 ) -> IngestSummary:
-    """Ingest des données structurées PZ dans staging ChromaDB.
+    """Ingest des donnÃ©es structurÃ©es PZ dans le storage staging.
 
     Protection : backup pre-ingest + rollback automatique en cas de crash.
     """
-    # ── Pre-ingest backup (rollback safe) ---
+    # â”€â”€ Pre-ingest backup (rollback safe) ---
     backup_path = _pre_ingest_backup()
     summary = IngestSummary(backup_path=str(backup_path) if backup_path else None)
 
@@ -460,7 +460,7 @@ async def ingest_structured_data(
         # Rollback : restaurer staging/ depuis le backup pre-ingest
         if backup_path and backup_path.exists():
             logger.error(
-                f"[Ingest] Erreur critique — rollback depuis {backup_path.name}",
+                f"[Ingest] Erreur critique â€” rollback depuis {backup_path.name}",
                 exc_info=True,
             )
             _rollback_from_backup(backup_path)
@@ -486,7 +486,7 @@ async def _ingest_structured_data_impl(
     if b42_diffs:
         objects.extend(b42_diffs)
 
-    # Collecter tous les chunks à ingérer en batches anti-OOM
+    # Collecter tous les chunks Ã  ingÃ©rer en batches anti-OOM
     batch_chunks: list[tuple[dict, str]] = []  # (chunk_data, collection)
     current_batch_bytes = 0
 
@@ -506,13 +506,13 @@ async def _ingest_structured_data_impl(
         errs = validate_metadata(obj, meta)
         if errs:
             summary.validations_failed += 1
-            summary.errors.append(f"Validation échouée pour {obj.base_id}: {errs}")
+            summary.errors.append(f"Validation Ã©chouÃ©e pour {obj.base_id}: {errs}")
             continue
 
-        # Générer les chunks
+        # GÃ©nÃ©rer les chunks
         chunks_data = await generate_chunks_for_object(obj)
         for chunk in chunks_data:
-            # Vérifier si le batch est trop gros
+            # VÃ©rifier si le batch est trop gros
             chunk_size = len(chunk["text"]) + 512  # buffer metadata
             if current_batch_bytes + chunk_size > MAX_BATCH_BYTES and batch_chunks:
                 summary.batches_created += 1
@@ -537,7 +537,7 @@ async def _ingest_structured_data_impl(
 
 
 def _sanitize_metadata(meta: dict[str, Any]) -> dict[str, Any]:
-    """Rend les metadata compatibles ChromaDB (str/int/float/bool/list/None uniquement)."""
+    """Rend les metadata compatibles avec le storage vectoriel (str/int/float/bool/list/None uniquement)."""
     sanitized: dict[str, Any] = {}
     for k, v in meta.items():
         if isinstance(v, (str, int, float, bool)) or v is None:
@@ -549,7 +549,7 @@ def _sanitize_metadata(meta: dict[str, Any]) -> dict[str, Any]:
             else:
                 sanitized[k] = json.dumps(v, ensure_ascii=False)
         else:
-            # Dict ou autre type → sérialiser en JSON
+            # Dict ou autre type â†’ sÃ©rialiser en JSON
             sanitized[k] = json.dumps(v, ensure_ascii=False)
     return sanitized
 
@@ -557,17 +557,17 @@ def _sanitize_metadata(meta: dict[str, Any]) -> dict[str, Any]:
 async def _flush_batch(
     batch_chunks: list[tuple[dict, str]],
 ) -> int:
-    """Ecrire un batch de chunks dans ChromaDB (un seul appel par collection)."""
+    """Ecrire un batch de chunks dans le storage (un seul appel par collection)."""
     from .processors.base import Chunk
-    from .storage.chroma_writer import ChromaWriter
+    from .storage.storage_writer import StorageWriter
 
-    # Group by target collection — chaque collection requiert un appel separate
+    # Group by target collection â€” chaque collection requiert un appel separate
     by_collection: dict[str, list[dict]] = {}
     for chunk_data, collection in batch_chunks:
         by_collection.setdefault(collection, []).append(chunk_data)
 
     success_count = 0
-    writer_ = ChromaWriter()
+    writer_ = StorageWriter()
     for target_col, chunk_datas in by_collection.items():
         chunks_list: list[Chunk] = []
         metas_per_chunk: list[dict[str, Any]] = []
@@ -577,7 +577,7 @@ async def _flush_batch(
             chunks_list.append(Chunk(text=cd["text"], index=idx_local, start_offset=0, metadata=meta))
             metas_per_chunk.append(meta)
 
-        ok = await writer_.write_chunks_to_chroma(
+        ok = await writer_.write_chunks_to_storage(
             chunks=chunks_list,
             source="structured://ingest.py",
             content_type="application/json",
@@ -590,24 +590,24 @@ async def _flush_batch(
     return success_count
 
 
-# ── CLI ──────────────────────────────────────────────────────────────────────────
+# â”€â”€ CLI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def build_parser() -> argparse.ArgumentParser:  # noqa: F821
     parser = argparse.ArgumentParser(
         prog="python -m ingestor.ingest",
-        description="Zomboid Knowledge Engine — Ingestion globale (données structurées + fichiers)",
+        description="Zomboid Knowledge Engine â€” Ingestion globale (donnÃ©es structurÃ©es + fichiers)",
     )
     sub = parser.add_subparsers(dest="command")
 
-    # Commande: items (données structurées)
+    # Commande: items (donnÃ©es structurÃ©es)
     p_items = sub.add_parser("items", help="Ingerer les donnees structurees B41/B42")
-    p_items.add_argument("--b41", action="store_true", help="Ingerer uniquement les données B41")
+    p_items.add_argument("--b41", action="store_true", help="Ingerer uniquement les donnÃ©es B41")
     p_items.add_argument("--b42", action="store_true", help="Ingerer uniquement les differencies B42")
 
     # Commande: file
     p_file = sub.add_parser("file", help="Ingerer un fichier unique")
     p_file.add_argument("path", type=Path, help="Chemin du fichier a ingerer")
-    p_file.add_argument("--collection", default=None, help="Collection ChromaDB cible")
+    p_file.add_argument("--collection", default=None, help="Collection storage cible")
 
     # Commande: dir
     p_dir = sub.add_parser("dir", help="Ingerer un dossier complet")
@@ -615,7 +615,7 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: F821
     p_dir.add_argument("--recursive", action="store_true", default=True)
 
     # Commande: collections
-    sub.add_parser("collections", help="Afficher les collections ChromaDB existantes")
+    sub.add_parser("collections", help="Afficher les collections storage existantes")
 
     # Arguments globaux
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE_DEFAULT,
@@ -640,7 +640,7 @@ async def _cmd_items(args: argparse.Namespace) -> IngestSummary:
 
     # Affichage resume
     print(f"\n{'='*60}")
-    print("Ingestion structurée — Resume")
+    print("Ingestion structurÃ©e â€” Resume")
     print(f"{'='*60}")
     print(f"  Objets analyses : {summary.objects_ingested}")
     print(f"  Chunks ecrits   : {summary.chunks_written}")
@@ -660,7 +660,7 @@ async def _cmd_file(args: argparse.Namespace) -> None:
     """Execution de la commande 'file'."""
     from .engine import IngestionEngine, detect_type
     from .config import load_config
-    from .storage.chroma_writer import write_chunks_to_chroma
+    from .storage.storage_writer import write_chunks_to_storage
 
     config = load_config()
     engine = IngestionEngine(config)
@@ -689,14 +689,14 @@ async def _cmd_file(args: argparse.Namespace) -> None:
         content_type, processor_key = detect_type(args.path)
         target_col = args.collection or collection_map.get(processor_key, "pz_items")
 
-        ok = await write_chunks_to_chroma(
+        ok = await write_chunks_to_storage(
             chunks=result.chunks,
             source=str(args.path),
             content_type=content_type,
             collection=target_col,
             metadata={"ingest_source": "cli_file", "game_version": "b41"},
         )
-        print(f"  ChromaDB  : {'OK' if ok else 'ECHEC'}")
+        print(f"  Storage   : {'OK' if ok else 'ECHEC'}")
 
 
 async def _cmd_dir(args: argparse.Namespace) -> None:
@@ -719,12 +719,12 @@ async def _cmd_dir(args: argparse.Namespace) -> None:
 
 async def _cmd_collections() -> None:
     """Afficher les collections existantes."""
-    from .storage.chroma_writer import ChromaWriter
+    from .storage.storage_writer import StorageWriter
 
-    writer = ChromaWriter()
+    writer = StorageWriter()
     collections = await writer.list_collections()
     print(f"\n{'='*60}")
-    print("Collections ChromaDB disponibles :")
+    print("Collections storage disponibles :")
     for col in sorted(collections):
         try:
             count = await writer.count_collection(col)
@@ -734,7 +734,7 @@ async def _cmd_collections() -> None:
 
 
 async def main_cmd(argv: Optional[list[str]] = None) -> int:
-    """Point d'entrée CLI."""
+    """Point d'entrÃ©e CLI."""
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -764,3 +764,4 @@ async def main_cmd(argv: Optional[list[str]] = None) -> int:
 if __name__ == "__main__":
     import argparse
     sys.exit(asyncio.run(main_cmd()))
+

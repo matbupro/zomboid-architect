@@ -1,8 +1,8 @@
 """
-base — Interface commune pour tous les processeurs d'ingestion.
+base â€” Interface commune pour tous les processeurs d'ingestion.
 
-Chaque processeur implémente Processor.extract() qui retourne des Chunk avec le contenu textuel.
-Le multi-modal (images, vidéo, audio) est transformé en texte via OCR/transcription/vision API.
+Chaque processeur implÃ©mente Processor.extract() qui retourne des Chunk avec le contenu textuel.
+Le multi-modal (images, vidÃ©o, audio) est transformÃ© en texte via OCR/transcription/vision API.
 """
 
 from __future__ import annotations
@@ -32,19 +32,19 @@ logger = get_logger(__name__)
 class Chunk:
     """Un segment de texte extrait d'un fichier/URL.
 
-    Chaque chunk est indépendant et contient assez de contexte pour la recherche.
+    Chaque chunk est indÃ©pendant et contient assez de contexte pour la recherche.
     """
     text: str                # Contenu textuel du chunk
     index: int               # Position dans le document original
-    start_offset: int        # Position en caractères dans le doc complet (0-based)
+    start_offset: int        # Position en caractÃ¨res dans le doc complet (0-based)
     metadata: dict = field(default_factory=dict)  # Metadata (source, type, lang, etc.)
 
 
 @dataclass
 class ExtractionResult:
-    """Résultat d'une extraction de fichier/URL."""
+    """RÃ©sultat d'une extraction de fichier/URL."""
     chunks: list[Chunk] = field(default_factory=list)
-    collection: str = "pz_pdfs"            # Collection ChromaDB cible
+    collection: str = "pz_pdfs"            # Collection storage vectoriel cible
     source: str = ""                       # Chemin ou URL source
     content_type: str = ""                 # MIME type
     file_hash: str = ""                    # SHA-256 du contenu brut (dedup)
@@ -53,16 +53,16 @@ class ExtractionResult:
     metadata: dict = field(default_factory=dict)  # Metadata globales
 
     def save_raw(self, dirpath: str | Path) -> Path:
-        """Sauvegarde le résultat brut en JSON sur disque.
+        """Sauvegarde le rÃ©sultat brut en JSON sur disque.
 
         Le fichier JSON contient TOUT l'ExtractionResult (chunks + metadata).
-        C'est la source de vérité pour reconstruction ChromaDB si besoin.
+        C'est la source de vÃ©ritÃ© pour reconstruction storage vectoriel si besoin.
 
         Args:
-            dirpath: Dossier cible (ex: data/raw/pz_text/). Créé s'il n'existe pas.
+            dirpath: Dossier cible (ex: data/raw/pz_text/). CrÃ©Ã© s'il n'existe pas.
 
         Returns:
-            Chemin du fichier JSON sauvegardé.
+            Chemin du fichier JSON sauvegardÃ©.
         """
         import json as _json
 
@@ -115,16 +115,16 @@ class ExtractionResult:
         import shutil as _shutil
         _shutil.move(tmp, str(filepath))
 
-        logger.debug("Raw sauvegardé : %s (%d chunks)", filepath.name, len(self.chunks))
+        logger.debug("Raw sauvegardÃ© : %s (%d chunks)", filepath.name, len(self.chunks))
         return filepath
 
 
 class Processor(ABC):
     """Interface abstraite pour tous les processeurs de format.
 
-    Chaque sous-classe implémente :
-      - extract(source) → ExtractionResult
-      - chunk(text) → list[Chunk]  (optionnel, default dans base class)
+    Chaque sous-classe implÃ©mente :
+      - extract(source) â†’ ExtractionResult
+      - chunk(text) â†’ list[Chunk]  (optionnel, default dans base class)
     """
 
     def __init__(self, config):
@@ -139,19 +139,19 @@ class Processor(ABC):
             source: Chemin vers un fichier ou une URL.
 
         Returns:
-            ExtractionResult avec chunks et metadata complètes.
+            ExtractionResult avec chunks et metadata complÃ¨tes.
         Raises:
             ValueError: Si la source n'est pas valide pour ce processeur.
-            PermissionError: Si le fichier est protégé/mot de passe (PDF).
+            PermissionError: Si le fichier est protÃ©gÃ©/mot de passe (PDF).
         """
         ...
 
     def chunk_text(self, text: str) -> list[Chunk]:
-        """Découpe du texte brut en chunks avec chevauchement."""
+        """DÃ©coupe du texte brut en chunks avec chevauchement."""
         if not text or not text.strip():
             return []
 
-        # Découpe par paragraphes d'abord (plus contextuellement cohérent)
+        # DÃ©coupe par paragraphes d'abord (plus contextuellement cohÃ©rent)
         paragraphs = self._split_paragraphs(text)
         chunks: list[Chunk] = []
         idx = 0
@@ -164,7 +164,7 @@ class Processor(ABC):
             if not para.strip():
                 continue
 
-            # Si l'ajout dépasse CHUNK_SIZE, on ferme le chunk actuel
+            # Si l'ajout dÃ©passe CHUNK_SIZE, on ferme le chunk actuel
             if len(current_chunk_text) + len(para) > self.config.CHUNK_SIZE and current_chunk_text:
                 chunks.append(Chunk(
                     text=current_chunk_text.strip(),
@@ -172,7 +172,7 @@ class Processor(ABC):
                     start_offset=chunk_start,
                     metadata={"paragraphs": para.count("\n") + 1},
                 ))
-                # Chevronnement (overlap) : on garde les derniers mots du chunk précédent
+                # Chevronnement (overlap) : on garde les derniers mots du chunk prÃ©cÃ©dent
                 overlap_words = self.config.CHUNK_OVERLAP
                 if overlap_words > len(current_chunk_text):
                     overlap_words = len(current_chunk_text)
@@ -190,7 +190,7 @@ class Processor(ABC):
                 chunk_start = offset - len(overlap_text) if chunks and chunks[-1].text == current_chunk_text else offset
 
             current_chunk_text += "\n\n" + para if current_chunk_text.strip() else para
-            offset += len(para) + 2  # +2 pour les sauts de ligne séparateurs
+            offset += len(para) + 2  # +2 pour les sauts de ligne sÃ©parateurs
 
         # Chunk final
         if current_chunk_text.strip():
@@ -212,8 +212,8 @@ class Processor(ABC):
     # -- Helpers internes --
 
     def _split_paragraphs(self, text: str) -> list[str]:
-        """Découpe le texte en paragraphes (lignes double-sautées ou simples sauts de ligne)."""
-        # Sépare par double saut de ligne ou triple (paragraphes)
+        """DÃ©coupe le texte en paragraphes (lignes double-sautÃ©es ou simples sauts de ligne)."""
+        # SÃ©pare par double saut de ligne ou triple (paragraphes)
         paragraphs = []
         current = []
 
@@ -234,7 +234,7 @@ class Processor(ABC):
             if paragraph:
                 paragraphs.append(paragraph)
 
-        # Fallback : si pas de paragraphes détectés, split par lignes non vides
+        # Fallback : si pas de paragraphes dÃ©tectÃ©s, split par lignes non vides
         if not paragraphs and text.strip():
             return [text.strip()]
 

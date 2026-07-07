@@ -40,7 +40,7 @@ alpha  →  beta  →  rc  →  stable  →  deprecated  →  sunset
 | `deprecated` | ⚠️      | ⚠️ (sec.)  | ❌                |
 | `sunset`     | ❌      | ❌         | ❌                |
 
-## Version des Données (Chunks ChromaDB)
+## Version des Données (Chunks storage vectoriel)
 
 Chaque chunk ingéré **doit** porter le champ `game_version` pour isoler les
 deux jeux de données Project Zomboid (B41 / B42).

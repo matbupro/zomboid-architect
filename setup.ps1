@@ -13,7 +13,7 @@
     6. Playwright Chromium (via pip + playwright install)
     7. Git hooks pre-commit (sync auto Notion)
     8. .env files from templates (.gitignore)
-    9. Docker compose up (ChromaDB + Bot)
+    9. Docker compose up (Storage vectoriel + Bot)
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File setup.ps1
@@ -231,34 +231,52 @@ if (Test-Path $preCommitTarget) {
 }
 
 # ============================================================
-# ETAPE 6 : .env from templates
+# ETAPE 6 : .env.unified (unique source de config)
 # ============================================================
 
 Write-Host "`n--- Etape 6 : Variables d'environnement ---`n" -ForegroundColor Magenta
 
-$envTemplates = @(
-    @{ src='notion_client/.env.notion.example'; dest='notion_client/.env.notion'; desc='Clé API Notion + DB ID' },
-    @{ src='bot/.env.example';                  dest='bot/.env';                   desc='Config bot Discord' },
-    @{ src='ingestor/.env.example';             dest='ingestor/.env';              desc='Config ingestor Steam' }
-)
+$EnvUnified = Join-Path $ProjectRoot '.env.unified'
 
-foreach ($t in $envTemplates) {
-    $srcPath  = Join-Path $ProjectRoot $t.src
-    $destPath = Join-Path $ProjectRoot $t.dest
-
-    # Parentheses obligatoires pour la negation PS (-not dans une condition composee)
-    if ((Test-Path $srcPath) -and (-not (Test-Path $destPath))) {
-        Copy-Item $srcPath $destPath -Force
-        Write-Ok "  $($t.desc) : .env cree"
-    } elseif (Test-Path $destPath) {
-        Write-Ok "  $($t.dest) existe deja (skip)"
-    } else {
-        Write-Warn "  $($t.src) inexistant"
-    }
+if (-not (Test-Path $EnvUnified)) {
+    # Create minimal .env.unified with all known vars
+    $defaultVars = @(
+        'DISCORD_TOKEN=ton_token_discord_ici',
+        'OLLAMA_BASE_URL=http://host.docker.internal:11434',
+        'OLLAMA_MODEL=qwen3.6:35b-a3b',
+        'LLM_TEMPERATURE=0.7',
+        'ZOMBOID_EMBEDDING_MODEL=nomic-embed-text',
+        'STORAGE_BACKEND=postgresql',
+        'STORAGE_PG_HOST=localhost',
+        'STORAGE_PG_PORT=5432',
+        'STORAGE_PG_DB=zomboid_storage',
+        'STORAGE_PG_USER=postgres',
+        'STORAGE_PG_PASS=',
+        'NOTION_API_KEY=ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+        'NOTION_DATABASE_ID=00000000-0000-0000-0000-000000000000',
+        'STEAM_USER=ranger_fleo',
+        'STEAM_PASS=',
+        'STEAM_WEB_API_KEY=',
+        'DATA_ROOT=data',
+        'CHUNK_SIZE=512',
+        'CHUNK_OVERLAP=64',
+        'MAX_WEB_DEPTH=5',
+        'MAX_WEB_PAGES=50',
+        'WEB_RATE_LIMIT=30',
+        'USER_AGENT=Zomboid Knowledge Engine (RAG multi-format)',
+        'OCR_LANG=fra+eng',
+        'MAX_RESPONSE_LENGTH=4000',
+        'MOD_OUTPUT_PATH=mods/'
+    )
+    $EnvUnified | New-Item -ItemType Directory -Force 2>$null
+    $defaultVars | Out-File $EnvUnified -Encoding utf8
+    Write-Ok "  .env.unified cree avec les valeurs par defaut"
+} else {
+    Write-Ok "  .env.unified existe deja (skip)"
 }
 
 # ============================================================
-# ETAPE 7 : Docker compose up (ChromaDB + Bot)
+# ETAPE 7 : Docker compose up (Storage vectoriel + Bot)
 # ============================================================
 
 Write-Host "`n--- Etape 7 : Services Docker ---`n" -ForegroundColor Magenta

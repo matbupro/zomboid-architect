@@ -1,17 +1,17 @@
-"""ingestor/tag_release.py — Creer un tag Git annote + backup + patch notes.
+﻿"""ingestor/tag_release.py â€” Creer un tag Git annote + backup + patch notes.
 
 Responsabilites :
-  1. Lire le fichier VERSION et incrémenter (semver)
-  2. Ecrire le nouveau numéro de version
-  3. Créer un commit "release: vX.Y.Z" avec les fichiers modifies
+  1. Lire le fichier VERSION et incrÃ©menter (semver)
+  2. Ecrire le nouveau numÃ©ro de version
+  3. CrÃ©er un commit "release: vX.Y.Z" avec les fichiers modifies
   4. Creer un tag git annote (-a -m ...)
-  5. Sauvegarder la base ChromaDB production dans backups/chromadb/
+  5. Sauvegarder les données de production dans backups/
   6. Generer le changelog de la release a partir des commits depuis le dernier tag
 
 Usage :
-  python -m ingestor.tag_release                          # bump patch (0.3.0 → 0.3.1)
-  python -m ingestor.tag_release --minor                  # bump minor (0.3.0 → 0.4.0)
-  python -m ingestor.tag_release --major                  # bump major (0.3.0 → 1.0.0)
+  python -m ingestor.tag_release                          # bump patch (0.3.0 â†’ 0.3.1)
+  python -m ingestor.tag_release --minor                  # bump minor (0.3.0 â†’ 0.4.0)
+  python -m ingestor.tag_release --major                  # bump major (0.3.0 â†’ 1.0.0)
   python -m ingestor.tag_release --version 1.0.0-beta     # version explicite
   python -m ingestor.tag_release --no-push                # ne pas push (commit + tag local seulement)
   python -m ingestor.tag_release --changelog-only         # generer patch notes sans tag
@@ -35,12 +35,12 @@ from typing import Optional
 ROOT = Path(__file__).parent.parent
 VERSION_FILE = ROOT / "VERSION"
 CHANGELOG_FILE = ROOT / "CHANGELOG.md"
-BACKUP_DIR = ROOT / "backups" / "chromadb"
+BACKUP_DIR = ROOT / "backups"
 PROD_DIR = ROOT / "data" / "production"
 STAGING_DIR = ROOT / "data" / "staging"
 
 
-# ── Version helpers ──────────────────────────────────────────────────────────
+# â”€â”€ Version helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @dataclass
@@ -57,7 +57,7 @@ class SemVer:
         return base
 
     def bump(self, part: str = "patch") -> SemVer:
-        """Retourne une nouvelle version avec le segment incrémente."""
+        """Retourne une nouvelle version avec le segment incrÃ©mente."""
         if part == "major":
             return SemVer(self.major + 1, 0, 0, None)  # major reset pre-release
         elif part == "minor":
@@ -87,11 +87,11 @@ def read_version() -> SemVer:
 
 
 def write_version(ver: SemVer) -> None:
-    # UTF-8 sans BOM (UTF-8-SIG ajoute un BOM, on l'évite ici)
+    # UTF-8 sans BOM (UTF-8-SIG ajoute un BOM, on l'Ã©vite ici)
     VERSION_FILE.write_text(str(ver) + "\n", encoding="utf-8")
 
 
-# ── Git helpers ──────────────────────────────────────────────────────────────
+# â”€â”€ Git helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _git(args: list[str], cwd: Path = ROOT) -> str:
@@ -108,7 +108,7 @@ def _git(args: list[str], cwd: Path = ROOT) -> str:
 
 
 def get_last_tag() -> Optional[str]:
-    """Retourne le nom du dernier tag annoté ou None."""
+    """Retourne le nom du dernier tag annotÃ© ou None."""
     try:
         tag = _git(["describe", "--tags", "--abbrev=0"], cwd=ROOT)
         return tag if tag else None
@@ -150,15 +150,15 @@ def _is_release_commit(msg: str) -> bool:
     return any(re.search(p, msg, re.IGNORECASE) for p in patterns)
 
 
-# ── Backup ───────────────────────────────────────────────────────────────────
+# â”€â”€ Backup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def create_backup() -> Optional[Path]:
-    """Backup production ChromaDB + raw data → backups/chromadb/YYYY-MM_vX.Y.Z.tar.gz."""
+    """Backup production et raw data -> backups/YYYY-MM_vX.Y.Z.tar.gz."""
     RAW_DIR = ROOT / "data" / "raw"
 
     if not PROD_DIR.exists():
-        print("[tag_release] Production dir does not exist — skipping backup")
+        print("[tag_release] Production dir does not exist â€” skipping backup")
         return None
 
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
@@ -169,7 +169,7 @@ def create_backup() -> Optional[Path]:
 
     with tarfile.open(snapshot_path, "w:gz") as tar:
         tar.add(PROD_DIR, arcname=PROD_DIR.name)
-        # Inclure les données brutes (source de vérité pour reconstruction)
+        # Inclure les donnÃ©es brutes (source de vÃ©ritÃ© pour reconstruction)
         if RAW_DIR.exists():
             tar.add(RAW_DIR, arcname=RAW_DIR.name)
 
@@ -177,7 +177,7 @@ def create_backup() -> Optional[Path]:
     return snapshot_path
 
 
-# ── Changelog generation ─────────────────────────────────────────────────────
+# â”€â”€ Changelog generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def generate_changelog(commits: list[dict]) -> str:
@@ -195,12 +195,12 @@ def generate_changelog(commits: list[dict]) -> str:
         groups.setdefault(prefix, []).append(c)
 
     icons = {
-        "feat": "✨",
-        "fix": "🐛",
-        "docs": "📝",
-        "chore": "🔧",
-        "refactor": "♻️",
-        "misc": "📌",
+        "feat": "âœ¨",
+        "fix": "ðŸ›",
+        "docs": "ðŸ“",
+        "chore": "ðŸ”§",
+        "refactor": "â™»ï¸",
+        "misc": "ðŸ“Œ",
     }
 
     lines = []
@@ -208,12 +208,12 @@ def generate_changelog(commits: list[dict]) -> str:
         items = groups.get(prefix, [])
         if not items:
             continue
-        icon = icons.get(prefix, "📌")
+        icon = icons.get(prefix, "ðŸ“Œ")
         title_map = {
-            "feat": "Nouvelles fonctionnalités",
+            "feat": "Nouvelles fonctionnalitÃ©s",
             "fix": "Corrections de bugs",
             "docs": "Documentation",
-            "chore": "Tâches internes",
+            "chore": "TÃ¢ches internes",
             "refactor": "Refactoring",
             "misc": "Autres",
         }
@@ -227,7 +227,7 @@ def generate_changelog(commits: list[dict]) -> str:
     return "\n".join(lines)
 
 
-# ── Main release flow ───────────────────────────────────────────────────────
+# â”€â”€ Main release flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def do_release(
@@ -248,7 +248,7 @@ def do_release(
     """
     old_ver = read_version()
 
-    # Mode 'changelog only' — aucun git ni ecriture
+    # Mode 'changelog only' â€” aucun git ni ecriture
     if changelog_only:
         last_tag = get_last_tag()
         commits = get_commits_since_tag(last_tag) if last_tag else []
@@ -294,12 +294,12 @@ def do_release(
     release_msg = f"release: v{new_ver}"
     _git(["add", str(VERSION_FILE), "CHANGELOG.md"])
     _git(["commit", "-m", release_msg])
-    print(f"[tag_release] Commit — {release_msg}")
+    print(f"[tag_release] Commit â€” {release_msg}")
 
     # Tag annote
     tag_name = f"v{new_ver}"
     _git(["tag", "-a", tag_name, "-m", f"Release {tag_name}\n\n{changelog_body[:500]}"])
-    print(f"[tag_release] Tag crée — {tag_name}")
+    print(f"[tag_release] Tag crÃ©e â€” {tag_name}")
 
     if not no_push:
         _git(["push"])
@@ -309,18 +309,18 @@ def do_release(
     return release_info
 
 
-# ── CLI ──────────────────────────────────────────────────────────────────────
+# â”€â”€ CLI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Creer un tag Git annote + backup ChromaDB + patch notes.",
+        description="Creer un tag Git annote + backup storage vectoriel + patch notes.",
         prog="python -m ingestor.tag_release",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--major", action="store_true", help="Bump major (X.0.0)")
     group.add_argument("--minor", action="store_true", help="Bump minor (0.X.0)")
-    group.add_argument("--patch", action="store_true", help="Bump patch (0.0.X) — default")
+    group.add_argument("--patch", action="store_true", help="Bump patch (0.0.X) â€” default")
     parser.add_argument(
         "--version",
         type=str,
@@ -359,3 +359,4 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

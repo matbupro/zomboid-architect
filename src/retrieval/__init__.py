@@ -1,4 +1,4 @@
-"""src/retrieval -- Interface ChromaDB pour le knowledge engine.
+"""src/retrieval -- Interface de stockage pour le knowledge engine.
 
 Exposé public :
   - query_staging(question, k=5, filters=None) → dict avec chunks
@@ -6,33 +6,30 @@ Exposé public :
   - list_collections() → list[str]
   - Health check methods
 
-Utilisé par :
-  - bot/engine_client.py (pour le fallback local)
-  - ingestor/promote.py (pour le golden set gate)
+Backend de stockage : SQLite par defaut (configurable via STORAGE_BACKEND).
 
-Chemin vers les bases ChromaDB :
-  staging → data/staging/chromadb/
-  production → data/production/chromadb/
+Chemin vers les bases :
+  staging → data/storage/zomboid.db (tables z_pz_items, z_pz_recipes, etc.)
+  production → data/storage/zomboid.db (même DB, tables partagées)
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.governance.logger import get_logger
 
 logger = get_logger(__name__)
 
-# ── Paths vers les bases ChromaDB ────────────────────────────────────────────────
 
-_ROOT: Path = Path(__file__).parent.parent.parent  # project root
+def _get_storage_backend() -> Any:
+    """Retourne le backend de stockage (lazy load)."""
+    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
 
-
-def _chroma_path(stage: str) -> Path:
-    """Retourne le chemin vers la base ChromaDB de stage (staging/production)."""
-    return _ROOT / "data" / stage / "chromadb"
+    cfg = _load_storage_config()
+    return StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
 
 
 # ── API publique ───────────────────────────────────────────────────────────────────
@@ -40,12 +37,11 @@ def _chroma_path(stage: str) -> Path:
 def query_staging(
     question: str,
     k: int = 5,
-    filters: Optional[dict[str, Any]] = None,
+    filters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Interroge ChromaDB staging et retourne les chunks correspondants.
+    """Interroge le storage staging et retourne les chunks correspondants.
 
-    Fallback : si ChromaDB n'est pas disponible, retourne un resultat
-    vide ({} ou {"chunks": []}). Le caller doit gérer le cas "pas de resultats".
+    Fallback : si le stockage n'est pas disponible, retourne un resultat vide.
 
     Parameters
     ----------
@@ -61,69 +57,91 @@ def query_staging(
     dict
         {"chunks": [...], "query": question, "k": k}
     """
-    from .chroma_client import ChromaClient
+    try:
+        backend = _get_storage_backend()
+        results = backend.query("pz_staging", question, n_results=k, filters=filters)
+        chunks = [
+            {"id": r.id, "prose": r.prose if isinstance(r.prose, str) else "", "metadata": r.metadata_ or {}}
+            for r in results[:k]
+        ]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("query_staging échoué : %s", exc)
+        chunks = []
 
-    client = ChromaClient(stage="staging")
-    return client.query(question, k=k, filters=filters)
+    return {"chunks": chunks, "query": question, "k": k}
 
 
 def query_production(
     question: str,
     k: int = 5,
-    filters: Optional[dict[str, Any]] = None,
+    filters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Même chose que query_staging mais sur la base production."""
-    from .chroma_client import ChromaClient
+    try:
+        backend = _get_storage_backend()
+        results = backend.query("pz_production", question, n_results=k, filters=filters)
+        chunks = [
+            {"id": r.id, "prose": r.prose if isinstance(r.prose, str) else "", "metadata": r.metadata_ or {}}
+            for r in results[:k]
+        ]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("query_production échoué : %s", exc)
+        chunks = []
 
-    client = ChromaClient(stage="production")
-    return client.query(question, k=k, filters=filters)
+    return {"chunks": chunks, "query": question, "k": k}
 
 
-def get_production_client():  # type: ignore[misc]
-    """Retourne le client ChromaDB de production (pour tests / consumers externes)."""
-    from .chroma_client import ChromaClient
+def get_production_client() -> Any:  # type: ignore[misc]
+    """Retourne le client storage de production (pour tests / consumers externes)."""
+    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
 
-    return ChromaClient(stage="production")
+    cfg = _load_storage_config()
+    return StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
 
 
-def get_staging_client():  # type: ignore[misc]
-    """Retourne le client ChromaDB de staging."""
-    from .chroma_client import ChromaClient
+def get_staging_client() -> Any:  # type: ignore[misc]
+    """Retourne le client storage de staging."""
+    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
 
-    return ChromaClient(stage="staging")
+    cfg = _load_storage_config()
+    return StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
 
 
 def list_collections(stage: str = "staging") -> list[str]:
-    """Liste les collections dans une base ChromaDB."""
-    from .chroma_client import ChromaClient
-
-    client = ChromaClient(stage=stage)
-    return client.list_collections()
+    """Liste les collections dans le storage."""
+    try:
+        backend = _get_storage_backend()
+        return backend.list_collections()
+    except Exception:  # noqa: BLE001
+        return []
 
 
 # ── Health check ───────────────────────────────────────────────────────────────────
 
 def health_check(stage: str = "staging") -> dict[str, Any]:
-    """Vérifie la santé de la base ChromaDB et retourne un statut."""
-    path = _chroma_path(stage)
-    available = path.exists() and any(path.iterdir())
-    return {
-        "stage": stage,
-        "path": str(path),
-        "available": available,
-        "mode": "persistent" if available else "no_data",
-    }
+    """Vérifie la santé du storage et retourne un statut."""
+    try:
+        backend = _get_storage_backend()
+        status = backend.health()
+        return {"stage": stage, **status}
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "stage": stage,
+            "available": False,
+            "mode": "error",
+            "error": str(exc),
+        }
 
 
 # ── Main (CLI) ─────────────────────────────────────────────────────────────────────
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Point d'entrée CLI pour le retrieval."""
     import argparse
 
     parser = argparse.ArgumentParser(
         prog="python -m src.retrieval",
-        description="ChromaDB query interface (staging + production)",
+        description="Storage query interface (staging + production)",
     )
     parser.add_argument("stage", choices=["staging", "production"], help="Base à interroger")
     parser.add_argument("question", help="Texte de la requête")
@@ -139,4 +157,5 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(main())

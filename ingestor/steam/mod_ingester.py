@@ -1,11 +1,11 @@
-"""
-mod_ingester — Pipeline haut-niveau pour l'ingestion de mods Workshop.
+﻿"""
+mod_ingester â€” Pipeline haut-niveau pour l'ingestion de mods Workshop.
 
 Orchestre:
   1. Scan du repertoire mods (WorkshopScanner)
   2. Detection type fichier (.pbo, .lua, .txt, etc.)
   3. Extraction (PBOProcessor ou lecture directe)
-  4. Chunking + embedding → ChromaDB (via storage/chroma_writer)
+  4. Chunking + embedding â†’ storage vectoriel (via storage/storage_writer)
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from ..config import IngestorConfig, load_config
-from ..storage.chroma_writer import ChromaWriter
+from ..storage.storage_writer import StorageWriter
 from .workshop_scanner import WorkshopScanner, WorkshopModInfo
 from ..processors.pbo import PBOProcessor
 
@@ -46,12 +46,12 @@ MOD_COLLECTION_MAP: dict[str, str] = {
 
 
 def discover_mod_collections(config: IngestorConfig) -> dict[str, str]:
-    """Retourne le mapping collection ChromaDB pour les mods.
+    """Retourne le mapping collection storage vectoriel pour les mods.
 
     Les collections sont automatiquement creees lors du premier write.
 
     Returns:
-        Mapping extension/type → nom de collection ChromaDB.
+        Mapping extension/type â†’ nom de collection storage vectoriel.
     """
     return {
         "lua": "pz_mod_lua_scripts",
@@ -72,24 +72,24 @@ async def ingest_single_mod(
     Args:
         mod_path: Chemin vers le dossier du mod ou fichier .pbo.
         config: Configuration de l'ingestion. Defaut: load_config().
-        collection: Collection ChromaDB cible. Defaut: detection automatique.
+        collection: Collection storage vectoriel cible. Defaut: detection automatique.
 
     Returns:
         ModIngestionResult avec statistiques d'ingestion.
     """
     config = config or load_config()
     mod_path = Path(mod_path)
-    writer = ChromaWriter(config.CHROMA_HOST, config.OLLAMA_BASE_URL)
+    writer = StorageWriter(ollama_url=config.OLLAMA_BASE_URL)
 
     result = ModIngestionResult(mod_id=None if not mod_path.is_dir() else None, success=False)
 
     try:
         if mod_path.suffix.lower() in (".pbo", ".pbosync"):
-            # Single .pbo file → extract and ingest
+            # Single .pbo file â†’ extract and ingest
             processor = PBOProcessor(config)
             extraction = await processor.extract(str(mod_path))
             result.collection = extraction.collection or "pz_mod_configs"
-            success = await writer.write_chunks_to_chroma(
+            success = await writer.write_chunks_to_storage(
                 chunks=extraction.chunks,
                 source=str(mod_path),
                 content_type=extraction.content_type,
@@ -100,7 +100,7 @@ async def ingest_single_mod(
             result.success = success
 
         elif mod_path.is_dir():
-            # Directory — scan all supported files
+            # Directory â€” scan all supported files
             result.mod_id = None  # Will be set if workshop scanner finds it
             collection = collection or "pz_mods"
             total_chunks = 0
@@ -112,13 +112,13 @@ async def ingest_single_mod(
 
                 ext = file_path.suffix.lower()
 
-                # .pbo files → extract with PBOProcessor
+                # .pbo files â†’ extract with PBOProcessor
                 if ext in (".pbo", ".pbosync"):
                     try:
                         processor = PBOProcessor(config)
                         extraction = await processor.extract(str(file_path))
                         collection_for_file = extraction.collection or "pz_mod_configs"
-                        success = await writer.write_chunks_to_chroma(
+                        success = await writer.write_chunks_to_storage(
                             chunks=extraction.chunks,
                             source=str(file_path),
                             content_type="application/x-pbo",
@@ -129,7 +129,7 @@ async def ingest_single_mod(
                     except Exception as exc:  # noqa: BLE001
                         errors.append(f"PBO extraction failed for {file_path.name}: {exc}")
 
-                # Text/config files → direct ingest
+                # Text/config files â†’ direct ingest
                 elif ext in (".lua", ".txt", ".bin", ".cfg", ".json", ".xml", ".toml"):
                     try:
                         text = file_path.read_text(encoding="utf-8", errors="replace")
@@ -152,7 +152,7 @@ async def ingest_single_mod(
                             chunk.index = i
 
                         collection_for_file = MOD_COLLECTION_MAP.get(ext, "pz_mods")
-                        success = await writer.write_chunks_to_chroma(
+                        success = await writer.write_chunks_to_storage(
                             chunks=chunks,
                             source=str(file_path),
                             content_type=f"text/x-pz-{ext.lstrip('.')}",
@@ -183,12 +183,12 @@ async def ingest_mods_from_directory(
     config: IngestorConfig | None = None,
     collections: list[str] | None = None,
 ) -> list[ModIngestionResult]:
-    """Scanner et ingérer tous les mods d'un repertoire (ex: steamapps/workshop/content/1042170).
+    """Scanner et ingÃ©rer tous les mods d'un repertoire (ex: steamapps/workshop/content/1042170).
 
     Args:
         mods_dir: Repertoire contenant les dossiers de mods.
         config: Configuration de l'ingestion. Defaut: load_config().
-        collections: Liste de collections ChromaDB a utiliser (defaut: detection automatique).
+        collections: Liste de collections storage vectoriel a utiliser (defaut: detection automatique).
 
     Returns:
         Liste des resultats d'ingestion par mod.
@@ -225,3 +225,5 @@ async def ingest_mods_from_directory(
         logger.info("Mod #%d termine: %s", mod_id, status)
 
     return results
+
+

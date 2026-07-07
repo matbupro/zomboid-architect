@@ -1,6 +1,6 @@
 """src/storage/sqlite_storage -- Stockage local SQLite pour le Knowledge Engine.
 
-Remplacement de ChromaDB via SQLite + embedding optionnel Oollama.
+Stockage vectoriel local SQLite avec embedding optionnel Ollama.
 
 Architecture :
 - Une table par collection (prefix `z_` → `z_pz_items`, `z_pz_recipes`, etc.)
@@ -47,7 +47,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class SearchResult:
-    """Résultat d'une requête de recherche — format unifié SQLite/ChromaDB."""
+    """Résultat d'une requête de recherche — format unifié (StorageBackend)."""
 
     collection: str
     id: str
@@ -412,7 +412,7 @@ class SQLiteStorage:
             n_results: Nombre de resultats retournes.
             filters: Filtres metadata ($and, $eq).
             game_version: Filtrage par version PZ (b41/b42).
-            where: Conditions where compatibles avec ChromaDB format.
+            where: Conditions where (format MongoDB-style: $and, $eq).
 
         Returns:
             Liste de SearchResult triee par similarite cosinus.
@@ -502,7 +502,7 @@ class SQLiteStorage:
         game_version: str | None,
         where: dict[str, Any] | None,
     ) -> tuple[str, list[Any]]:
-        """Convertit un filtre ChromaDB-style en (WHERE clause, params).
+        """Convertit un filtre MongoDB-style ($and/$eq) en (WHERE clause, params).
 
         Returns:
             Tuple (where_clause_string, param_list) — None if no conditions.
@@ -550,7 +550,7 @@ class SQLiteStorage:
         return (where_clause, params) if where_clause else (None, [])
 
     def _flatten_filter(self, filt: dict[str, Any], combined: dict[str, Any]) -> None:
-        """Aplatit un filtre ChromaDB-style vers un dictionnaire combine."""
+        """Aplatit un filtre MongoDB-style ($and/$eq) vers un dictionnaire combine."""
         if "$and" in filt and isinstance(filt["$and"], list):
             for inner in filt["$and"]:
                 self._flatten_filter(inner, combined)
@@ -693,85 +693,109 @@ class SQLiteStorage:
 
 
 # ---------------------------------------------------------------------------
-# Backend unifie (ChromaDB → SQLite fallback)
+# Backend unifie — SQLite (defaut) + PostgreSQL/pgvector (configurable)
 # ---------------------------------------------------------------------------
 
-class StorageBackend:
-    """Backend de stockage qui tente d'abord ChromaDB, puis SQLite.
+import os as _os
 
-    Mode 1 : ChromaDB en ligne → utilise ChromaDB nativement.
-    Mode 2 : ChromaDB hors ligne → bascule automatique sur SQLite.
+
+class _StorageConfig:
+    """Configuration du stockage chargee depuis les variables d'environnement."""
+
+    def __init__(self) -> None:
+        self.backend: str = _os.getenv("STORAGE_BACKEND", "sqlite").lower() or "sqlite"
+        self.data_dir: str = _os.getenv("STORAGE_SQLITE_DIR", "data/storage")
+        self.ollama_url: str | None = _os.getenv("OLLAMA_BASE_URL", "http://localhost:11434") or None
+        # PostgreSQL options
+        self.pg_host: str = _os.getenv("STORAGE_PG_HOST", "localhost")
+        self.pg_port: int = int(_os.getenv("STORAGE_PG_PORT", "5432"))
+        self.pg_db: str = _os.getenv("STORAGE_PG_DB", "zomboid_storage")
+        self.pg_user: str = _os.getenv("STORAGE_PG_USER", "postgres")
+        self.pg_pass: str | None = _os.getenv("STORAGE_PG_PASS")
+
+
+def _load_storage_config() -> _StorageConfig:
+    return _StorageConfig()
+
+
+class StorageBackend:
+    """Backend de stockage vectoriel — SQLite par defaut (V1), PostgreSQL/pgvector (V2).
+
+    Configure via .env :
+      STORAGE_BACKEND=sqlite     → SQLite local (defaut, aucun service externe)
+      STORAGE_BACKEND=postgres   → PostgreSQL + pgvector (necessite un serveur PG)
+
+    Args:
+        data_dir: Repertoire de la base SQLite (si backend=sqlite).
+        ollama_url: URL Ollama pour l'embedding (optionnel).
+        config: Configuration explicite. Chargee depuis l'environnement si None.
     """
 
-    def __init__(self, chroma_host: str | None = None, data_dir: str = "data/storage", ollama_url: str | None = "http://localhost:11434"):
-        self._chroma_host = chroma_host or "http://localhost:8000"
+    def __init__(
+        self,
+        data_dir: str = "data/storage",
+        ollama_url: str | None = "http://localhost:11434",
+        config: _StorageConfig | None = None,
+    ):
+        cfg = config or _load_storage_config()
+        self._backend_type = cfg.backend
         self._sqlite = SQLiteStorage(data_dir=data_dir, ollama_url=ollama_url)
 
-        # Verifier ChromaDB
-        self._use_chroma = False
-        try:
-            import httpx
+        # PostgreSQL backend (V2) — chargee a la demande pour eviter dependance au demarrage
+        self._postgres: Any | None = None
 
-            with httpx.Client(timeout=5.0) as h:
-                resp = h.get(f"{self._chroma_host}/api/v2/heartbeat", timeout=5)
-                if resp.status_code == 200:
-                    self._use_chroma = True
-                    logger.info("Backend ChromaDB actif (%s)", self._chroma_host)
-                else:
-                    raise Exception(f"HTTP {resp.status_code}")
-        except Exception as exc:  # noqa: BLE001
-            logger.info("ChromaDB injoignable (%s) → fallback SQLite", exc)
-            self._use_chroma = False
-
-    @property
-    def is_chroma(self) -> bool:
-        """True si ChromaDB est actif."""
-        return self._use_chroma
+    def _ensure_postgres(self) -> Any:
+        """Charge le backend PostgreSQL a la demande (lazy import)."""
+        if self._postgres is None and self._backend_type == "postgresql":
+            try:
+                from src.storage.postgres_backend import PostgresStorageBackend  # noqa: F811
+                cfg = _load_storage_config()
+                self._postgres = PostgresStorageBackend(
+                    host=cfg.pg_host,
+                    port=cfg.pg_port,
+                    db=cfg.pg_db,
+                    user=cfg.pg_user,
+                    password=cfg.pg_pass,
+                )
+                logger.info("PostgreSQL backend activee (host=%s:%d, db=%s)", cfg.pg_host, cfg.pg_port, cfg.pg_db)
+            except ImportError as exc:
+                logger.warning("PostgreSQL indisponible (%s) — fallback SQLite", exc)
+                self._backend_type = "sqlite"
+        return self._postgres
 
     @property
     def sqlite(self) -> SQLiteStorage:
         """Acces au stockage SQLite sous-jacent (toujours disponible)."""
         return self._sqlite
 
+    @property
+    def backend_type(self) -> str:
+        """Type du backend actif : 'sqlite' ou 'postgresql'."""
+        return self._backend_type
+
     # ------------------------------------------------------------------
-    # Interface unifiée
+    # Interface unifiée — delegue au backend actif
     # ------------------------------------------------------------------
 
     def list_collections(self) -> list[str]:
-        if self._use_chroma:
-            try:
-                import chromadb
-
-                client = chromadb.HttpClient(host=self._chroma_host)
-                return [c.name for c in client.list_collections()]
-            except Exception:  # noqa: BLE001
-                pass
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.list_collections()
         return self._sqlite.list_collections()
 
     def ensure_collection(self, collection: str) -> bool:
-        if self._use_chroma:
-            try:
-                import chromadb
-
-                client = chromadb.HttpClient(host=self._chroma_host)
-                client.create_collection(collection)
-                logger.info("Collection '%s' creee sur ChromaDB", collection)
-                return True
-            except Exception as exc:  # noqa: BLE001
-                if "already exists" not in str(exc).lower():
-                    raise
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.ensure_collection(collection)
         return self._sqlite.ensure_collection(collection)
 
     def count_collection(self, collection: str) -> int:
-        if self._use_chroma and self._sqlite.count_collection(collection) < 0:
-            try:
-                import chromadb
-
-                client = chromadb.HttpClient(host=self._chroma_host)
-                col = client.get_or_create_collection(collection)
-                return col.count() if hasattr(col, "count") else -1
-            except Exception:  # noqa: BLE001
-                pass
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.count_collection(collection)
         return self._sqlite.count_collection(collection)
 
     def write_chunks(
@@ -782,55 +806,11 @@ class StorageBackend:
         extra_meta: dict[str, Any] | None = None,
         content_type: str = "text/plain",
     ) -> int:
-        if self._use_chroma:
-            try:
-                return self._write_chunks_chroma(chunks, collection, source, extra_meta, content_type)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Ecriture ChromaDB echou (%s) → fallback SQLite", exc)
-                self._use_chroma = False
-
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.write_chunks(chunks, collection, source, extra_meta, content_type)
         return self._sqlite.write_chunks(chunks, collection, source, extra_meta, content_type)
-
-    def _write_chunks_chroma(
-        self,
-        chunks: list[Any],
-        collection: str,
-        source: str,
-        extra_meta: dict[str, Any] | None,
-        content_type: str,
-    ) -> int:  # type: ignore[no-untyped-def]
-        import chromadb
-
-        client = chromadb.HttpClient(host=self._chroma_host)
-        col = client.get_or_create_collection(collection)
-
-        ids_w, docs_w, metas_w, vecs_w = [], [], [], []
-        embedder = OllamaEmbedder("http://localhost:11434")
-
-        for i, chunk in enumerate(chunks):
-            text = getattr(chunk, "text", None) if hasattr(chunk, "text") else str(chunk)
-            if not text or not text.strip():
-                continue
-
-            chunk_id = f"{source}::chunk::{i}"
-            meta: dict[str, Any] = {}
-            if hasattr(chunk, "metadata"):
-                meta.update(getattr(chunk, "metadata", {}) or {})
-            meta.update(extra_meta or {})
-            meta["source"] = source
-            meta["content_type"] = content_type
-            meta["chunk_index"] = i
-
-            embedding = embedder.embed(text)
-
-            ids_w.append(chunk_id)
-            docs_w.append(text.strip())
-            metas_w.append(meta)
-            vecs_w.append(embedding or [0.0] * 768)
-
-        col.upsert(ids=ids_w, embeddings=vecs_w, documents=docs_w, metadatas=metas_w)
-        logger.info("Ecriture ChromaDB : %d chunks dans '%s'", len(ids_w), collection)
-        return len(ids_w)
 
     def write_chunk(
         self,
@@ -852,129 +832,31 @@ class StorageBackend:
         game_version: str | None = None,
         where: dict[str, Any] | None = None,
     ) -> list[SearchResult]:
-        if self._use_chroma:
-            try:
-                return self._query_chroma(collection, query_text, n_results, filters, game_version)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Requete ChromaDB echou (%s) → fallback SQLite", exc)
-                self._use_chroma = False
-
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.query(collection, query_text, n_results, filters, game_version)
         return self._sqlite.query(collection, query_text, n_results, filters, game_version, where=where)
-
-    def _query_chroma(
-        self,
-        collection: str,
-        query_text: str,
-        n_results: int,
-        filters: dict[str, Any] | None,
-        game_version: str | None,
-    ) -> list[SearchResult]:  # type: ignore[no-untyped-def]
-        import chromadb
-
-        client = chromadb.HttpClient(host=self._chroma_host)
-        col = client.get_or_create_collection(collection)
-
-        embedder = OllamaEmbedder("http://localhost:11434")
-        embedding = embedder.embed(query_text)
-        if not embedding:
-            return []
-
-        results = col.query(
-            query_embeddings=[embedding],
-            n_results=n_results,
-            where=filters or None,
-        )
-
-        parsed: list[SearchResult] = []
-        ids = results.get("ids", [[]])[0]
-        docs = results.get("documents", [[]])[0]
-        metas = results.get("metadatas", [[]])[0]
-        dists = results.get("distances", [[]])[0]
-
-        for i in range(len(ids)):
-            meta = metas[i] if i < len(metas) else {}
-            doc = docs[i] if i < len(docs) else ""
-            prose = ""
-            try:
-                parsed_doc = json.loads(doc)
-                prose = json.dumps(parsed_doc, ensure_ascii=False)[:3000]
-            except (json.JSONDecodeError, TypeError):
-                prose = doc[:3000] if isinstance(doc, str) else ""
-
-            parsed.append(SearchResult(
-                collection=collection,
-                id=ids[i],
-                prose=prose,
-                distance=float(dists[i]) if i < len(dists) else 0.0,
-                metadata_=meta if isinstance(meta, dict) else {},
-            ))
-
-        return parsed
 
     def get_by_id(self, collection: str, item_id: str, game_version: str | None = None) -> SearchResult | None:
         """Récupère une entité par ID deterministe (fallback SQLite)."""
-        if self._use_chroma:
-            try:
-                return self._get_by_id_chroma(collection, item_id, game_version)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("get_by_id ChromaDB echou (%s) → fallback SQLite", exc)
-                self._use_chroma = False
-
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return pg.get_by_id(collection, item_id, game_version)
         return self._sqlite.get_by_id(collection, item_id, game_version)
 
-    def _get_by_id_chroma(self, collection: str, item_id: str, game_version: str | None) -> SearchResult | None:  # type: ignore[no-untyped-def]
-        import chromadb
-
-        client = chromadb.HttpClient(host=self._chroma_host)
-        col = client.get_or_create_collection(collection)
-
-        where_clause: dict[str, Any] = {"$eq": item_id} if game_version else {"id": item_id}
-
-        # ChromaDB SDK utilise different filtres — on fait une query brute
-        # et on filtre le resultat en Python pour compatibilite
-        try:
-            results = col.get(where={"$and": [where_clause]} if game_version else None, ids=[item_id])
-        except Exception:  # noqa: BLE001
-            return None
-
-        ids = results.get("ids", [[]])[0] if results.get("ids") else []
-        if item_id not in ids:
-            return None
-
-        idx = ids.index(item_id)
-        docs = results.get("documents", [[]])[0] if results.get("documents") else []
-        metas = results.get("metadatas", [[]])[0] if results.get("metadatas") else []
-
-        doc_str = docs[idx] if idx < len(docs) else ""
-        meta = metas[idx] if idx < len(metas) else {}
-
-        prose = ""
-        try:
-            parsed_doc = json.loads(doc_str)
-            prose = json.dumps(parsed_doc, ensure_ascii=False)[:3000]
-        except (json.JSONDecodeError, TypeError):
-            prose = doc_str[:3000] if isinstance(doc_str, str) else ""
-
-        return SearchResult(
-            collection=collection, id=item_id, prose=prose, distance=0.0, metadata_=meta or {},
-        )
-
     def delete_collection(self, collection: str) -> None:
-        """Supprime une collection (SQLite uniquement, ChromaDB supprime via API)."""
-        if self._use_chroma:
-            try:
-                import chromadb
-
-                client = chromadb.HttpClient(host=self._chroma_host)
-                client.delete_collection(collection)
-            except Exception:  # noqa: BLE001
-                pass
+        """Supprime une collection (SQLite uniquement)."""
         self._sqlite.delete_collection(collection)
 
     def health(self) -> dict[str, Any]:
         """Etat du backend actif."""
-        if self._use_chroma:
-            return {"available": True, "mode": "chromadb", "host": self._chroma_host}
+        if self._backend_type == "postgresql":
+            pg = self._ensure_postgres()
+            if pg:
+                return {"available": True, "mode": "postgresql"}
+            return {"available": False, "mode": "postgresql", "error": "Backend indisponible"}
         return {
             "available": True,
             "mode": "sqlite",

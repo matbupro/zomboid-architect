@@ -1,6 +1,6 @@
 """test_golden_set -- Mesure du recall@5 sur le golden set (Phase 5/11).
 
-Mode mock : fonctionne SANS ChromaDB/Ollama (par defaut, recommande pour CI)
+Mode mock : fonctionne avec mock uniquement (sans Ollama) (par defaut, recommande pour CI)
 
 Usage :
     python tests/test_golden_set.py
@@ -54,7 +54,7 @@ def _mock_query_with_hits(q_to_ids: dict[str, list[str]]) -> MagicMock:
     """Mock query_staging that returns expected_ids when the question matches.
 
     Exact match on normalized question text — guarantees perfect recall for
-    the golden set because we're testing our evaluation logic, not ChromaDB.
+    the golden set because we're testing our evaluation logic, not the storage layer.
     """
     mock_fn = MagicMock()
 
@@ -159,7 +159,7 @@ def test_gate_result_to_dict():
 
 
 # ===========================================================================
-# Tests du calcul recall@5 (sans ChromaDB)
+# Tests du calcul recall@5 (sans [storage vectoriel])
 # ===========================================================================
 
 def test_recall_single_hit():
@@ -195,7 +195,7 @@ def test_recall_empty_expected():
 
 
 def test_recall_k_limit():
-    """Le k limit de ChromaDB peut couper des resultats attendus."""
+    """Le k limit de [storage vectoriel] peut couper des resultats attendus."""
     retrieved = {"Base.Axe", "Base.WoodenCane", "Base.Shovel"}
     expected = {"Base.Axe"}  # seulement 1 attendu
     recall = len(retrieved & expected) / len(expected) if expected else 0.0
@@ -239,7 +239,7 @@ def test_golden_gate_mock_partial_recall():
 
 
 def test_golden_gate_mock_no_results():
-    """ChromaDB retourne 0 resultats pour tout -> recall = 0."""
+    """le storage vectoriel retourne 0 resultats pour tout -> recall = 0."""
     import ingestor.promote as promote
 
     def empty_query(question: str, k: int = 5, filters=None):

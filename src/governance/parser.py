@@ -43,7 +43,7 @@ class ContentType(Enum):
 
 @dataclass
 class ParsedChunk:
-    """Unité atomique de contenu ingérée dans ChromaDB."""
+    """Unité atomique de contenu ingérée dans le stockage vectoriel (StorageBackend)."""
     id: str
     type: str           # ContentType.value
     version: str        # GameVersion.value  ("b41" | "b42")

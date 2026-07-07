@@ -1,4 +1,4 @@
-"""ingestor/regression.py — Regression tester le golden set contre un environnement ChromaDB.
+"""ingestor/regression.py — Regression tester le golden set contre un environnement storage vectoriel.
 
 Responsabilites :
   1. Rejouer chaque question du golden set contre staging ou production
@@ -86,13 +86,13 @@ def _run_campaign(
     per_question: list[dict] = []
     recall_scores: list[float] = []
 
-    # Import lazy — selectionne le bon client ChromaDB
+    # Import lazy — selectionne le bon client storage vectoriel
     if env == "staging":
         from src.retrieval import query_staging as query_fn  # type: ignore[misc]
     elif env == "production":
         from src.retrieval import get_production_client  # type: ignore[misc]
-        chroma = get_production_client()
-        query_fn = chroma.query
+        storage_client = query_staging()
+        query_fn = storage_client.query
     else:
         raise ValueError(f"Unknown env: {env!r}. Use 'staging' or 'production'.")
 
@@ -215,7 +215,7 @@ def _compare_against_baseline(
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Regression tester le golden set contre ChromaDB.",
+        description="Regression tester le golden set contre storage vectoriel.",
         prog="python -m ingestor.regression",
     )
     parser.add_argument(

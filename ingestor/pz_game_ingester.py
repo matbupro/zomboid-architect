@@ -1,11 +1,11 @@
-"""pz_game_ingester — Ingestion complète du dossier de jeu Project Zomboid.
+﻿"""pz_game_ingester â€” Ingestion complÃ¨te du dossier de jeu Project Zomboid.
 
 Strategie d'ingestion priorisee :
-  1. media/lua/        → pz_lua_scripts      (logique jeu — priorite absolue)
-  2. media/ configs    → pz_text               (tile defs, layouts, etc.)
-  3. Racine game dir   → pz_configs            (launchers *.bat, *.json, serialize.lua)
+  1. media/lua/        â†’ pz_lua_scripts      (logique jeu â€” priorite absolue)
+  2. media/ configs    â†’ pz_text               (tile defs, layouts, etc.)
+  3. Racine game dir   â†’ pz_configs            (launchers *.bat, *.json, serialize.lua)
 
-Tous les chunks portent metadata avec source relative pour traçabilité.
+Tous les chunks portent metadata avec source relative pour traÃ§abilitÃ©.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 DEFAULT_GAME_PATH = Path("f:/Games/Steam/steamapps/common/ProjectZomboid")
 
-# Collections ChromaDB cibles par type de fichier
+# Collections storage vectoriel cibles par type de fichier
 COLLECTION_MAP: dict[str, str] = {
     ".lua": "pz_lua_scripts",
     ".json": "pz_json_configs",
@@ -63,18 +63,18 @@ SKIP_EXTENSIONS: frozenset[str] = frozenset({
 
 
 # ---------------------------------------------------------------------------
-# Ingestion par priorité
+# Ingestion par prioritÃ©
 # ---------------------------------------------------------------------------
 
 async def ingest_lua_scripts(game_path: Path | str) -> dict[str, Any]:
     """Ingerer tous les scripts Lua du jeu (priorite 1).
 
-    Extraction + écriture ChromaDB → pz_lua_scripts.
+    Extraction + Ã©criture storage vectoriel â†’ pz_lua_scripts.
     Retourne un resume d'ingestion : total_files, total_chunks, collection, duration_ms.
     """
     from .engine import IngestionEngine
     from .config import load_config
-    # ChromaWriter imported at module level (line ~15)
+    # StorageWriter imported at module level (line ~15)
 
     game_path = Path(game_path) if isinstance(game_path, str) else game_path
     lua_dir = game_path / "media" / "lua"
@@ -86,7 +86,7 @@ async def ingest_lua_scripts(game_path: Path | str) -> dict[str, Any]:
     logger.info("Ingestion scripts Lua depuis : %s", lua_dir)
     config = load_config()
     engine = IngestionEngine(config)
-    writer = ChromaWriter(config.CHROMA_HOST, config.OLLAMA_BASE_URL)
+    writer = StorageWriter(ollama_url=config.OLLAMA_BASE_URL)
 
     start_time = time.monotonic()
     total_files = 0
@@ -97,7 +97,7 @@ async def ingest_lua_scripts(game_path: Path | str) -> dict[str, Any]:
         try:
             result = await engine.ingest(str(lua_file), collection="pz_lua_scripts")
             if result.chunks:
-                success = await writer.write_chunks_to_chroma(
+                success = await writer.write_chunks_to_storage(
                     chunks=result.chunks,
                     source=str(lua_file.relative_to(game_path)),
                     content_type=result.content_type,
@@ -132,14 +132,14 @@ async def ingest_lua_scripts(game_path: Path | str) -> dict[str, Any]:
     return summary
 
 
-# Need to import ChromaWriter at module level too
-from .storage.chroma_writer import ChromaWriter
+# Need to import StorageWriter at module level too
+from .storage.storage_writer import StorageWriter
 
 
 async def ingest_configs(game_path: Path | str) -> dict[str, Any]:
     """Ingerer les fichiers de config du jeu (priorite 2).
 
-    Ecriture ChromaDB → pz_xml_configs + pz_text.
+    Ecriture storage vectoriel â†’ pz_xml_configs + pz_text.
     Inclut: .json, .xml, .txt, .tiles non-binaires dans media/ + racine.
     """
     from .engine import IngestionEngine
@@ -149,14 +149,14 @@ async def ingest_configs(game_path: Path | str) -> dict[str, Any]:
     logger.info("Ingestion configs depuis : %s", game_path)
     config = load_config()
     engine = IngestionEngine(config)
-    writer = ChromaWriter(config.CHROMA_HOST, config.OLLAMA_BASE_URL)
+    writer = StorageWriter(ollama_url=config.OLLAMA_BASE_URL)
 
     start_time = time.monotonic()
     total_files = 0
     total_chunks = 0
     errors: list[str] = []
 
-    # Collect files by type (no .bat or .exe — only text configs)
+    # Collect files by type (no .bat or .exe â€” only text configs)
     text_extensions = {".json", ".xml", ".txt", ".tiles"}
     for pattern in ["media/**/*.json", "media/**/*.xml", "media/*.txt", "*.json"]:
         for file_path in game_path.glob(pattern):
@@ -176,7 +176,7 @@ async def ingest_configs(game_path: Path | str) -> dict[str, Any]:
                 result = await engine.ingest(str(file_path), collection="pz_xml_configs" if ext == ".xml" else "pz_text")
                 if result.chunks:
                     col = "pz_xml_configs" if ext == ".xml" else "pz_text"
-                    success = await writer.write_chunks_to_chroma(
+                    success = await writer.write_chunks_to_storage(
                         chunks=result.chunks,
                         source=str(file_path.relative_to(game_path)),
                         content_type=result.content_type,
@@ -208,7 +208,7 @@ async def ingest_configs(game_path: Path | str) -> dict[str, Any]:
 
 
 async def ingest_full_game(game_path: Path | str = None) -> dict[str, Any]:
-    """Ingestion complète du jeu (toutes les priorités)."""
+    """Ingestion complÃ¨te du jeu (toutes les prioritÃ©s)."""
     if game_path is None:
         game_path = DEFAULT_GAME_PATH
 
@@ -218,7 +218,7 @@ async def ingest_full_game(game_path: Path | str = None) -> dict[str, Any]:
 
     summaries = {}
 
-    # Priority 1: Lua scripts (critical — core game logic)
+    # Priority 1: Lua scripts (critical â€” core game logic)
     logger.info("=" * 60)
     logger.info("PRIORITY 1: Lua scripts")
     logger.info("=" * 60)
@@ -250,14 +250,14 @@ async def ingest_full_game(game_path: Path | str = None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 async def run_cli():
-    """CLI entry point — usage: python -m ingestor.pz_game_ingester [game_path]"""
+    """CLI entry point â€” usage: python -m ingestor.pz_game_ingester [game_path]"""
     import sys
 
     game_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_GAME_PATH
     summary = await ingest_full_game(game_path)
 
     print(f"\n{'='*60}")
-    print("Project Zomboid Game Ingestion — Summary")
+    print("Project Zomboid Game Ingestion â€” Summary")
     print(f"{'='*60}")
     for priority, data in summary.get("priorities", {}).items():
         chunks = data.get("total_chunks", 0)
@@ -266,7 +266,7 @@ async def run_cli():
         dur = data.get("duration_ms", 0) // 1000
         print(f"  {priority:>12} : {files:>5} files, {chunks:>6} chunks, {dur}s")
         if errors:
-            print(f"             ⚠ {errors} errors")
+            print(f"             âš  {errors} errors")
     grand = summary.get("grand_total_chunks", 0)
     dur = summary.get("grand_duration_str", "?")
     print(f"\n{'='*60}")
@@ -277,3 +277,5 @@ async def run_cli():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(run_cli())
+
+

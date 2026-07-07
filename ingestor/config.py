@@ -1,10 +1,15 @@
 """
 config — Settings du moteur d'ingestion multi-format.
 
-Variables d'environnement (voir .env.ingestor) :
-  CHROMA_HOST         — URL du serveur ChromaDB (défaut: http://host.docker.internal:8000)
-  OLLAMA_BASE_URL     — URL du serveur Ollama (défaut: http://host.docker.internal:11434)
-  EMBEDDING_MODEL     — modèle d'embedding pour ChromaDB (défaut: nomic-embed-text)
+Variables d'environnement (voir .env.unified) :
+  STORAGE_BACKEND   — type de stockage: sqlite, postgres (défaut: sqlite)
+  STORAGE_PG_HOST   — hôte PostgreSQL (défaut: localhost)
+  STORAGE_PG_PORT   — port PostgreSQL (défaut: 5432)
+  STORAGE_PG_DB     — nom BDD PostgreSQL (défaut: zomboid_storage)
+  STORAGE_PG_USER   — utilisateur PostgreSQL (défaut: postgres)
+  STORAGE_PG_PASS   — mot de passe PostgreSQL
+  OLLAMA_BASE_URL   — URL du serveur Ollama (défaut: http://host.docker.internal:11434)
+  EMBEDDING_MODEL   — modèle d'embedding pour l'index vectoriel (défaut: nomic-embed-text)
   CLAUDE_API_KEY      — clé API Claude pour descriptions vision (optionnel)
   DATA_ROOT           — racine des données brutes/staging/production (défaut: data/)
   MAX_WEB_DEPTH       — profondeur max de crawl web (défaut: 5)
@@ -24,8 +29,8 @@ from pathlib import Path
 class IngestorConfig:
     """Configuration centralisée de l'ingestion."""
 
-    # ChromaDB
-    CHROMA_HOST: str = "http://host.docker.internal:8000"
+    # Storage (SQLite / PostgreSQL via StorageBackend)
+    STORAGE_BACKEND: str = "sqlite"
 
     # Ollama (embedding)
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
@@ -49,7 +54,7 @@ class IngestorConfig:
     # OCR
     OCR_LANG: str = "fra+eng"
 
-    # Collections ChromaDB
+    # Collections (StorageBackend — SQLite/PostgreSQL vector store)
     COLLECTIONS: list[str] = field(default_factory=lambda: [
         "pz_items", "pz_recipes", "pz_mechanics",
         "pz_lua_api", "pz_java_api",  # existantes
@@ -83,16 +88,11 @@ def load_config() -> IngestorConfig:
     """Charge la config depuis .env.unified (racine du projet) ou les valeurs par défaut."""
     env_file = Path(__file__).parent.parent / ".env.unified"
     if not env_file.exists():
-        # fallback : cherche .env à la racine
-        for alt in [Path(__file__).parent.parent / ".env", Path(__file__).parent / ".env"]:
-            if alt.exists():
-                env_file = alt
-                break
-    if not env_file.exists():
-        pass  # aucun fichier trouvé, utiliser les defaults + vraies env vars
-    else:
-        with open(env_file) as f:
-            for line in f:
+        raise RuntimeError(
+            ".env.unified introuvable. Vérifier qu'il existe à la racine du projet."
+        )
+    with open(env_file) as f:
+        for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
@@ -105,7 +105,7 @@ def load_config() -> IngestorConfig:
     workshop_root_str = os.getenv("WORKSHOP_CONTENT_ROOT")
 
     return IngestorConfig(
-        CHROMA_HOST=os.getenv("CHROMA_HOST", "http://host.docker.internal:8000"),
+        STORAGE_BACKEND=os.getenv("STORAGE_BACKEND", "sqlite"),
         OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434"),
         EMBEDDING_MODEL=os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
         CLAUDE_API_KEY=os.getenv("CLAUDE_API_KEY"),

@@ -133,12 +133,12 @@ def get_current_game_version() -> GameVersion:
 
 
 def tag_chunk_with_version(chunk: dict) -> dict:
-    """Ensure every ChromaDB chunk dict carries the current game version.
+    """Ensure every storage-backend chunk dict carries the current game version.
 
     This function is the single place where ``game_version`` is stamped onto
-    chunks produced by the parser.  Call it before writing any chunk to
-    ChromaDB so that both the staging and production databases always carry
-    a version tag.
+    chunks produced by the parser.  Call it before writing any chunk to the
+    backend (SQLite/PostgreSQL via StorageBackend) so that both staging and
+    production databases always carry a version tag.
 
     Args:
         chunk: Mutable chunk dict (must contain at least an ``id`` key).
@@ -153,30 +153,30 @@ def tag_chunk_with_version(chunk: dict) -> dict:
     return chunk
 
 
-# ─── ChromaDB filter builders ──────────────────────────────────────────────
+# ─── Storage-backend filter builders (SQLite JSON / MongoDB-style $and) ──────
 
 
 def build_version_filter(
     game_version: GameVersion | str | None = None,
 ) -> dict[str, Any] | None:
-    """Build a ChromaDB-compatible ``$and`` filter for game-version isolation.
+    """Build a storage-backend-compatible ``$and`` filter for game-version isolation.
 
-    ChromaDB's native query API supports MongoDB-style operators such as
-    ``$eq``, ``$and``, and ``$or``.  This helper constructs the minimal
-    expression needed to isolate a single game version:
+    The storage backend (SQLite via JSON operators or PostgreSQL via pgvector) supports
+    MongoDB-style operators such as ``$eq``, ``$and``, and ``$or``.  This helper constructs
+    the minimal expression needed to isolate a single game version:
 
         {"game_version": {"$eq": "b41"}}
 
     When *game_version* is ``None`` the caller should NOT pass a filter at all
-    (returning ``None`` tells callers to omit the filter entirely — ChromaDB
-    has no operator called "$any" that means "all values").
+    (returning ``None`` tells callers to omit the filter entirely — there's no
+    operator that means "all values").
 
     Args:
         game_version: A ``GameVersion`` enum member, its value string ("b41"),
             or ``None`` for unfiltered results.
 
     Returns:
-        A dict ready to be slotted into ChromaDB's ``$and`` expression, or
+        A dict ready to be slotted into StorageBackend's ``$and`` expression, or
         ``None`` when no filtering is desired.
 
     Examples:
@@ -203,7 +203,7 @@ def build_version_and(
     *filters: dict[str, Any],
     game_version: GameVersion | str | None = None,
 ) -> dict[str, Any] | None:
-    """Compose a ChromaDB ``$and`` filter from multiple conditions.
+    """Compose a storage-backend-compatible ``$and`` filter from multiple conditions.
 
     This is the workhorse for queries that need to combine version isolation
     with other constraints (e.g. type, collection).
@@ -214,7 +214,7 @@ def build_version_and(
         ]}
 
     Args:
-        *filters: Additional top-level ChromaDB filter dicts to include in the
+        *filters: Additional top-level storage-backend filter dicts to include in the
             ``$and`` array.
         game_version: Optional version constraint (see :func:`build_version_filter`).
 
@@ -239,7 +239,7 @@ def build_version_and(
 def build_version_not_filter(
     game_version: GameVersion | str,
 ) -> dict[str, Any] | None:
-    """Build a ChromaDB ``$ne`` (not-equal) filter to EXCLUDE a version.
+    """Build a storage-backend-compatible ``$ne`` (not-equal) filter to EXCLUDE a version.
 
         {"game_version": {"$ne": "b41"}}
 

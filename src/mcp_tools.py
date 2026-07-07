@@ -42,19 +42,19 @@ def pz_get_item(
 
     Args:
         item_id: Identifiant deterministe (ex: "Base.Axe", "Recipe.Hatchet")
-        collection: Collection ChromaDB cible ("pz_items" par defaut)
+        collection: Collection du stockage vectoriel cible ("pz_items" par defaut)
         game_version: Version cible du jeu ("b41", "b42", ou None pour toutes)
 
     Returns:
         Dict avec les donnees de l'objet, ou {"error": "..."} si non trouve.
     """
     from src.governance.logger import get_logger
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
 
     logger = get_logger("mcp.pz_get_item")
 
     try:
-        client = ChromaClient(stage="production", host=None)
+        client = get_production_client()  # type: ignore[assignment]
         result = client.get_by_id(item_id, collection=collection, game_version=game_version)
         if result is None:
             return {"error": f"Objet non trouve: {item_id} dans {collection}"}
@@ -65,8 +65,8 @@ def pz_get_item(
             "metadata": result.metadata_,
         }
     except Exception as exc:  # noqa: BLE001
-        logger.exception("pz_get_item(%s) erreur", item_id)
-        return {"error": str(exc)}
+        logger.error("pz_get_item(%s) error: %s", item_id, exc)
+        return {"error": f"Erreur technique lors de la récupération (ID: {item_id}): {str(exc)}"}
 
 
 # =====================================================================
@@ -92,14 +92,14 @@ def pz_search_all(
         Dict avec les resultats tries par pertinence.
     """
     from src.governance.logger import get_logger
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
 
     logger = get_logger("mcp.pz_search_all")
 
     try:
-        client = ChromaClient(stage="production", host=None)
+        client = get_production_client()  # type: ignore[assignment]
         collections = [c for c in client.list_collections()]
-        results = client.search(
+        results = client.query(
             queries=[(c, query) for c in collections],
             n_results=min(n_results, 20),
             game_version=game_version,
@@ -117,8 +117,8 @@ def pz_search_all(
             ],
         }
     except Exception as exc:  # noqa: BLE001
-        logger.exception("pz_search_all(%s) erreur", query)
-        return {"error": str(exc), "query": query}
+        logger.error("pz_search_all(%s) error: %s", query, exc)
+        return {"error": f"Erreur technique lors de la recherche (Query: {query}): {str(exc)}"}
 
 
 # =====================================================================
@@ -192,10 +192,10 @@ def pz_get_mechanic(mechanic_id: str) -> dict[str, Any]:
     Args:
         mechanic_id: Identifiant de la mecanique (ex: "Mechanic.Panic")
     """
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
 
     try:
-        client = ChromaClient(stage="production", host=None)
+        client = get_production_client()  # type: ignore[assignment]
         result = client.get_by_id(mechanic_id, collection="pz_mechanics")
         if result is None:
             return {"error": f"Mecanique non trouvee: {mechanic_id}"}
@@ -216,10 +216,10 @@ def pz_get_recipe(recipe_id: str) -> dict[str, Any]:
     Args:
         recipe_id: Identifiant de la recette
     """
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
 
     try:
-        client = ChromaClient(stage="production", host=None)
+        client = get_production_client()  # type: ignore[assignment]
         result = client.get_by_id(recipe_id, collection="pz_recipes")
         if result is None:
             return {"error": f"Recette non trouvee: {recipe_id}"}
@@ -240,11 +240,11 @@ def pz_get_moddoc(api_name: str) -> dict[str, Any]:
     Args:
         api_name: Nom de l'API ou fonction recherchee
     """
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
 
     try:
-        client = ChromaClient(stage="production", host=None)
-        results = client.search(
+        client = get_production_client()  # type: ignore[assignment]
+        results = client.query(
             queries=[("pz_lua_api", api_name), ("pz_java_api", api_name)],
             n_results=5,
         )
@@ -268,17 +268,17 @@ def pz_get_guide(guide_id: str) -> dict[str, Any]:
     Args:
         guide_id: Identifiant du guide (ex: 'lua_decode_guide')
     """
-    from src.retrieval.chroma_client import ChromaClient  # type: ignore[import-not-found]
+    from src.retrieval import get_production_client  # type: ignore[misc]
     from types import SimpleNamespace
 
     try:
-        client = ChromaClient(stage="production", host=None)
+        client = get_production_client()  # type: ignore[assignment]
         # 1. Tentative par ID exact
         result = client.get_by_id(guide_id, collection="pz_guides")
 
         # 2. Fallback : Recherche semantique si l'ID exact echoue (pour gerer les prefixes de chemin)
         if result is None:
-            search_results = client.query(question=guide_id, k=1)
+            search_results = client.query("pz_guides", guide_id, n_results=1)
             chunks = search_results.get("chunks", [])
             if chunks:
                 chunk = chunks[0]

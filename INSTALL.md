@@ -33,12 +33,9 @@ pip install -r bot/requirements.txt
 
 ### 2. Variables d'environnement
 ```powershell
-# Global
-copy .env.example .env   # puis editer .env
-
-# Notion API (optionnel)
-copy notion_client\.env.notion.example notion_client\.env.notion
-# Remplir NOTION_API_KEY et NOTION_DATABASE_ID dans notion_client/.env.notion
+# Unique : .env.unified a la racine (déjà créé comme template)
+copy .env.unified.example .env.unified   # puis editer les valeurs nécessaires
+# ou utiliser setup.ps1 qui cree .env.unified automatiquement
 ```
 
 ### 3. Playwright Chromium
@@ -47,7 +44,7 @@ pip install playwright
 playwright install chromium
 ```
 
-### 4. Docker (ChromaDB + Bot)
+### 4. Docker (Bot + Ollama)
 ```powershell
 docker compose up -d
 ```
@@ -70,7 +67,7 @@ python -m notion_client --push
 Si tu clones le repo ailleurs, **un seul clic suffit** :
 1. Installer les prérequis (Python, Git, Docker, Ollama)
 2. Lancer `setup.ps1`
-3. Remplir `.env` et `notion_client/.env.notion` avec tes clés
+3. Remplir `.env.unified` à la racine avec tes clés
 
 Le projet est ensuite 100% fonctionnel.
 
@@ -78,8 +75,6 @@ Le projet est ensuite 100% fonctionnel.
 
 | Fichier | Contenu | Où le sauvegarder |
 |---------|---------|-------------------|
-| `.env` | Clés Discord, Ollama, etc. | Toi-même (jamais commité) |
-| `notion_client/.env.notion` | Clé Notion API + DB ID | Toi-même (jamais commité) |
-| `bot/.env` | Token bot Discord | Toi-même (jamais commité) |
+| `.env.unified` | Toutes les clés (Discord, Ollama, Notion, Steam...) | Toi-même (jamais commité) |
 
 Ces fichiers sont dans `.gitignore` — **tu es le seul à les avoir**.

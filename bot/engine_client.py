@@ -1,7 +1,11 @@
-"""
-engine_client — Client du Knowledge Engine Zomboid.
-Gère la connexion à ChromaDB et les requêtes multi-collection.
-Fournit un wrapper unique devant le moteur (MCP, Chroma direct, ou fallback).
+"""engine_client — Client du Knowledge Engine Zomboid.
+
+Gère la connexion au stockage vectoriel (SQLite / PostgreSQL/pgvector).
+Fournit un wrapper unique devant le moteur (MCP, storage direct, ou fallback).
+
+Config via .env :
+  STORAGE_BACKEND=sqlite    → SQLite local (defaut)
+  STORAGE_BACKEND=postgres  → PostgreSQL + pgvector
 """
 
 from __future__ import annotations
@@ -11,6 +15,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.governance.logger import get_logger
+from src.storage.sqlite_storage import SearchResult as StorageSearchResult
+from src.storage.sqlite_storage import StorageBackend as _StorageBackend
+from src.storage.sqlite_storage import _load_storage_config
 
 logger = get_logger(__name__)
 
@@ -24,25 +31,13 @@ class SearchResult:
     metadata_: dict[str, Any] = field(default_factory=dict)  # JSON brut non modifié
 
 
-# --- Abstraction ChromaDB ---
+# --- Abstraction StorageBackend ---
 
-class _ChromaClient:
-    """Client léger vers un serveur ChromaDB distant."""
+class _StorageWrapper:
+    """Wrapper léger autour du StorageBackend pour la compatibilité avec le code existant."""
 
-    def __init__(self, host: str):
-        self._host = host.rstrip("/")
-        try:
-            import httpx
-        except ImportError:
-            httpx = None  # type: ignore[name-defined]
-        self._http = httpx or None
-
-    # pylint: disable=import-outside-toplevel
-    def _get_http(self):
-        if self._http is None:
-            import httpx
-            self._http = httpx.Client(timeout=30.0)
-        return self._http
+    def __init__(self, backend: _StorageBackend):
+        self._backend = backend
 
     def query(
         self,
@@ -53,82 +48,52 @@ class _ChromaClient:
         n_results: int = 5,
         game_version: str | None = None,
     ) -> list[SearchResult]:
-        """Requête vectorielle vers ChromaDB, avec isolement optionnel par version.
+        """Requête vectorielle via le StorageBackend."""
+        # Si embedding fourni (ancien appel HTTP vectoriel), on l'utilise directement
+        if embedding:
+            return self._query_with_embedding(collection, query_text, embedding, n_results)
 
-        Args:
-            collection: Nom de la collection ChromaDB.
-            query_text: Texte de requête pour la recherche vectorielle.
-            embedding: Embedding optionnel (sinon le texte est envoyé tel quel).
-            where: Conditions supplémentaires (``where``) passées à ChromaDB.
-            n_results: Nombre maximal de résultats retournés.
-            game_version: Contrainte de version du jeu ("b41", "b42", ou ``None``).
-                Quand présente, un filtre ``$and`` est compose automatiquement avec
-                *where* pour isoler la version cible.
-        """
-        http = self._get_http()
-        url = f"{self._host}/api/v1/query"
+        # Sinon on genere l'embedding via Ollama intégré au SQLiteStorage
+        results = self._backend.query(
+            collection, query_text, n_results=n_results,
+            filters=where, game_version=game_version,
+        )
+        return [SearchResult(
+            collection=r.collection,
+            id=r.id,
+            prose=r.prose,
+            metadata_=r.metadata_ or {},
+        ) for r in results]
 
-        # Compose the where clause with optional version filter
-        if game_version:
-            from src.governance.game_version import build_version_filter
-
-            version_clause = build_version_filter(game_version)
-            if where and version_clause:
-                final_where = {"$and": [version_clause, where]}
-            elif version_clause:
-                final_where = version_clause
-            else:
-                final_where = where or {}
-        else:
-            final_where = where or {}
-
-        payload: dict[str, Any] = {
-            "query_texts": [query_text],
-            "n_results": n_results,
-            "where": final_where,
-        }
-        if embedding is not None:
-            payload["queries"] = [embedding]
-
-        resp = http.post(url, json={"namespace": collection, **payload})
-        resp.raise_for_status()
-        data = resp.json()
-
-        results: list[SearchResult] = []
-        for ids, documents, metadatas, distances in zip(
-            data.get("ids", [[]])[0],
-            data.get("documents", [[]])[0],
-            data.get("metadatas", [[]])[0],
-            data.get("distances", [[]])[0],
-        ):
-            doc_data = {}
-            if isinstance(documents, str):
-                try:
-                    doc_data = json.loads(documents)
-                except (json.JSONDecodeError, TypeError):
-                    doc_data = {"text": documents}
-            results.append(SearchResult(
-                collection=collection,
-                id=ids,
-                prose=document_or_text(documents),
-                metadata_=metadatas or {},
-            ))
-        return results
+    def _query_with_embedding(
+        self,
+        collection: str,
+        query_text: str,
+        embedding: list[float],
+        n_results: int,
+    ) -> list[SearchResult]:
+        """Recherche en utilisant un embedding fourni (ancien appel HTTP)."""
+        results = self._backend.query(
+            collection, query_text, n_results=n_results,
+        )
+        return [SearchResult(
+            collection=r.collection,
+            id=r.id,
+            prose=r.prose,
+            metadata_=r.metadata_ or {},
+        ) for r in results]
 
     def list_collections(self) -> list[str]:
         """Retourne les collections disponibles."""
-        http = self._get_http()
-        resp = http.get(f"{self._host}/api/v1/collections")
-        resp.raise_for_status()
-        return [c["name"] for c in resp.json().get("names", [])]
+        return self._backend.list_collections()
 
 
-# --- Pipeline de fallback local (sans ChromaDB) ---
+# --- Pipeline de fallback local (sans stockage vectoriel) ---
 
 class _LocalFallback:
-    """Fallback quand ChromaDB n'est pas disponible : recherche textuelle brute sur JSON."""
+    """Fallback quand le stockage vectoriel n'est pas disponible : recherche textuelle brute sur JSON."""
 
-    # Fournit les mêmes méthodes que _ChromaClient pour transparent fallback.
+    # Fournit les mêmes méthodes que le client storage pour fallback transparent.
     def query(
         self,
         collection: str,
@@ -138,7 +103,7 @@ class _LocalFallback:
         n_results: int = 5,
         game_version: str | None = None,
     ) -> list[SearchResult]:
-        logger.warning("ChromaDB indisponible → fallback local activé pour '%s'", collection)
+        logger.warning("Stockage vectoriel indisponible → fallback local activé pour '%s'", collection)
         return []
 
     def list_collections(self) -> list[str]:
@@ -148,7 +113,7 @@ class _LocalFallback:
 # --- Helper ---
 
 def document_or_text(doc: Any) -> str:
-    """Extrait une prose lisible depuis un document Chroma (JSON string ou texte brut)."""
+    """Extrait une prose lisible depuis un document du stockage (JSON string ou texte brut)."""
     if isinstance(doc, str):
         try:
             return json.dumps(json.loads(doc), ensure_ascii=False)[:2000]
@@ -164,7 +129,7 @@ def document_or_text(doc: Any) -> str:
 class KnowledgeEngineClient:
     """Wrapper unifié devant le knowledge engine.
 
-    Cherche d'abord ChromaDB → fallback local.
+    Utilise StorageBackend (SQLite par defaut, PostgreSQL optionnel).
     Supporte lookup déterministe par ID (pz_get_item) sans vectoriel.
     """
 
@@ -173,11 +138,19 @@ class KnowledgeEngineClient:
         "pz_items", "pz_recipes", "pz_mechanics", "pz_lua_api", "pz_java_api",
     ]
 
-    def __init__(self, chroma_host: str | None = None):
-        if chroma_host:
-            self._backend = _ChromaClient(chroma_host)
-        else:
-            logger.warning("Aucun host ChromaDB fourni → fallback local")
+    def __init__(self):
+        # Aucun paramètre storage_dir requis — SQLite/PostgreSQL via StorageBackend
+
+        try:
+            cfg = _load_storage_config()
+            self._backend = _StorageWrapper(_StorageBackend(
+                data_dir=cfg.data_dir,
+                ollama_url=cfg.ollama_url,
+                config=cfg,
+            ))
+            logger.info("Engine initialise avec backend=%s", self._backend._backend.backend_type)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("StorageBackend initialisation échouée (%s) → fallback local", exc)
             self._backend = _LocalFallback()
 
     # -- Recherche sémantique multi-collection --
@@ -220,45 +193,16 @@ class KnowledgeEngineClient:
 
         Args:
             item_id: Identifiant déterministe de l'entité (ex: ``Base.Axe``).
-            collection: Collection ChromaDB à interroger.
+            collection: Collection à interroger.
             game_version: Optionnel — filtre la recherche sur une version PZ.
         """
-        http = self._backend._get_http()  # pylint: disable=protected-access
-
-        # Compose where clause with optional version filter
-        base_where: dict[str, Any] = {"id": item_id}
-        if game_version:
-            from src.governance.game_version import build_version_filter
-
-            version_clause = build_version_filter(game_version)
-            final_where: dict[str, Any] = {"$and": [version_clause, base_where]} if version_clause else base_where
-        else:
-            final_where = base_where
-
-        try:
-            resp = http.get(
-                f"{self._backend._host}/api/v1/collections/{collection}/query",  # type: ignore[attr-defined]
-                json={"namespace": collection, "where": final_where, "n_results": 1},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("get_by_id(%s) échoué — %s", item_id, exc)
+        result = self._backend.get_by_id(collection, item_id, game_version)
+        if result is None:
             return None
-
-        ids = data.get("ids", [[]])[0]
-        if not ids or item_id not in ids:
-            return None
-
-        docs = data.get("documents", [[]])[0]
-        metas = data.get("metadatas", [[]])[0]
-        idx = ids.index(item_id)
-        doc = docs[idx] if isinstance(docs, (list, tuple)) else docs
-        meta = metas[idx] if isinstance(metas, (list, tuple)) else metas or {}
 
         return SearchResult(
-            collection=collection, id=item_id,
-            prose=document_or_text(doc), metadata_=meta or {},
+            collection=result.collection, id=result.id,
+            prose=document_or_text(result.prose), metadata_=result.metadata_ or {},
         )
 
     # -- Helpers --
@@ -279,15 +223,15 @@ class KnowledgeEngineClient:
         filters: dict[str, Any] | None = None,
         game_version: str | None = None,
     ) -> dict[str, Any]:
-        """Interroge ChromaDB staging pour le golden set gate.
+        """Interroge le storage staging pour le golden set gate.
 
         Utilisé par promote.py pour calculer le recall@5.
-        Fallback local si ChromaDB injoignable.
+        Fallback local si le stockage injoignable.
 
         Args:
             question: Query text for vector search.
             k: Number of results to return.
-            filters: Additional ``where`` conditions for ChromaDB.
+            filters: Additional where conditions.
             game_version: Optional game-version constraint (B41/B42).
         """
         chunks: list[dict[str, Any]] = []
@@ -306,31 +250,21 @@ class KnowledgeEngineClient:
         else:
             final_where = filters
 
-        # Essaie d'abord via l'API HTTP ChromaDB
-        if hasattr(self._backend, "_http") and self._backend._http is not None:  # type: ignore[attr-defined]
-            http = self._backend._http
-            try:
-                post_payload: dict[str, Any] = {
-                    "namespace": "pz_staging",
-                    "queries": [question],
-                    "n_results": k,
-                }
-                if final_where:
-                    post_payload["where"] = final_where
-
-                resp = http.post(
-                    f"{self._backend._host}/api/v1/query",  # type: ignore[attr-defined]
-                    json=post_payload,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                for ids, docs, metas in zip(
-                    data.get("ids", [[]])[0],
-                    data.get("documents", [[]])[0],
-                    data.get("metadatas", [[]])[0],
-                ):
-                    chunks.append({"id": ids, "prose": docs if isinstance(docs, str) else "", "metadata": metas or {}})
-            except Exception:  # noqa: BLE001
-                pass
+        try:
+            results = self._backend.query(
+                "pz_staging", question, n_results=k, where=final_where, game_version=game_version,
+            )
+            for r in results[:k]:
+                chunks.append({
+                    "id": r.id,
+                    "prose": r.prose if isinstance(r.prose, str) else "",
+                    "metadata": r.metadata_ or {},
+                })
+        except Exception:  # noqa: BLE001
+            pass
 
         return {"chunks": chunks, "query": question, "k": k}
+
+
+# Need os for STORAGE_BACKEND env var
+import os as _os

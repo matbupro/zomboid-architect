@@ -2,7 +2,7 @@
 
 Ce package expose deux sous-modules :
   - governance: parser, game_version, logger, lock, worker (gouvernance)
-  - retrieval:   interface ChromaDB (query_staging, query_production)
+  - retrieval:   interface storage vectoriel (query_staging, query_production)
 """
 
 from __future__ import annotations

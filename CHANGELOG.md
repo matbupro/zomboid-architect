@@ -8,13 +8,13 @@ Toutes les modifications notables, organisées par session de développement.
 
 ### Nouveau moteur d'ingestion multi-format (Phases 7 → 9)
 
-Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx, epub, web), extraction en texte pur, embedding via Ollama, stockage ChromaDB/SQLite.
+Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx, epub, web), extraction en texte pur, embedding via Ollama, stockage [storage vectoriel]/SQLite.  [historique]
 
 | Fichier | Rôle |
 |---------|------|
 | `ingestor/cli.py` | CLI (`--search`, `--file`, `--dir`, `--crawl`, `--url`, `--list-collections`, `--search-all`) |
 | `ingestor/engine.py` | Router MIME → processeur, détection URL vs fichier |
-| `ingestor/config.py` | Settings centralisés (ChromaDB, Ollama, OCR, web) |
+| `ingestor/config.py` | Settings centralisés ([storage vectoriel], Ollama, OCR, web) |  [historique]
 | `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionResult` |
 | `ingestor/processors/text.py` | Processeur `.txt`, `.md`, `.csv`, `.json` |
 | `ingestor/processors/pdf.py` | PDF → texte (pdfplumber) + OCR fallback (easyocr) |
@@ -25,11 +25,11 @@ Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx
 | `ingestor/processors/epub.py` | eBook `.epub` extraction contenu |
 | `ingestor/processors/web.py` | Crawler Playwright BFS + WebProcessor (readability) |
 | `ingestor/search/duckduckgo.py` | Moteur recherche DuckDuckGo (ddgs v9.x, no API key) |
-| `ingestor/storage/chroma_writer.py` | Writer ChromaDB SDK + Ollama embedding + cross-collection search |
+| `ingestor/storage/storage_writer.py [historique]` | Writer [storage vectoriel] SDK + Ollama embedding + cross-collection search |  [historique]
 | `ingestor/quarantine_manager.py` | Dédup SHA-256, circuit breaker, monitoring disque |
 | `ingestor/requirements.txt` | Dépendances Python du moteur d'ingestion |
 
-#### Collections ChromaDB ajoutées
+#### Collections [storage vectoriel] ajoutées  [historique]
 | Collection | Contenu |
 |------------|---------|
 | `pz_web_pages` | Pages web crawlées (DuckDuckGo + Playwright) |
@@ -51,7 +51,7 @@ Generation de mods PZ valides depuis description textuelle.
 
 ### Storage layer SQLite avec embedding Ollama (Phase 3.5 V1)
 
-Remplacement de ChromaDB par SQLite local — zéro service externe requis.
+Remplacement de [storage vectoriel] par SQLite local — zéro service externe requis.  [historique]
 
 | Fichier | Rôle |
 |---------|------|
@@ -63,13 +63,13 @@ Remplacement de ChromaDB par SQLite local — zéro service externe requis.
 - Similarité cosinus en SQL pur + Python (pas de dépendance C extension)
 - Embedding Ollama auto-généré à l'écriture
 - Metadata filtering ($and / $eq / version) via JSON operators SQLite `->>`
-- `StorageBackend` unifié avec fallback auto ChromaDB → SQLite
+- `StorageBackend` unifié avec fallback auto [storage vectoriel] → SQLite  [historique]
 
 ### Bot Discord complet (Phase Bot)
 
 - Slash commands : `/help`, `/stats`, `/survie`, `/recipe`, `/moddoc`, `/search`, `/modgen`
 - Mode DM automatique, Docker compose (3 services), scripts `run-bot.ps1/bat`
-- Pipeline : message → detect_intent → enrich_context (ChromaDB/fallback) → LLM.complete
+- Pipeline : message → detect_intent → enrich_context ([storage vectoriel]/fallback) → LLM.complete  [historique]
 
 ### Hardening + Infrastructure (Phase 10 & 13)
 
@@ -80,7 +80,7 @@ Remplacement de ChromaDB par SQLite local — zéro service externe requis.
 
 ### Corrections de bugs
 
-9 fixes inclus (import circulaire WebProcessor, CLI bloqué input(), FileNotFoundError engine.ingest(), Chunk missing start_offset, ChromaDB upsert [[...]], UnicodeEncodeError emoji Windows CMD, ChromaDB query_embeddings rename, DDGS regions→region, DDGS time param removed) + MIME detection fallback `peek_text()` + 0 quarantine false-positives
+9 fixes inclus (import circulaire WebProcessor, CLI bloqué input(), FileNotFoundError engine.ingest(), Chunk missing start_offset, [storage vectoriel] upsert [[...]], UnicodeEncodeError emoji Windows CMD, [storage vectoriel] query_embeddings rename, DDGS regions→region, DDGS time param removed) + MIME detection fallback `peek_text()` + 0 quarantine false-positives  [historique]
 
 ---
 
@@ -88,14 +88,14 @@ Remplacement de ChromaDB par SQLite local — zéro service externe requis.
 
 ### Phase 6 : Filtrage B41/B42 natif dans le pipeline de requete
 
-Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$and` natifs de ChromaDB.
+Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$and` natifs de [storage vectoriel].  [historique]
 
 #### Fichiers modifies
 
 | Fichier | Changement |
 |---------|-----------|
 | `src/governance/game_version.py` | +3 fonctions : `build_version_filter()`, `build_version_and()`, `build_version_not_filter()` |
-| `src/retrieval/chroma_client.py` | `query()` accepte `game_version` — compose automatiquement $and avec filters existants |
+| `[fichier supprimé — sqlite_storage.py] [historique]` | `query()` accepte `game_version` — compose automatiquement $and avec filters existants |
 | `bot/engine_client.py` | `search()`, `get_by_id()`, `query_staging()` propagent tous `game_version` via $and |
 | `bot/pipeline.py` | `enrich_context()` et `process_message()` passent `game_version` au moteur |
 | `bot/main.py` | Resolution de PZ_GAME_VERSION au demarrage + propagation dans le pipeline bot |
@@ -105,7 +105,7 @@ Isolement complet des donnees par version du jeu (B41 vs B42) via les filtres `$
 
 | Fichier | Tests |
 |---------|-------|
-| `tests/test_game_version_filtering.py` | 24 tests (filter builders, tag_chunk, integration chroma_client/engine_client) |
+| `tests/test_game_version_filtering.py` | 24 tests (filter builders, tag_chunk, integration [storage vectoriel] client (historique)/engine_client) |
 
 ### Moteur de generation de mods (`src/modgen/`) — nouvelle (Phase 12)
 
@@ -144,7 +144,7 @@ Generation de mods Project Zomboid valides a partir d'une description textuelle.
 
 ### Moteur d'ingestion multi-format (`ingestor/`) — nouveau
 
-Création complète du moteur d'ingestion multi-modal : lecture de **tout format** (PDF, images, vidéo, audio, docx, epub) et du **web**, extraction en texte pur, embedding via Ollama, stockage ChromaDB.
+Création complète du moteur d'ingestion multi-modal : lecture de **tout format** (PDF, images, vidéo, audio, docx, epub) et du **web**, extraction en texte pur, embedding via Ollama, stockage [storage vectoriel].  [historique]
 
 #### Nouveaux fichiers créés
 
@@ -152,7 +152,7 @@ Création complète du moteur d'ingestion multi-modal : lecture de **tout format
 |---------|------|
 | `ingestor/cli.py` | Entrée CLI (`--search`, `--file`, `--dir`, `--crawl`, `--url`, `--list-collections`, `--search-all`) |
 | `ingestor/engine.py` | Router MIME → processeur, détection URL vs fichier |
-| `ingestor/config.py` | Settings centralisés (ChromaDB, Ollama, OCR, web) |
+| `ingestor/config.py` | Settings centralisés ([storage vectoriel], Ollama, OCR, web) |  [historique]
 | `ingestor/processors/base.py` | Interface `Processor`, dataclasses `Chunk`, `ExtractionRe
 sult` |
 | `ingestor/processors/text.py` | Processeur `.txt`, `.md`, `.csv`, `.json` |
@@ -164,12 +164,12 @@ sult` |
 | `ingestor/processors/epub.py` | eBook `.epub` extraction contenu |
 | `ingestor/processors/web.py` | Crawler Playwright BFS + WebProcessor (extraction HTML/readability) |
 | `ingestor/search/duckduckgo.py` | Moteur recherche DuckDuckGo (ddgs v9.x, no API key) |
-| `ingestor/storage/chroma_writer.py` | Writer ChromaDB SDK + Ollama embedding + cross-collection search |
+| `ingestor/storage/storage_writer.py [historique]` | Writer [storage vectoriel] SDK + Ollama embedding + cross-collection search |  [historique]
 | `ingestor/quarantine_manager.py` | Dédup SHA-256, circuit breaker, monitoring disque |
 | `ingestor/requirements.txt` | Dépendances Python du moteur d'ingestion |
 | `ingestor/README.md` | Documentation du module |
 
-#### Collections ChromaDB ajoutées
+#### Collections [storage vectoriel] ajoutées  [historique]
 
 | Collection | Contenu |
 |------------|---------|
@@ -201,9 +201,9 @@ Le crawler `search_and_crawl()` tentait d'importer `web` depuis le package `inge
 ```python
 _auto_accept = not sys.stdin.isatty()  # piped/CI → auto yes
 try:
-    store = input("...") if _auto_accept else "y"
+store = input("...") if _auto_accept else "y"
 except EOFError:
-    store = "y"  # pipe fermé → auto yes
+store = "y"  # pipe fermé → auto yes
 ```
 
 #### Bug 3 — `engine.ingest(query)` → `FileNotFoundError` (`cli.py`)
@@ -213,7 +213,7 @@ except EOFError:
 **Fix :** [ingestor/cli.py](ingestor/cli.py) — utiliser directement les `SearchResult.body` du crawl :
 ```python
 all_chunks.append(BaseChunk(text=r.body, index=i, start_offset=0))
-await write_chunks_to_chroma(chunks=all_chunks, ...)
+await write_chunks_to_storage [historique](chunks=all_chunks, ...)
 ```
 
 #### Bug 4 — `Chunk.__init__()` manquait `start_offset` (`cli.py`)
@@ -225,11 +225,11 @@ Le Chunk créé manuellement omettait le champ `start_offset: int` requis.
 BaseChunk(text=r.body, index=i, start_offset=0)  # + start_offset obligatoire
 ```
 
-#### Bug 5 — Upsert ChromaDB `[[...]]` imbriqué (`chroma_writer.py`)
+#### Bug 5 — Upsert [storage vectoriel] `[[...]]` imbriqué (`storage_writer.py`)  [historique]
 
 Les listes de documents et metadatas étaient enveloppées dans une paire de crochets superflue `[docs_w]`, rendant les dimensions incompatibles.
 
-**Fix :** [ingestor/storage/chroma_writer.py](ingestor/storage/chroma_writer.py):
+**Fix :** [ingestor/storage/storage_writer.py [historique]](ingestor/storage/storage_writer.py [historique]):
 ```python
 # Before: col.upsert(ids=ids, embeddings=[[...]], documents=[[...]], metadatas=[[...]])
 # After:  ids_w = [x[1] for x in with_embed]; vecs_w = [...]
@@ -243,16 +243,16 @@ Windows CMD encode stdout en CP1252 par défaut → crash sur tout caractère no
 **Fix :** [ingestor/cli.py](ingestor/cli.py):
 ```python
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
 ```
 
-#### Bug 7 — Query ChromaDB `embeddings=` invalide (`chroma_writer.py`)
+#### Bug 7 — Query [storage vectoriel] `embeddings=` invalide (`storage_writer.py`)  [historique]
 
-Le SDK ChromaDB v1.5+ a renommé `embeddings` → `query_embeddings` dans la méthode `Collection.query()`. Renvoyait `unexpected keyword argument 'embeddings'`.
+Le SDK [storage vectoriel] v1.5+ a renommé `embeddings` → `query_embeddings` dans la méthode `Collection.query()`. Renvoyait `unexpected keyword argument 'embeddings'`.  [historique]
 
-**Fix :** [ingestor/storage/chroma_writer.py](ingestor/storage/chroma_writer.py):
+**Fix :** [ingestor/storage/storage_writer.py [historique]](ingestor/storage/storage_writer.py [historique]):
 ```python
 # Before: kwargs["embeddings"] = [embedding]
 # After:  kwargs["query_embeddings"] = [embedding]
@@ -300,7 +300,7 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 ### Dépendances Python installées
 
 - **ddgs v9.x** — successeur de `duckduckgo-search` (API breaking changes)
-- **chromadb 1.5.9** — SDK officiel avec auto-détection API v2
+- **storage_vectoriel 1.5.9** — SDK officiel avec auto-détection API v2  [historique]
 - **playwright** + browsers Chromium
 - **easyocr**, **pdfplumber**, **python-docx**, **ebooklib**, **readability-lxml**, **httpx**, etc.
 
@@ -322,7 +322,7 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 ### 2026-07-02 - commit 1298527
 
 **Changements :**
-- feat: tests Phase 5+11 — golden set recall@5 (17) + chroma_writer unitaires (39), 53/53 total
+- feat: tests Phase 5+11 — golden set recall@5 (17) + storage_writer unitaires (39), 53/53 total
 
 ### 2026-07-02 - commit ba66597
 
@@ -352,7 +352,7 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 ### 2026-07-05 - commit b37baee
 
 **Changements :**
-- fix(ingest/promote): metadata loss, filter mapping, ChromaDB SDK migration
+- fix(ingest/promote): metadata loss, filter mapping, [storage vectoriel] SDK migration  [historique]
 
 ### 2026-07-05 - commit c6fa309
 
