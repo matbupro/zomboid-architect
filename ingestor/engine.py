@@ -243,6 +243,7 @@ class IngestionEngine:
             logger.info("Ingestion fichier : %s (type=%s)", p.name, content_type)
 
             from .processors import pbo as pbo_proc
+            from .processors import wikijson as wikijson_proc
 
             processors = {
                 "text": text.TextProcessor(self.config),
@@ -254,6 +255,25 @@ class IngestionEngine:
                 "epub": epub.EpubProcessor(self.config),
                 "pbo": pbo_proc.PBOProcessor(self.config),  # .pbo archive processing
             }
+
+            # WikiJson — special case: source peut etre dossier OU fichier JSON
+            if isinstance(source, Path) and source.is_dir():
+                logger.info("Ingestion Data Drive (dossier) : %s", source.name)
+                result = await wikijson_proc.WikiJsonProcessor(self.config).extract(str(source))
+                collection = collection or "pz_items"
+                # Sauvegarde brute (comme le path standard ci-dessous)
+                raw_dir = self.config.DATA_ROOT / "raw"
+                try:
+                    saved_path = result.save_raw(raw_dir / collection)
+                    logger.debug("Raw persiste : %s", saved_path)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Echec sauvegarde brute de '%s' : %s", source_str, exc)
+                logger.info("Ingestion Data Drive → %d chunks dans '%s'", len(result.chunks), collection)
+                result.collection = collection
+                return result
+
+            # Si c'est un fichier .json → utiliser le text processor (pas wikijson automatique)
+            # Le wikijson est appele via --ingest-wikidrive explicitement
 
             processor = processors.get(processor_key)
             if processor is None:

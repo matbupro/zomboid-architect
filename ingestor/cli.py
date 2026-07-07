@@ -99,6 +99,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", "-v", action="store_true", help="Mode verbeux")
     parser.add_argument("--collection", type=str, help="Collection storage cible (ex: pz_guides)")
 
+    # PZ Data Drive command
+    drive_group = parser.add_mutually_exclusive_group()
+    drive_group.add_argument("--ingest-wikidrive", type=str, metavar="PATH_OR_URL", help="Ingerer le PZ Data Drive (Wiki.json) depuis un fichier ou dossier local")
+
     # Steam & Mod commands (groupse a part)
     steam_group = parser.add_mutually_exclusive_group()
     steam_group.add_argument("--steam-scan", action="store_true", help="Scanner Steam pour Project Zomboid (registry + bibliotheques)")
@@ -573,6 +577,76 @@ async def handle_workshop_scan(args: argparse.Namespace) -> None:
         print(f"\n... et {len(mods) - 50} autres mods (affichages limites a 50).")
 
 
+async def handle_wikidrive(args: argparse.Namespace) -> None:
+    """Commande : --ingest-wikidrive <PATH_OR_URL>"""
+    from pathlib import Path
+    from urllib.parse import urlparse
+
+    from .config import load_config
+    from .engine import IngestionEngine
+    from .processors.wikijson import WikiJsonProcessor
+    from .storage.pz_storage import PZStorageExt
+
+    source = args.ingest_wikidrive
+    if not source:
+        logger.error("--ingest-wikidrive requis : chemin vers Wiki.json ou dossier de data drive")
+        return
+
+    # Detecter si c'est un fichier, dossier ou URL
+    p = Path(source) if not urlparse(source).scheme else None
+    is_url = bool(urlparse(source).scheme)
+    is_dir = p.is_dir() if p else False
+    is_file = p.is_file() if p else False
+
+    config = load_config()
+    engine = IngestionEngine(config)
+    ext = PZStorageExt(ollama_url=config.OLLAMA_BASE_URL)
+
+    # Start tracking (si PG dispo)
+    run_id = None
+    try:
+        await ext.init_pg()
+        run_id = await ext.start_ingestion_run(
+            source_type="wikidrive",
+            source_url=source if is_url else None,
+            source_file=str(source) if p and p.is_file() else None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("PG non dispo pour tracking (%s) — ingestion quand meme", exc)
+
+    logger.info("Ingestion Data Drive depuis : %s (fichier=%s dossier=%s url=%s)", source, is_file, is_dir, is_url)
+    processor = WikiJsonProcessor(config, source=source)
+    result = await processor.extract()
+
+    # Summary par category
+    categories: dict[str, int] = {}
+    for chunk in result.chunks:
+        cat = chunk.metadata.get("type", "unknown")
+        categories[cat] = categories.get(cat, 0) + 1
+
+    print(f"\n{'='*70}")
+    print(f"=== Ingestion Data Drive (Wiki.json) ===")
+    print(f"  Source     : {source}")
+    print(f"  Fichiers   : {result.source_data_size if hasattr(result, 'source_data_size') else '-'} octets bruts")
+    print(f"  Chunks     : {len(result.chunks)} genertes ({result.word_count} mots)")
+    print(f"  Categorie  : {len(result.metadata.get('categories_processed', []))}")
+    print(f"  Temps      : {result.extraction_time_ms:.0f}ms")
+    if result.file_hash:
+        print(f"  SHA-256    : {result.file_hash[:16]}...")
+
+    categories_str = ", ".join(f"{k}:{v}" for k, v in sorted(categories.items()))
+    print(f"  Par type   : {categories_str}")
+    print(f"{'='*70}\n")
+
+    # Complete tracking (si PG dispo)
+    if run_id:
+        try:
+            await ext.complete_ingestion_run(run_id, chunks_generated=len(result.chunks))
+            logger.info("Tracking PG complete : %s", run_id[:8])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Echec tracking PG : %s", exc)
+
+
 async def handle_mod_ingest(args: argparse.Namespace) -> None:
     """Commande : --mod-ingest DIR"""
     from pathlib import Path
@@ -630,6 +704,8 @@ async def main(args: argparse.Namespace) -> None:
         await handle_workshop_scan(args)
     elif args.mod_ingest is not None:
         await handle_mod_ingest(args)
+    elif args.ingest_wikidrive is not None:
+        await handle_wikidrive(args)
     # Standard commands
     elif args.search:
         await handle_search(args)

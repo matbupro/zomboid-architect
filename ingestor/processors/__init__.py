@@ -14,6 +14,7 @@ from .docx import DocxProcessor
 from .epub import EpubProcessor
 from .web import WebProcessor
 from .pbo import PBOProcessor
+from .wikijson import WikiJsonProcessor
 
 __all__ = [
     "TextProcessor",
@@ -25,4 +26,5 @@ __all__ = [
     "EpubProcessor",
     "WebProcessor",
     "PBOProcessor",
+    "WikiJsonProcessor",
 ]
