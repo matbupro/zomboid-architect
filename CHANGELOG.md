@@ -442,3 +442,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore(tasks): mark completed checkboxes for S1/S2/S4 (validated against commits 15e529f + 41f250b)
+
+### 2026-07-07 - commit 5eba12b
+
+**Changements :**
+- feat(agent_core): S3 LangGraph agent loop — complete implementation

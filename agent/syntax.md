@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-07 par sync_agent.ps1 automatique.**
 
-Dernier commit : ae6317d
+Dernier commit : 5eba12b
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -51,6 +51,12 @@ Version moteur : 0.4.0-alpha
   |-- downloads/steamcmd_doc.html
   |-- downloads/steamcmd_wiki.html
   |-- ingestor/__init__.py
+  |-- ingestor/agent_core/__init__.py
+  |-- ingestor/agent_core/graph.py
+  |-- ingestor/agent_core/nodes.py
+  |-- ingestor/agent_core/policy.py
+  |-- ingestor/agent_core/state.py
+  |-- ingestor/agent_core/validation.py
   |-- ingestor/cli.py
   |-- ingestor/config.py
   |-- ingestor/Dockerfile

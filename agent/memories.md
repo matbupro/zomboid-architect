@@ -70,3 +70,6 @@ Correction orthographe — ~170 accents diacritiques corrigés dans README, CHAN
 
 ## Session du 2026-07-07
 Auto-sync: S1 infra + S2 schema commit, pz-agent Docker stack running, PostgreSQL 16+PostGIS with 16 tables + 5 views
+
+## Session du 2026-07-07
+feat: S3 LangGraph agent loop implementation — new ingestor/agent_core/ package with 6 files, state machine, validation levels, retry policy
