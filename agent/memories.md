@@ -64,3 +64,6 @@ Suppression 12 golden reports obsolètes + 6 fichiers database/ superseded. Proj
 ### 2026-07-02 — Foundation phases
 - Phase 5+11 tests : golden set recall@5 (17/17) + StorageWriter unitaires (22/22), commit 1298527
 - P0 audit remediation: fixed collection mapping in engine.py, async health checks in bot/main.py, DRY imports via _import_compat.py, heartbeat + stale lock recovery in governance/lock.py
+
+## Session du 2026-07-07
+Correction orthographe — ~170 accents diacritiques corrigés dans README, CHANGELOG, docs/, agent/, et annotations Python (modgen/)

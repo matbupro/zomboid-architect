@@ -432,3 +432,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - chore: verify todo list checkboxes — Phase 1 Lua UI + Phase 4 MCP/watchdog + Phase 5 CI reports + Phase 12.8 steam upload
+
+### 2026-07-07 - commit 8b7d8ee
+
+**Changements :**
+- chore(docs): correction fautes orthographe françaises — ~170 accents diacritiques (README, CHANGELOG, docs/, agent/, modgen/)

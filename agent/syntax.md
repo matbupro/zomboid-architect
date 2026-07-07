@@ -1,16 +1,15 @@
-# État Actuel du Projet
+# Etat Actuel du Projet
 
 ## Status
-**Dernière MAJ agent/ : 2026-07-06 par sync_agent.ps1 automatique.**
+**Derniere MAJ agent/ : 2026-07-07 par sync_agent.ps1 automatique.**
 
-Dernier commit : 1a4cb47
+Dernier commit : 8b7d8ee
 Version moteur : 0.4.0-alpha
 
-## Arborescence (git ls-files, mise à jour auto)
+## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
-  |-- .env.example
   |-- .github/workflows/tests.yml
   |-- .gitignore
   |-- agent/.agent_memory.md
@@ -38,7 +37,6 @@ Version moteur : 0.4.0-alpha
   |-- bot/requirements.txt
   |-- CHANGELOG.md
   |-- CLAUDE.md
-  |-- data/raw/.gitkeep
   |-- docker-compose.yml
   |-- docs/lua-ui/index.md
   |-- docs/lua-ui/README.md
@@ -51,7 +49,6 @@ Version moteur : 0.4.0-alpha
   |-- downloads/steamcli_auth.whl
   |-- downloads/steamcmd_doc.html
   |-- downloads/steamcmd_wiki.html
-  |-- downloads/Steam-QR-Code-Login
   |-- ingestor/__init__.py
   |-- ingestor/cli.py
   |-- ingestor/config.py
@@ -77,7 +74,6 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/pz_game_ingester.py
   |-- ingestor/quarantine_manager.py
   |-- ingestor/README.md
-|-- ingestor/[supprimé]
   |-- ingestor/regression.py
   |-- ingestor/requirements.txt
   |-- ingestor/search/__init__.py
@@ -90,13 +86,12 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/steam/qr_auth.py
   |-- ingestor/steam/steamcmd_client.py
   |-- ingestor/steam/workshop_scanner.py
-|-- ingestor/storage/[supprimé — storage_writer.py]
+  |-- ingestor/storage/storage_writer.py
   |-- ingestor/tag_release.py
   |-- ingestor/watchdog.py
   |-- INSTALL.md
   |-- Makefile
   |-- mods/.gitkeep
-  |-- notion_client/.env.notion.example
   |-- notion_client/.gitignore
   |-- notion_client/__init__.py
   |-- notion_client/__main__.py
@@ -116,12 +111,27 @@ Version moteur : 0.4.0-alpha
   |-- notion_sync.py
   |-- pytest.ini
   |-- README.md
+  |-- reports/golden_report_20260706_065152.json
+  |-- reports/golden_report_20260706_065152.md
+  |-- reports/golden_report_20260706_065828.json
+  |-- reports/golden_report_20260706_065828.md
+  |-- reports/golden_report_20260706_070429.json
+  |-- reports/golden_report_20260706_070429.md
+  |-- reports/golden_report_20260706_071319.json
+  |-- reports/golden_report_20260706_071319.md
+  |-- reports/golden_report_20260706_071409.json
+  |-- reports/golden_report_20260706_071409.md
+  |-- reports/golden_report_20260706_071500.json
+  |-- reports/golden_report_20260706_071500.md
   |-- requirements.txt
+  |-- resources/lua_debug_guide.md
+  |-- resources/survival_mechanics_ref.md
   |-- restore.py
   |-- run-bot.bat
   |-- run-bot.ps1
   |-- setup.ps1
   |-- src/__init__.py
+  |-- src/constants_shared.py
   |-- src/governance/__init__.py
   |-- src/governance/_import_compat.py
   |-- src/governance/game_version.py
@@ -145,14 +155,13 @@ Version moteur : 0.4.0-alpha
   |-- src/modgen/templates/shared_script.lua.j2
   |-- src/modgen/templates/ZomboidModDescriptor.txt.j2
   |-- src/retrieval/__init__.py
-|-- src/retrieval/[supprimé — sqlite_storage.py]
   |-- src/storage/__init__.py
+  |-- src/storage/postgres_backend.py
   |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
   |-- tests/test_brave_search.py
-  |-- tests/test_storage_writer.py
   |-- tests/test_cli.py
   |-- tests/test_game_version_filtering.py
   |-- tests/test_golden_set.py
@@ -163,13 +172,16 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_mod_ingester.py
   |-- tests/test_modgen.py
   |-- tests/test_modgen_integration.py
+  |-- tests/test_new_mcp_tool.py
   |-- tests/test_pbo_processor.py
   |-- tests/test_regression.py
   |-- tests/test_sqlite_storage.py
   |-- tests/test_steamcmd_client.py
+  |-- tests/test_storage_writer.py
   |-- tests/test_tag_release.py
   |-- tests/test_watchdog.py
   |-- tests/test_workshop_scanner.py
+  |-- tests/validation_suite.py
   |-- tools/steamcmd/.crash
   |-- tools/steamcmd/appcache/appinfo.vdf
   |-- tools/steamcmd/appcache/packageinfo.vdf
@@ -378,26 +390,26 @@ Version moteur : 0.4.0-alpha
   |-- Zomboid_Architect.code-workspace
 `
 
-## Fichiers Mémoire Actifs
+## Fichiers Memoire Actifs
 
 | Fichier | Role |
 |---------|------|
-| [GOAL.md](GOAL.md) | Objectif principal du projet + créateur |
-| [rules.md](rules.md) | 12 commandements + règles d'or |
-| [todo.md](todo.md) | TODO list complétée (mise à jour continue) |
+| [GOAL.md](GOAL.md) | Objectif principal du projet + createur |
+| [rules.md](rules.md) | 12 commandements + regles d'or |
+| [todo.md](todo.md) | TODO list completee (mise a jour continue) |
 | [architecture.md](architecture.md) | Stack technique, arborescence, flux, MCP |
-| [memories.md](memories.md) | Souvenirs, infos utilisateur, astuces trouvées |
-| [syntax.md](syntax.md) | État actuel du projet (ce fichier) |
+| [memories.md](memories.md) | Souvenirs, infos utilisateur, astuces trouvees |
+| [syntax.md](syntax.md) | Etat actuel du projet (ce fichier) |
 
 ## Contexte Technique
 
 - **Projet :** F:\Antigravity DEV\Zomboid_Architect
-- **Créateur :** ElChibros
-- **Clef du dossier mémoire :** agent/ - accès libre pour organisation interne de l'agent
-- **Mémoire Claude Code native :** ~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/ (chargement automatique)
+- **Createur :** ElChibros
+- **Clef du dossier memoire :** agent/ - acces libre pour organisation interne de l'agent
+- **Memoire Claude Code native :** ~/.claude/projects/f--Antigravity-DEV-Zomboid-Architect/memory/ (chargement automatique)
 
 ## Historique des MAJ agent/
 
 | Date | Action | Detail |
 |------|--------|--------|
-| 2026-07-06 | sync_agent.ps1 | MAJ auto - tree, last commit, version |
+| 2026-07-07 | sync_agent.ps1 | MAJ auto - tree, last commit, version |
