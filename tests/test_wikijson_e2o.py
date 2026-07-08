@@ -503,9 +503,9 @@ async def test_e2o_metadata_propagates_through_pipeline(tmp_path: Path):
     # Ecrire et verifier preservation via count (metadata persist en JSONB)
     pg_data_dir = str(tmp_path / "pg_data_meta")
     writer = StorageWriter(ollama_url="http://x:11434")
-    # Override le backend pour utiliser un data_dir unique par test
-    from src.storage.sqlite_storage import StorageBackend
-    writer._backend = StorageBackend(data_dir=pg_data_dir, ollama_url=None)
+    # Override le backend pour utiliser PG local par test
+    from src.storage import create_backend
+    writer._backend = create_backend()
     written = await writer.write_chunks_to_storage(
         chunks=result.chunks, source=str(f), collection="pz_metadata",
         metadata={"pipeline": "e2o_test"},

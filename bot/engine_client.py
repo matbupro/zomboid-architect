@@ -1,11 +1,10 @@
 """engine_client — Client du Knowledge Engine Zomboid.
 
-Gère la connexion au stockage vectoriel (SQLite / PostgreSQL/pgvector).
+Gère la connexion au stockage vectoriel (PostgreSQL/pgvector).
 Fournit un wrapper unique devant le moteur (MCP, storage direct, ou fallback).
 
 Config via .env :
-  STORAGE_BACKEND=sqlite    → SQLite local (defaut)
-  STORAGE_BACKEND=postgres  → PostgreSQL + pgvector
+  STORAGE_BACKEND=postgres  → PostgreSQL + pgvector (defaut)
 """
 
 from __future__ import annotations
@@ -15,9 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from src.governance.logger import get_logger
-from src.storage.sqlite_storage import SearchResult as StorageSearchResult
-from src.storage.sqlite_storage import StorageBackend as _StorageBackend
-from src.storage.sqlite_storage import _load_storage_config
+from src.storage import StorageBackend as _StorageBackend, SearchResult, create_backend
 
 logger = get_logger(__name__)
 
@@ -185,15 +182,9 @@ class KnowledgeEngineClient:
     ]
 
     def __init__(self):
-        # Aucun paramètre storage_dir requis — SQLite/PostgreSQL via StorageBackend
-
+        # Utiliser create_backend() — STORAGE_BACKEND env controlle le backend
         try:
-            cfg = _load_storage_config()
-            self._backend = _StorageWrapper(_StorageBackend(
-                data_dir=cfg.data_dir,
-                ollama_url=cfg.ollama_url,
-                config=cfg,
-            ))
+            self._backend = _StorageWrapper(create_backend())
             logger.info("Engine initialise avec backend=%s", self._backend._backend.backend_type)
         except Exception as exc:  # noqa: BLE001
             logger.warning("StorageBackend initialisation échouée (%s) → fallback local", exc)

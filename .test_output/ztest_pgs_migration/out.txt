@@ -1,0 +1,880 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\ElChibros\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: F:\Antigravity DEV\Zomboid_Architect
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.14.1, hypothesis-6.155.7, langsmith-0.9.3, asyncio-1.4.0, cov-7.1.0, mock-3.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 604 items
+
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_creates_table FAILED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create FAILED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateStorageWriter::test_writer_ensure_collection PASSED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateStorageWriter::test_writer_write_chunks_auto_create PASSED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_calls_qdrant_when_ready FAILED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_fallback_no_crash FAILED [  0%]
+tests/test_auto_create_collections.py::TestAutoCreateQdrantSync::test_sync_embeddings_calls_ensure_collection FAILED [  1%]
+tests/test_brave_search.py::test_check_brave_installed_without_key PASSED [  1%]
+tests/test_brave_search.py::test_check_brave_installed_with_key PASSED   [  1%]
+tests/test_brave_search.py::test_search_without_key_returns_empty PASSED [  1%]
+tests/test_brave_search.py::test_search_without_httpx_returns_empty PASSED [  1%]
+tests/test_brave_search.py::test_search_result_dataclass_creation PASSED [  1%]
+tests/test_brave_search.py::test_search_result_body_assignment PASSED    [  2%]
+tests/test_brave_search.py::test_search_max_results_capped_in_code PASSED [  2%]
+tests/test_cli.py::test_parser_steam_scan_flag PASSED                    [  2%]
+tests/test_cli.py::test_parser_workshop_scan_flag PASSED                 [  2%]
+tests/test_cli.py::test_parser_mod_ingest_arg PASSED                     [  2%]
+tests/test_cli.py::test_parser_steamcmd_download_arg PASSED              [  2%]
+tests/test_cli.py::test_parser_steamcmd_install_mod_arg PASSED           [  3%]
+tests/test_cli.py::test_parser_mutual_exclusion PASSED                   [  3%]
+tests/test_cli.py::test_parser_max_depth_default PASSED                  [  3%]
+tests/test_cli.py::test_parser_max_pages_default PASSED                  [  3%]
+tests/test_cli.py::test_build_parser_returns_argumentparser PASSED       [  3%]
+tests/test_cli.py::test_build_parser_has_steam_actions PASSED            [  3%]
+tests/test_cli.py::test_build_parser_has_search_group PASSED             [  4%]
+tests/test_cli.py::test_handle_steam_scan_with_found_path PASSED         [  4%]
+tests/test_cli.py::test_handle_steam_scan_with_nothing_found PASSED      [  4%]
+tests/test_game_version_filtering.py::test_build_version_filter_b41 PASSED [  4%]
+tests/test_game_version_filtering.py::test_build_version_filter_b42 PASSED [  4%]
+tests/test_game_version_filtering.py::test_build_version_filter_string PASSED [  4%]
+tests/test_game_version_filtering.py::test_build_version_filter_none_returns_none PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_and_composes_multiple PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_and_only_version PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_and_no_filters_returns_none PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_and_empty_dict_skipped PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_not_filter_b41 PASSED [  5%]
+tests/test_game_version_filtering.py::test_build_version_not_filter_string PASSED [  6%]
+tests/test_game_version_filtering.py::test_build_version_not_filter_none_returns_none PASSED [  6%]
+tests/test_game_version_filtering.py::test_tag_chunk_stamps_metadata PASSED [  6%]
+tests/test_game_version_filtering.py::test_tag_chunk_creates_metadata_if_missing PASSED [  6%]
+tests/test_game_version_filtering.py::test_tag_chunk_preserves_existing_metadata PASSED [  6%]
+tests/test_game_version_filtering.py::test_storage_backend_query_accepts_game_version FAILED [  6%]
+tests/test_game_version_filtering.py::test_knowledge_engine_search_accepts_game_version PASSED [  7%]
+tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_accepts_game_version FAILED [  7%]
+tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_no_version_filter FAILED [  7%]
+tests/test_game_version_filtering.py::test_query_staging_accepts_game_version PASSED [  7%]
+tests/test_game_version_filtering.py::test_and_filter_structure_is_storage_backend_compatible PASSED [  7%]
+tests/test_game_version_filtering.py::test_single_filter_still_wrapped_in_and PASSED [  7%]
+tests/test_game_version_filtering.py::test_game_version_from_string_case_insensitive PASSED [  8%]
+tests/test_game_version_filtering.py::test_game_version_from_string_invalid PASSED [  8%]
+tests/test_game_version_filtering.py::test_game_version_all_returns_list PASSED [  8%]
+tests/test_golden_set.py::test_gate_result_passes_at_threshold PASSED    [  8%]
+tests/test_golden_set.py::test_gate_result_fails_below_threshold PASSED  [  8%]
+tests/test_golden_set.py::test_gate_result_perfect PASSED                [  8%]
+tests/test_golden_set.py::test_gate_result_empty PASSED                  [  9%]
+tests/test_golden_set.py::test_gate_result_to_dict PASSED                [  9%]
+tests/test_golden_set.py::test_recall_single_hit PASSED                  [  9%]
+tests/test_golden_set.py::test_recall_partial_hit PASSED                 [  9%]
+tests/test_golden_set.py::test_recall_no_hit PASSED                      [  9%]
+tests/test_golden_set.py::test_recall_empty_expected PASSED              [  9%]
+tests/test_golden_set.py::test_recall_k_limit PASSED                     [ 10%]
+tests/test_golden_set.py::test_golden_gate_mock_perfect_recall PASSED    [ 10%]
+tests/test_golden_set.py::test_golden_gate_mock_partial_recall PASSED    [ 10%]
+tests/test_golden_set.py::test_golden_gate_mock_no_results PASSED        [ 10%]
+tests/test_golden_set.py::test_golden_has_required_fields PASSED         [ 10%]
+tests/test_golden_set.py::test_golden_unique_ids PASSED                  [ 10%]
+tests/test_golden_set.py::test_golden_versions_covered PASSED            [ 11%]
+tests/test_golden_set.py::test_recall_threshold_is_075 PASSED            [ 11%]
+tests/test_incremental_ingest.py::test_hash_index_load_empty PASSED      [ 11%]
+tests/test_incremental_ingest.py::test_hash_index_load_with_entries PASSED [ 11%]
+tests/test_incremental_ingest.py::test_hash_index_load_skips_comments_and_empty PASSED [ 11%]
+tests/test_incremental_ingest.py::test_hash_index_save_and_reload PASSED [ 11%]
+tests/test_incremental_ingest.py::test_hash_index_save_creates_file PASSED [ 12%]
+tests/test_incremental_ingest.py::test_file_sha256_correct PASSED        [ 12%]
+tests/test_incremental_ingest.py::test_file_sha256_deterministic PASSED  [ 12%]
+tests/test_incremental_ingest.py::test_file_sha256_different_content PASSED [ 12%]
+tests/test_incremental_ingest.py::test_file_sha256_missing_returns_empty PASSED [ 12%]
+tests/test_incremental_ingest.py::test_file_sha256_large_file PASSED     [ 12%]
+tests/test_incremental_ingest.py::test_ingest_directory_detects_unchanged_files FAILED [ 13%]
+tests/test_incremental_ingest.py::test_ingest_directory_processes_new_file FAILED [ 13%]
+tests/test_incremental_ingest.py::test_ingest_directory_detects_modified_file FAILED [ 13%]
+tests/test_incremental_ingest.py::test_ingest_directory_updates_index_on_success FAILED [ 13%]
+tests/test_incremental_ingest.py::test_ingest_directory_empty FAILED     [ 13%]
+tests/test_incremental_ingest.py::test_hash_index_load_nonexistent_file PASSED [ 13%]
+tests/test_incremental_ingest.py::test_hash_index_load_corrupted_lines PASSED [ 14%]
+tests/test_ingest.py::test_get_b41_items_returns_list PASSED             [ 14%]
+tests/test_ingest.py::test_get_b41_items_have_required_fields PASSED     [ 14%]
+tests/test_ingest.py::test_get_b41_recipes_returns_list PASSED           [ 14%]
+tests/test_ingest.py::test_get_b41_mechanics_returns_list PASSED         [ 14%]
+tests/test_ingest.py::test_get_b42_diffs_returns_list PASSED             [ 14%]
+tests/test_ingest.py::test_all_items_have_valid_game_version PASSED      [ 15%]
+tests/test_ingest.py::test_all_item_types_are_valid PASSED               [ 15%]
+tests/test_ingest.py::test_validate_metadata_empty_errors PASSED         [ 15%]
+tests/test_ingest.py::test_validate_metadata_complete_ok PASSED          [ 15%]
+tests/test_ingest.py::test_validate_metadata_invalid_item_type PASSED    [ 15%]
+tests/test_ingest.py::test_validate_metadata_invalid_game_version PASSED [ 15%]
+tests/test_ingest.py::test_generate_chunks_returns_list PASSED           [ 16%]
+tests/test_ingest.py::test_generate_chunks_have_required_keys PASSED     [ 16%]
+tests/test_ingest.py::test_generate_chunks_metadata_strict PASSED        [ 16%]
+tests/test_ingest.py::test_generate_chunks_multiple_for_game_data PASSED [ 16%]
+tests/test_ingest.py::test_resolve_collection_crafting_recipe PASSED     [ 16%]
+tests/test_ingest.py::test_resolve_collection_crafting_weapon PASSED     [ 16%]
+tests/test_ingest.py::test_resolve_collection_crafting_food PASSED       [ 17%]
+tests/test_ingest.py::test_metadata_constraint_defaults PASSED           [ 17%]
+tests/test_ingest.py::test_metadata_constraint_with_tags PASSED          [ 17%]
+tests/test_ingest.py::test_ingest_summary_defaults PASSED                [ 17%]
+tests/test_ingest.py::test_batch_config_constants PASSED                 [ 17%]
+tests/test_ingest.py::test_game_versions_constant PASSED                 [ 17%]
+tests/test_ingest.py::test_build_parser_has_subcommands PASSED           [ 18%]
+tests/test_ingestor_processors.py::test_detect_txt_extension PASSED      [ 18%]
+tests/test_ingestor_processors.py::test_detect_pdf_extension PASSED      [ 18%]
+tests/test_ingestor_processors.py::test_detect_all_text_extensions_have_processor PASSED [ 18%]
+tests/test_ingestor_processors.py::test_detect_unsupported_extension_raises PASSED [ 18%]
+tests/test_ingestor_processors.py::test_mime_to_processor_text PASSED    [ 18%]
+tests/test_ingestor_processors.py::test_mime_to_processor_pdf PASSED     [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_image PASSED   [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_video PASSED   [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_audio PASSED   [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_docx PASSED    [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_epub PASSED    [ 19%]
+tests/test_ingestor_processors.py::test_mime_to_processor_pbo PASSED     [ 20%]
+tests/test_ingestor_processors.py::test_mime_to_processor_unknown_returns_none PASSED [ 20%]
+tests/test_ingestor_processors.py::test_ext_to_mime_mapping PASSED       [ 20%]
+tests/test_ingestor_processors.py::test_ext_to_mime_unknown_returns_octet_stream PASSED [ 20%]
+tests/test_ingestor_processors.py::test_detect_is_url_http PASSED        [ 20%]
+tests/test_ingestor_processors.py::test_detect_is_url_not_url PASSED     [ 20%]
+tests/test_ingestor_processors.py::test_chunk_text_empty_returns_empty PASSED [ 21%]
+tests/test_ingestor_processors.py::test_chunk_text_single_paragraph_returns_one_chunk PASSED [ 21%]
+tests/test_ingestor_processors.py::test_chunk_text_creates_multiple_chunks PASSED [ 21%]
+tests/test_ingestor_processors.py::test_chunk_text_overlap_contains_transition_words PASSED [ 21%]
+tests/test_ingestor_processors.py::test_chunk_text_preserves_content PASSED [ 21%]
+tests/test_ingestor_processors.py::test_chunk_metadata_includes_paragraphs PASSED [ 21%]
+tests/test_ingestor_processors.py::test_compute_hash_string PASSED       [ 22%]
+tests/test_ingestor_processors.py::test_compute_hash_bytes PASSED        [ 22%]
+tests/test_ingestor_processors.py::test_compute_hash_deterministic PASSED [ 22%]
+tests/test_ingestor_processors.py::test_sha256_format PASSED             [ 22%]
+tests/test_ingestor_processors.py::test_extraction_result_defaults PASSED [ 22%]
+tests/test_ingestor_processors.py::test_extraction_result_with_values PASSED [ 22%]
+tests/test_ingestor_processors.py::test_text_processor_reads_file FAILED [ 23%]
+tests/test_ingestor_processors.py::test_text_processor_word_count FAILED [ 23%]
+tests/test_ingestor_processors.py::test_text_processor_file_hash_consistency FAILED [ 23%]
+tests/test_ingestor_processors.py::test_split_paragraphs_double_newline PASSED [ 23%]
+tests/test_ingestor_processors.py::test_split_paragraphs_single_line PASSED [ 23%]
+tests/test_ingestor_processors.py::test_split_paragraphs_empty_text PASSED [ 23%]
+tests/test_ingestor_processors.py::test_split_paragraphs_whitespace_only PASSED [ 24%]
+tests/test_ingestor_processors.py::test_engine_init_with_default_config FAILED [ 24%]
+tests/test_ingestor_processors.py::test_engine_init_with_explicit_config PASSED [ 24%]
+tests/test_java_class_processor.py::TestParseJavadoc::test_extract_param_tags PASSED [ 24%]
+tests/test_java_class_processor.py::TestParseJavadoc::test_extract_returns_body PASSED [ 24%]
+tests/test_java_class_processor.py::TestParseParameters::test_simple_params PASSED [ 24%]
+tests/test_java_class_processor.py::TestParseParameters::test_generic_params PASSED [ 25%]
+tests/test_java_class_processor.py::TestParseParameters::test_empty_params PASSED [ 25%]
+tests/test_java_class_processor.py::TestParseJavaFile::test_parse_class_with_fields_and_methods PASSED [ 25%]
+tests/test_java_class_processor.py::TestParseJavaFile::test_parse_class_extends_implements PASSED [ 25%]
+tests/test_java_class_processor.py::TestParseJavaFile::test_parse_empty_class PASSED [ 25%]
+tests/test_java_class_processor.py::TestParseJavaFile::test_parse_no_class PASSED [ 25%]
+tests/test_java_class_processor.py::TestFormatClassChunk::test_chunk_contains_class_name_and_package PASSED [ 25%]
+tests/test_java_class_processor.py::TestFormatClassChunk::test_chunk_contains_field_declarations PASSED [ 26%]
+tests/test_java_class_processor.py::TestFormatClassChunk::test_chunk_contains_method_signatures PASSED [ 26%]
+tests/test_java_class_processor.py::TestExtract::test_extract_all_classes PASSED [ 26%]
+tests/test_java_class_processor.py::TestExtract::test_extract_target_classes_marked PASSED [ 26%]
+tests/test_java_class_processor.py::TestExtract::test_extract_metadata_complete PASSED [ 26%]
+tests/test_java_class_processor.py::TestExtract::test_extract_inexistent_dir_raises PASSED [ 26%]
+tests/test_java_class_processor.py::TestExtractSingleFile::test_extract_single_java_file PASSED [ 27%]
+tests/test_java_class_processor.py::TestParseEdgeCases::test_parse_class_with_no_package PASSED [ 27%]
+tests/test_java_class_processor.py::TestParseEdgeCases::test_parse_class_with_static_final_fields PASSED [ 27%]
+tests/test_java_class_processor.py::TestParseEdgeCases::test_parse_no_imports PASSED [ 27%]
+tests/test_library_folders.py::test_fallback_returns_steamapps PASSED    [ 27%]
+tests/test_library_folders.py::test_fallback_no_steamapps PASSED         [ 27%]
+tests/test_library_folders.py::test_parse_library_folders_no_vdf PASSED  [ 28%]
+tests/test_library_folders.py::test_find_pz_game_path_found_common PASSED [ 28%]
+tests/test_library_folders.py::test_find_pz_game_path_not_found PASSED   [ 28%]
+tests/test_library_folders.py::test_find_pz_game_path_empty_list PASSED  [ 28%]
+tests/test_library_folders.py::test_find_pz_game_path_via_manifest PASSED [ 28%]
+tests/test_library_folders.py::test_parse_vdf_value_short_data PASSED    [ 28%]
+tests/test_library_folders.py::test_parse_vdf_value_empty PASSED         [ 29%]
+tests/test_library_folders.py::test_game_paths_defaults PASSED           [ 29%]
+tests/test_library_folders.py::test_game_paths_discovered_flag PASSED    [ 29%]
+tests/test_library_folders.py::test_find_steam_returns_none_when_no_default PASSED [ 29%]
+tests/test_mod_ingester.py::test_invalid_directory_returns_empty FAILED  [ 29%]
+tests/test_mod_ingester.py::test_ingest_non_numeric_dir FAILED           [ 29%]
+tests/test_mod_ingester.py::test_ingest_single_numeric_mod FAILED        [ 30%]
+tests/test_mod_ingester.py::test_ingestion_result_defaults PASSED        [ 30%]
+tests/test_mod_ingester.py::test_ingestion_result_with_values PASSED     [ 30%]
+tests/test_mod_ingester.py::test_collection_map_has_expected_keys PASSED [ 30%]
+tests/test_mod_ingester.py::test_collection_map_excludes_text PASSED     [ 30%]
+tests/test_modgen.py::test_modspec_creation PASSED                       [ 30%]
+tests/test_modgen.py::test_modspec_tags_csv_conversion PASSED            [ 31%]
+tests/test_modgen.py::test_build_mod_id_produits_slug_propre PASSED      [ 31%]
+tests/test_modgen.py::test_generated_manifest_properties PASSED          [ 31%]
+tests/test_modgen.py::test_validate_empty_name PASSED                    [ 31%]
+tests/test_modgen.py::test_validate_invalid_chars PASSED                 [ 31%]
+tests/test_modgen.py::test_validate_name_too_long PASSED                 [ 31%]
+tests/test_modgen.py::test_validate_valid_spec_no_errors PASSED          [ 32%]
+tests/test_modgen.py::test_modgenerator_validate_spec PASSED             [ 32%]
+tests/test_modgen.py::test_generate_creates_mod_root PASSED              [ 32%]
+tests/test_modgen.py::test_generate_writes_mod_info_json PASSED          [ 32%]
+tests/test_modgen.py::test_generate_writes_init_lua PASSED               [ 32%]
+tests/test_modgen.py::test_generate_writes_zomboid_descriptor PASSED     [ 32%]
+tests/test_modgen.py::test_generate_writes_readme PASSED                 [ 33%]
+tests/test_modgen.py::test_generate_creates_lua_directories PASSED       [ 33%]
+tests/test_modgen.py::test_generate_respects_config_output_path PASSED   [ 33%]
+tests/test_modgen.py::test_generate_manifest_file_count PASSED           [ 33%]
+tests/test_modgen.py::test_generate_rejects_invalid_spec PASSED          [ 33%]
+tests/test_modgen.py::test_generate_with_custom_type PASSED              [ 33%]
+tests/test_modgen.py::test_mod_info_template_valid_json PASSED           [ 34%]
+tests/test_modgen.py::test_init_lua_template_contains_hooks PASSED       [ 34%]
+tests/test_modgen.py::test_cli_list_templates PASSED                     [ 34%]
+tests/test_modgen.py::test_cli_validate_existing_mod SKIPPED (Test m...) [ 34%]
+tests/test_modgen.py::test_cli_validate_nonexistent PASSED               [ 34%]
+tests/test_modgen.py::test_cli_generate_creates_mod PASSED               [ 34%]
+tests/test_modgen.py::test_cli_no_command_shows_help PASSED              [ 35%]
+tests/test_modgen.py::test_zip_mod_creates_archive PASSED                [ 35%]
+tests/test_modgen.py::test_zip_mod_includes_mod_info PASSED              [ 35%]
+tests/test_modgen.py::test_generate_mod_function PASSED                  [ 35%]
+tests/test_modgen.py::test_generate_mod_from_description PASSED          [ 35%]
+tests/test_modgen.py::test_generate_special_chars_in_name PASSED         [ 35%]
+tests/test_modgen.py::test_generate_empty_description PASSED             [ 36%]
+tests/test_modgen_integration.py::test_full_pipeline_item_mod PASSED     [ 36%]
+tests/test_modgen_integration.py::test_full_pipeline_feature_mod PASSED  [ 36%]
+tests/test_modgen_integration.py::test_zip_roundtrip PASSED              [ 36%]
+tests/test_modgen_integration.py::test_manifest_modinfo_schema PASSED    [ 36%]
+tests/test_modgen_integration.py::test_init_lua_contains_pz_hooks PASSED [ 36%]
+tests/test_modgen_integration.py::test_multiple_generations_no_conflict PASSED [ 37%]
+tests/test_modgen_integration.py::test_script_content_has_spec_references PASSED [ 37%]
+tests/test_modgen_integration.py::test_generate_mod_from_description_creates_valid_spec PASSED [ 37%]
+tests/test_modgen_integration.py::test_generate_with_unicode_name PASSED [ 37%]
+tests/test_modgen_integration.py::test_generate_empty_description_works PASSED [ 37%]
+tests/test_modgen_integration.py::test_zip_with_empty_mod_still_works PASSED [ 37%]
+tests/test_modgen_integration.py::test_all_mod_types_generate_correctly PASSED [ 38%]
+tests/test_modgen_integration.py::test_manifest_file_count_matches_disk PASSED [ 38%]
+tests/test_modgen_integration.py::test_descriptor_contains_spec_name PASSED [ 38%]
+tests/test_modgen_integration.py::test_readme_contains_spec_name PASSED  [ 38%]
+tests/test_monitoring.py::TestIngestionCycleStat::test_defaults PASSED   [ 38%]
+tests/test_monitoring.py::TestIngestionCycleStat::test_full PASSED       [ 38%]
+tests/test_monitoring.py::TestCoverageSnapshot::test_computed_pct PASSED [ 39%]
+tests/test_monitoring.py::TestMonitoringAlerts::test_severity_levels PASSED [ 39%]
+tests/test_monitoring.py::TestMonitoringAlerts::test_with_recommendation PASSED [ 39%]
+tests/test_monitoring.py::TestMonitorHelpers::test_format_duration_ms_under_1s PASSED [ 39%]
+tests/test_monitoring.py::TestMonitorHelpers::test_format_duration_ms_under_60s PASSED [ 39%]
+tests/test_monitoring.py::TestMonitorHelpers::test_format_duration_ms_under_60m PASSED [ 39%]
+tests/test_monitoring.py::TestMonitorHelpers::test_format_duration_ms_over_1h PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_progress_bar_full PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_progress_bar_empty PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_progress_bar_half PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_status_emoji_done PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_status_emoji_failed PASSED [ 40%]
+tests/test_monitoring.py::TestMonitorHelpers::test_status_emoji_running PASSED [ 41%]
+tests/test_monitoring.py::TestMonitorHelpers::test_status_emoji_unknown PASSED [ 41%]
+tests/test_monitoring.py::TestIngestMonitorPG::test_get_coverage_by_category PASSED [ 41%]
+tests/test_monitoring.py::TestIngestMonitorPG::test_get_coverage_by_category_empty PASSED [ 41%]
+tests/test_monitoring.py::TestIngestMonitorPG::test_get_collection_health PASSED [ 41%]
+tests/test_monitoring.py::TestIngestMonitorPG::test_recent_ingestion_cycles PASSED [ 41%]
+tests/test_monitoring.py::TestDiskUsage::test_disk_usage_returns_none_on_oserror PASSED [ 42%]
+tests/test_monitoring.py::TestDiskUsage::test_disk_usage_valid_path PASSED [ 42%]
+tests/test_monitoring.py::TestDiskUsageSummary::test_sync_disk_summary_returns_list PASSED [ 42%]
+tests/test_monitoring.py::TestEnsureDiskSpace::test_ensure_disk_space_no_alert_if_enough PASSED [ 42%]
+tests/test_monitoring.py::TestEnsureDiskSpace::test_ensure_disk_space_alert_when_low PASSED [ 42%]
+tests/test_monitoring.py::TestCheckCritical::test_no_alerts_when_all_healthy PASSED [ 42%]
+tests/test_monitoring.py::TestCheckCritical::test_critical_alert_when_empty_collection FAILED [ 43%]
+tests/test_monitoring.py::TestCheckCritical::test_warning_alert_when_low_coverage PASSED [ 43%]
+tests/test_monitoring.py::TestCoverageDropDetection::test_no_drop_when_stable PASSED [ 43%]
+tests/test_monitoring.py::TestCoverageDropDetection::test_drop_detected_when_coverage_falls PASSED [ 43%]
+tests/test_monitoring.py::TestCoverageDropDetection::test_no_drop_with_insufficient_data PASSED [ 43%]
+tests/test_monitoring.py::TestCoverageDropDetection::test_threshold_customizable PASSED [ 43%]
+tests/test_monitoring.py::TestDetectAllCoverageDrops::test_detects_drops_across_categories PASSED [ 44%]
+tests/test_monitoring.py::TestStandaloneFunctions::test_critical_collections_constant PASSED [ 44%]
+tests/test_monitoring.py::TestStandaloneFunctions::test_check_critical_collections_wrapper FAILED [ 44%]
+tests/test_monitoring.py::TestStandaloneFunctions::test_coverage_drop_check_wrapper PASSED [ 44%]
+tests/test_monitoring.py::TestStandaloneFunctions::test_ingest_status_short PASSED [ 44%]
+tests/test_monitoring.py::TestCoverageDropAlert::test_default_severity PASSED [ 44%]
+tests/test_monitoring.py::TestCoverageDropAlert::test_critical_severity PASSED [ 45%]
+tests/test_monitoring.py::TestDiskUsageInfo::test_defaults PASSED        [ 45%]
+tests/test_monitoring.py::TestDiskUsageInfo::test_critical_usage PASSED  [ 45%]
+tests/test_monitoring.py::TestErrorHandling::test_get_coverage_handles_pg_error PASSED [ 45%]
+tests/test_monitoring.py::TestErrorHandling::test_get_collection_health_handles_pg_error PASSED [ 45%]
+tests/test_monitoring.py::TestErrorHandling::test_recent_cycles_handles_pg_error PASSED [ 45%]
+tests/test_new_mcp_tool.py::test_tool PASSED                             [ 46%]
+tests/test_pbo_processor.py::test_extract_file_not_found PASSED          [ 46%]
+tests/test_pbo_processor.py::test_extract_unsupported_extension PASSED   [ 46%]
+tests/test_pbo_processor.py::test_supported_extensions_includes_pbo PASSED [ 46%]
+tests/test_pbo_processor.py::test_supported_extensions_includes_pbosync PASSED [ 46%]
+tests/test_pbo_processor.py::test_text_extensions_contains_lua PASSED    [ 46%]
+tests/test_pbo_processor.py::test_text_extensions_contains_cfg PASSED    [ 47%]
+tests/test_pbo_processor.py::test_processor_accepts_config PASSED        [ 47%]
+tests/test_pbo_processor.py::test_processor_extract_to PASSED            [ 47%]
+tests/test_postgres_backend.py::TestFormatPgVector::test_simple_three_dims PASSED [ 47%]
+tests/test_postgres_backend.py::TestFormatPgVector::test_768_dims_matches_nomic PASSED [ 47%]
+tests/test_postgres_backend.py::TestFormatPgVector::test_zero_vector PASSED [ 47%]
+tests/test_postgres_backend.py::TestFormatPgVector::test_negative_values PASSED [ 48%]
+tests/test_postgres_backend.py::TestFormatPgVector::test_format_is_compatible_with_pg_cast PASSED [ 48%]
+tests/test_postgres_backend.py::TestPgInitHealth::test_init_fails_without_asyncpg PASSED [ 48%]
+tests/test_postgres_backend.py::TestPgInitHealth::test_health_unavailable PASSED [ 48%]
+tests/test_postgres_backend.py::TestPgInitHealth::test_health_available_with_pool FAILED [ 48%]
+tests/test_postgres_backend.py::TestPgInitHealth::test_init_creates_pool_when_asyncpg_present SKIPPED [ 48%]
+tests/test_postgres_backend.py::TestPgEnsureCollection::test_creates_table_and_index PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgWriteChunks::test_writes_returns_false_without_asyncpg PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgQuery::test_returns_empty_without_embedding PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgQuery::test_returns_empty_when_pool_none PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgGetById::test_returns_none_without_pool PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgGetById::test_returns_none_when_not_found PASSED [ 49%]
+tests/test_postgres_backend.py::TestPgListCount::test_list_returns_empty_without_pool PASSED [ 50%]
+tests/test_postgres_backend.py::TestPgListCount::test_count_returns_minus_one_without_pool PASSED [ 50%]
+tests/test_postgres_backend.py::TestPgFilterLogic::test_simple_filter PASSED [ 50%]
+tests/test_postgres_backend.py::TestPgFilterLogic::test_and_filter PASSED [ 50%]
+tests/test_postgres_backend.py::TestPgFilterLogic::test_eq_operator_filter PASSED [ 50%]
+tests/test_postgres_backend.py::TestPgStorageBackendIntegration::test_backend_type_postgres_default FAILED [ 50%]
+tests/test_qdrant_backend.py::test_create_collection PASSED              [ 50%]
+tests/test_qdrant_backend.py::test_ensure_all_collections PASSED         [ 51%]
+tests/test_qdrant_backend.py::test_delete_collection PASSED              [ 51%]
+tests/test_qdrant_backend.py::test_list_collections PASSED               [ 51%]
+tests/test_qdrant_backend.py::test_upsert_single_vector PASSED           [ 51%]
+tests/test_qdrant_backend.py::test_upsert_batch_vectors PASSED           [ 51%]
+tests/test_qdrant_backend.py::test_count_points PASSED                   [ 51%]
+tests/test_qdrant_backend.py::test_query_returns_results PASSED          [ 52%]
+tests/test_qdrant_backend.py::test_query_empty_collection PASSED         [ 52%]
+tests/test_qdrant_backend.py::test_delete_by_id PASSED                   [ 52%]
+tests/test_qdrant_backend.py::test_health_available PASSED               [ 52%]
+tests/test_qdrant_backend.py::test_health_unavailable PASSED             [ 52%]
+tests/test_qdrant_backend.py::test_cross_collection_search PASSED        [ 52%]
+tests/test_qdrant_backend.py::test_backend_type_qdrant_when_configured FAILED [ 53%]
+tests/test_qdrant_backend.py::test_health_reports_qdrant FAILED          [ 53%]
+tests/test_qdrant_backend.py::test_qdrant_fallback_on_import_error FAILED [ 53%]
+tests/test_qdrant_backend.py::test_default_categories_list PASSED        [ 53%]
+tests/test_qdrant_backend.py::test_qdrant_search_result_dataclass PASSED [ 53%]
+tests/test_qdrant_backend.py::test_qdrant_collection_auto_created FAILED [ 53%]
+tests/test_qdrant_backend.py::test_migration_from_sqlite_no_db PASSED    [ 54%]
+tests/test_qdrant_backend.py::test_batch_query PASSED                    [ 54%]
+tests/test_qdrant_backend.py::test_config_qdrant_url_default PASSED      [ 54%]
+tests/test_qdrant_backend.py::test_config_backend_qdrant PASSED          [ 54%]
+tests/test_qdrant_backend.py::test_migration_empty_sqlite PASSED         [ 54%]
+tests/test_regression.py::test_load_golden_from_real_file PASSED         [ 54%]
+tests/test_regression.py::test_load_golden_nonexistent PASSED            [ 55%]
+tests/test_regression.py::test_load_golden_returns_list PASSED           [ 55%]
+tests/test_regression.py::test_regression_result_passed_high_recall PASSED [ 55%]
+tests/test_regression.py::test_regression_result_failed_low_recall PASSED [ 55%]
+tests/test_regression.py::test_regression_result_to_dict PASSED          [ 55%]
+tests/test_regression.py::test_run_campaign_all_pass PASSED              [ 55%]
+tests/test_regression.py::test_run_campaign_some_fail PASSED             [ 56%]
+tests/test_regression.py::test_run_campaign_handles_missing_chunks PASSED [ 56%]
+tests/test_regression.py::test_run_campaign_handles_query_exception PASSED [ 56%]
+tests/test_regression.py::test_run_campaign_detects_game_version PASSED  [ 56%]
+tests/test_regression.py::test_compare_baseline_detects_regression PASSED [ 56%]
+tests/test_regression.py::test_cli_json_output PASSED                    [ 56%]
+tests/test_regression.py::test_cli_non_json_output PASSED                [ 57%]
+tests/test_regression.py::test_cli_invalid_env PASSED                    [ 57%]
+tests/test_regression.py::test_cli_nonexistent_golden PASSED             [ 57%]
+tests/test_regression.py::test_empty_expected_ids PASSED                 [ 57%]
+tests/test_regression.py::test_mixed_versions_in_golden PASSED           [ 57%]
+tests/test_regression.py::test_production_env_client PASSED              [ 57%]
+tests/test_regression_collection_extend.py::test_pg_write_to_pz_mechanics_collection FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_query_pz_mechanics_collection FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_upsert_in_pz_mechanics FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_mechanics FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_write_to_pz_web_pages_collection FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_query_pz_web_pages_collection FAILED [ 58%]
+tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_web_pages FAILED [ 59%]
+tests/test_regression_collection_extend.py::test_cross_collection_search_all_four_collections PASSED [ 59%]
+tests/test_regression_collection_extend.py::test_cross_collection_search_fallback_single_result PASSED [ 59%]
+tests/test_regression_collection_extend.py::test_cross_collection_one_collection_fails_gracefully PASSED [ 59%]
+tests/test_regression_collection_extend.py::test_wikijson_processor_produces_all_collection_types PASSED [ 59%]
+tests/test_regression_collection_extend.py::test_wikijson_processor_chunks_map_to_correct_collections PASSED [ 59%]
+tests/test_regression_collection_extend.py::test_all_type_to_collection_mappings_valid PASSED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_storage_custom_collection_name FAILED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_list_collections_reflects_all_created FAILED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_count_across_multiple_collections FAILED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_delete_in_pz_mechanics FAILED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_delete_in_pz_web_pages FAILED [ 60%]
+tests/test_regression_collection_extend.py::test_pg_cross_collection_filter_on_type_metadata FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_regression_all_ensure_collection_idempotent FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_e2o_full_pipeline_all_collections FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_e2o_query_after_store_all_collections FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_regression_pz_items_still_works FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_regression_pz_recipes_still_works FAILED [ 61%]
+tests/test_regression_collection_extend.py::test_regression_cross_collection_still_works PASSED [ 62%]
+tests/test_regression_collection_extend.py::test_regression_get_by_id_still_works_all_collections FAILED [ 62%]
+tests/test_steamcmd_client.py::test_discover_steamcmd_returns_none_when_not_found PASSED [ 62%]
+tests/test_steamcmd_client.py::test_discover_steamcmd_uses_provided_path PASSED [ 62%]
+tests/test_steamcmd_client.py::test_cmd_result_lines PASSED              [ 62%]
+tests/test_steamcmd_client.py::test_cmd_result_success_property PASSED   [ 62%]
+tests/test_steamcmd_client.py::test_cmd_result_progress_lines_contains_ok PASSED [ 63%]
+tests/test_steamcmd_client.py::test_cmd_result_progress_lines_filters_irrelevant PASSED [ 63%]
+tests/test_steamcmd_client.py::test_run_cmd_success PASSED               [ 63%]
+tests/test_steamcmd_client.py::test_run_cmd_failure_exit_code PASSED     [ 63%]
+tests/test_steamcmd_client.py::test_run_cmd_error_stream PASSED          [ 63%]
+tests/test_steamcmd_client.py::test_run_cmd_timeout PASSED               [ 63%]
+tests/test_steamcmd_client.py::test_run_cmd_no_steamcmd PASSED           [ 64%]
+tests/test_steamcmd_client.py::test_download_game_builds_correct_command FAILED [ 64%]
+tests/test_steamcmd_client.py::test_install_workshop_success FAILED      [ 64%]
+tests/test_steamcmd_client.py::test_install_workshop_failure FAILED      [ 64%]
+tests/test_steamcmd_client.py::test_parse_progress_line_ok PASSED        [ 64%]
+tests/test_steamcmd_client.py::test_parse_progress_line_percentage PASSED [ 64%]
+tests/test_steamcmd_client.py::test_parse_progress_line_unknown_format PASSED [ 65%]
+tests/test_steamcmd_client.py::test_parse_progress_line_empty PASSED     [ 65%]
+tests/test_storage_writer.py::test_search_result_defaults PASSED         [ 65%]
+tests/test_storage_writer.py::test_search_result_with_metadata PASSED    [ 65%]
+tests/test_storage_writer.py::test_search_result_metadata_auto_none PASSED [ 65%]
+tests/test_storage_writer.py::test_embed_empty_text PASSED               [ 65%]
+tests/test_storage_writer.py::test_embed_success_caches PASSED           [ 66%]
+tests/test_storage_writer.py::test_embed_http_error_returns_none PASSED  [ 66%]
+tests/test_storage_writer.py::test_embed_batch_empty PASSED              [ 66%]
+tests/test_storage_writer.py::test_embed_batch_mixed_success_failure PASSED [ 66%]
+tests/test_storage_writer.py::test_storage_writer_ensure_collection PASSED [ 66%]
+tests/test_storage_writer.py::test_storage_writer_list_collections_delegates PASSED [ 66%]
+tests/test_storage_writer.py::test_storage_writer_count_collection PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_count_collection_fallback PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_write_chunks_delegates_to_backend PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_write_chunks_no_embeddings PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_write_chunks_failure PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_write_empty_chunks PASSED [ 67%]
+tests/test_storage_writer.py::test_storage_writer_query_no_embedding PASSED [ 68%]
+tests/test_storage_writer.py::test_storage_writer_query_success PASSED   [ 68%]
+tests/test_storage_writer.py::test_storage_writer_cross_collection_search PASSED [ 68%]
+tests/test_storage_writer.py::test_storage_writer_cross_collection_no_collections PASSED [ 68%]
+tests/test_storage_writer.py::test_write_chunks_helper_creates_writer PASSED [ 68%]
+tests/test_storage_writer.py::test_storage_writer_alias PASSED           [ 68%]
+tests/test_tag_release.py::test_semver_from_string_basic PASSED          [ 69%]
+tests/test_tag_release.py::test_semver_from_string_with_prerelease PASSED [ 69%]
+tests/test_tag_release.py::test_semver_str_format PASSED                 [ 69%]
+tests/test_tag_release.py::test_semver_bump_major PASSED                 [ 69%]
+tests/test_tag_release.py::test_semver_bump_minor PASSED                 [ 69%]
+tests/test_tag_release.py::test_semver_bump_patch PASSED                 [ 69%]
+tests/test_tag_release.py::test_semver_invalid_string PASSED             [ 70%]
+tests/test_tag_release.py::test_write_and_read_version PASSED            [ 70%]
+tests/test_tag_release.py::test_is_release_commit_matches PASSED         [ 70%]
+tests/test_tag_release.py::test_is_release_commit_normal PASSED          [ 70%]
+tests/test_tag_release.py::test_generate_changelog_groups_by_type PASSED [ 70%]
+tests/test_tag_release.py::test_generate_changelog_excludes_release_commits PASSED [ 70%]
+tests/test_tag_release.py::test_do_release_full_flow PASSED              [ 71%]
+tests/test_tag_release.py::test_do_release_explicit_version PASSED       [ 71%]
+tests/test_tag_release.py::test_do_release_changelog_only PASSED         [ 71%]
+tests/test_tag_release.py::test_get_commits_since_tag_format PASSED      [ 71%]
+tests/test_validation_levels.py::TestValidationLevel1::test_l1_mod_info_valide PASSED [ 71%]
+tests/test_validation_levels.py::TestValidationLevel1::test_l1_lua_files_checked PASSED [ 71%]
+tests/test_validation_levels.py::TestValidationLevel1::test_l1_required_dirs_as_warnings PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationLevel1::test_l1_missing_mod_info PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationLevel1::test_l1_missing_required_field PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationLevel2::test_l2_pg_not_available PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationLevel3::test_l3_no_console_log PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationLevel4::test_l4_rcon_not_available PASSED [ 72%]
+tests/test_validation_levels.py::TestValidationChain::test_chain_l1_first PASSED [ 73%]
+tests/test_validation_levels.py::TestValidationChain::test_chain_full_sequence PASSED [ 73%]
+tests/test_validation_levels.py::TestValidationInvalidMod::test_l1_lua_syntax_error_fails PASSED [ 73%]
+tests/test_validation_levels.py::TestValidationEdgeCases::test_l1_empty_mod PASSED [ 73%]
+tests/test_validation_levels.py::TestValidationEdgeCases::test_l1_only_mod_info PASSED [ 73%]
+tests/test_validation_levels.py::TestFixtureIntegrity::test_fixture_mod_info_exists PASSED [ 73%]
+tests/test_validation_levels.py::TestFixtureIntegrity::test_fixture_lua_files_exist PASSED [ 74%]
+tests/test_validation_levels.py::TestFixtureIntegrity::test_fixture_scripts_dir_exists PASSED [ 74%]
+tests/test_validation_levels.py::TestFixtureIntegrity::test_fixture_mod_info_required_fields PASSED [ 74%]
+tests/test_watchdog.py::test_config_from_env_uses_defaults_when_no_env PASSED [ 74%]
+tests/test_watchdog.py::test_config_from_env_reads_custom_values PASSED  [ 74%]
+tests/test_watchdog.py::test_state_serialization PASSED                  [ 74%]
+tests/test_watchdog.py::test_state_recent_crashes_threshold PASSED       [ 75%]
+tests/test_watchdog.py::test_state_roundtrip PASSED                      [ 75%]
+tests/test_watchdog.py::test_writeread_pid_file PASSED                   [ 75%]
+tests/test_watchdog.py::test_pid_file_removal PASSED                     [ 75%]
+tests/test_watchdog.py::test_get_current_pid_when_file_missing PASSED    [ 75%]
+tests/test_watchdog.py::test_load_save_state PASSED                      [ 75%]
+tests/test_watchdog.py::test_load_empty_state PASSED                     [ 75%]
+tests/test_watchdog.py::test_is_process_alive_with_current_pid PASSED    [ 76%]
+tests/test_watchdog.py::test_is_process_alive_invalid_pid PASSED         [ 76%]
+tests/test_watchdog.py::test_cli_status_no_server PASSED                 [ 76%]
+tests/test_watchdog.py::test_cli_stop_no_server FAILED                   [ 76%]
+tests/test_watchdog.py::test_config_from_env_ignores_comments PASSED     [ 76%]
+tests/test_watchdog.py::test_config_from_env_ignores_invalid_lines PASSED [ 76%]
+tests/test_wikijson_chunking.py::TestChunkSizeConfig::test_default_max_chunk_words PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestChunkSizeConfig::test_custom_max_chunk_words PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestNoSplitWhenSmall::test_small_chunk_not_split PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestSplitWithHeader::test_split_excessive_chunk PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestSplitWithHeader::test_split_preserves_header_context PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestCrossReferences::test_recipe_with_ingredient_list PASSED [ 77%]
+tests/test_wikijson_chunking.py::TestCrossReferences::test_recipe_with_ingredient_dict PASSED [ 78%]
+tests/test_wikijson_chunking.py::TestCrossReferences::test_recipe_with_result_ref PASSED [ 78%]
+tests/test_wikijson_chunking.py::TestExtractWithChunking::test_extract_applies_chunking PASSED [ 78%]
+tests/test_wikijson_chunking.py::TestSplitFallback::test_split_by_paragraphs_when_no_separator PASSED [ 78%]
+tests/test_wikijson_completeness.py::test_weapon_full_item_has_high_completeness PASSED [ 78%]
+tests/test_wikijson_completeness.py::test_weapon_partial_item_medium_completeness PASSED [ 78%]
+tests/test_wikijson_completeness.py::test_weapon_low_completeness_flagged PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_food_nutrition_completeness PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_food_no_nutrition_low_score PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_clothing_resistance_complete PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_clothing_minimal_low_completeness PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_recipe_full_completeness PASSED [ 79%]
+tests/test_wikijson_completeness.py::test_recipe_minimal_partial PASSED  [ 80%]
+tests/test_wikijson_completeness.py::test_mob_full_completeness PASSED   [ 80%]
+tests/test_wikijson_completeness.py::test_mob_partial_low_completeness PASSED [ 80%]
+tests/test_wikijson_completeness.py::test_completeness_stats_across_categories PASSED [ 80%]
+tests/test_wikijson_completeness.py::test_completeness_generic_skills PASSED [ 80%]
+tests/test_wikijson_completeness.py::test_completeness_zero_fields_item PASSED [ 80%]
+tests/test_wikijson_completeness.py::test_completeness_non_dict_values_ignored PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_extract_returns_chunks_and_metadata PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_items_chunks_have_metadata PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_recipes_chunks_structure PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_detect_broken_ref_ghost_pepper PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_no_broken_with_clean_data PASSED [ 81%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_case_insensitive_displayname_match PASSED [ 82%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_ingredient_multiple_ok PASSED [ 82%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_partial_match_via_underscore_variant PASSED [ 82%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_empty_recipes_handled_gracefully PASSED [ 82%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_large_item_set_crossref PASSED [ 82%]
+tests/test_wikijson_crossref.py::TestCrossReferenceValidator::test_empty_data_dir_no_crash PASSED [ 82%]
+tests/test_wikijson_crossref.py::test_validate_refs_collection_map_valid PASSED [ 83%]
+tests/test_wikijson_crossref.py::test_validate_refs_extraction_result_fields PASSED [ 83%]
+tests/test_wikijson_e2o.py::test_e2o_full_pipeline_wikidrive_json PASSED [ 83%]
+tests/test_wikijson_e2o.py::test_e2o_store_chunks_via_storagewriter FAILED [ 83%]
+tests/test_wikijson_e2o.py::test_e2o_cross_reference_items_to_recipes PASSED [ 83%]
+tests/test_wikijson_e2o.py::test_e2o_wikidrive_dir_pipeline PASSED       [ 83%]
+tests/test_wikijson_e2o.py::test_e2o_empty_file_produces_no_chunks PASSED [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_malformed_entries_skipped_gracefully FAILED [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_large_item_set FAILED               [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_metadata_propagates_through_pipeline FAILED [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_extraction_time_tracked PASSED      [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_file_hash_stable PASSED             [ 84%]
+tests/test_wikijson_e2o.py::test_e2o_categories_processed_complete PASSED [ 85%]
+tests/test_wikijson_e2o.py::test_e2o_total_entries_matches_data PASSED   [ 85%]
+tests/test_wikijson_e2o.py::test_e2o_processor_type_in_metadata PASSED   [ 85%]
+tests/test_wikijson_processor.py::test_normalize_item_basic PASSED       [ 85%]
+tests/test_wikijson_processor.py::test_normalize_item_none_input PASSED  [ 85%]
+tests/test_wikijson_processor.py::test_normalize_item_with_damage_tiers PASSED [ 85%]
+tests/test_wikijson_processor.py::test_normalize_item_with_nutrition PASSED [ 86%]
+tests/test_wikijson_processor.py::test_normalize_item_with_resistance PASSED [ 86%]
+tests/test_wikijson_processor.py::test_normalize_item_variant_keys PASSED [ 86%]
+tests/test_wikijson_processor.py::test_normalize_item_fields_count_metadata PASSED [ 86%]
+tests/test_wikijson_processor.py::test_normalize_recipe_basic PASSED     [ 86%]
+tests/test_wikijson_processor.py::test_normalize_recipe_variant_keys PASSED [ 86%]
+tests/test_wikijson_processor.py::test_normalize_recipe_none_input PASSED [ 87%]
+tests/test_wikijson_processor.py::test_normalize_mob_basic PASSED        [ 87%]
+tests/test_wikijson_processor.py::test_normalize_mob_with_drops PASSED   [ 87%]
+tests/test_wikijson_processor.py::test_normalize_mob_detection_radius PASSED [ 87%]
+tests/test_wikijson_processor.py::test_normalize_mob_none_input PASSED   [ 87%]
+tests/test_wikijson_processor.py::test_normalize_generic_skill PASSED    [ 87%]
+tests/test_wikijson_processor.py::test_normalize_generic_skips_underscore_keys PASSED [ 88%]
+tests/test_wikijson_processor.py::test_normalize_generic_nested_value_json_dumped PASSED [ 88%]
+tests/test_wikijson_processor.py::test_normalize_generic_none_input PASSED [ 88%]
+tests/test_wikijson_processor.py::test_classify_weapon_melee PASSED      [ 88%]
+tests/test_wikijson_processor.py::test_classify_weapon_firearm PASSED    [ 88%]
+tests/test_wikijson_processor.py::test_classify_food PASSED              [ 88%]
+tests/test_wikijson_processor.py::test_classify_clothing PASSED          [ 89%]
+tests/test_wikijson_processor.py::test_classify_vehicle PASSED           [ 89%]
+tests/test_wikijson_processor.py::test_classify_building_material PASSED [ 89%]
+tests/test_wikijson_processor.py::test_classify_generic_unknown PASSED   [ 89%]
+tests/test_wikijson_processor.py::test_classify_case_insensitive PASSED  [ 89%]
+tests/test_wikijson_processor.py::test_load_wiki_data_from_file PASSED   [ 89%]
+tests/test_wikijson_processor.py::test_load_wiki_data_from_file_missing PASSED [ 90%]
+tests/test_wikijson_processor.py::test_load_wiki_data_from_directory PASSED [ 90%]
+tests/test_wikijson_processor.py::test_load_wiki_data_empty_directory PASSED [ 90%]
+tests/test_wikijson_processor.py::test_processor_init PASSED             [ 90%]
+tests/test_wikijson_processor.py::test_extract_no_source_raises PASSED   [ 90%]
+tests/test_wikijson_processor.py::test_extract_full_pipeline_wikidrive_dir PASSED [ 90%]
+tests/test_wikijson_processor.py::test_extract_full_pipeline_single_file PASSED [ 91%]
+tests/test_wikijson_processor.py::test_extract_metadata_categories_processed PASSED [ 91%]
+tests/test_wikijson_processor.py::test_extract_metadata_word_count PASSED [ 91%]
+tests/test_wikijson_processor.py::test_extract_metadata_total_entries PASSED [ 91%]
+tests/test_wikijson_processor.py::test_extract_empty_data_dir PASSED     [ 91%]
+tests/test_wikijson_processor.py::test_extract_malformed_item_fails_gracefully PASSED [ 91%]
+tests/test_wikijson_processor.py::test_extract_non_dict_category_value_ignored PASSED [ 92%]
+tests/test_wikijson_processor.py::test_extract_list_items_converted_to_dict PASSED [ 92%]
+tests/test_wikijson_processor.py::test_type_to_collection_has_expected_categories PASSED [ 92%]
+tests/test_wikijson_processor.py::test_type_to_collection_all_targets_valid PASSED [ 92%]
+tests/test_wikijson_processor.py::test_type_to_collection_maps_items_to_pz_items PASSED [ 92%]
+tests/test_wikijson_processor.py::test_type_to_collection_maps_recipes_to_pz_recipes PASSED [ 92%]
+tests/test_wikijson_processor.py::test_unknown_category_defaults_to_pz_web_pages PASSED [ 93%]
+tests/test_wikijson_processor.py::test_extraction_result_source_matches_input PASSED [ 93%]
+tests/test_wikijson_processor.py::test_extraction_result_content_type_is_json PASSED [ 93%]
+tests/test_wikijson_processor.py::test_extraction_result_processor_metadata PASSED [ 93%]
+tests/test_wikijson_schema.py::test_schema_metadata_jsonb_serializable PASSED [ 93%]
+tests/test_wikijson_schema.py::test_schema_chunk_text_no_null_bytes PASSED [ 93%]
+tests/test_wikijson_schema.py::test_schema_chunk_keys_are_strings PASSED [ 94%]
+tests/test_wikijson_schema.py::test_schema_fields_count_is_int_positive PASSED [ 94%]
+tests/test_wikijson_schema.py::test_schema_categories_processed_are_nonempty_strings PASSED [ 94%]
+tests/test_wikijson_schema.py::test_schema_total_entries_is_int_non_negative PASSED [ 94%]
+tests/test_wikijson_schema.py::test_schema_word_count_valid PASSED       [ 94%]
+tests/test_wikijson_schema.py::test_schema_extraction_time_is_number PASSED [ 94%]
+tests/test_wikijson_schema.py::test_schema_file_hash_non_empty_string PASSED [ 95%]
+tests/test_wikijson_schema.py::test_schema_source_is_non_empty_string PASSED [ 95%]
+tests/test_wikijson_schema.py::test_schema_collection_is_known_collection_name PASSED [ 95%]
+tests/test_wikijson_schema.py::test_schema_text_not_too_long PASSED      [ 95%]
+tests/test_wikijson_schema.py::test_schema_text_valid_utf8 PASSED        [ 95%]
+tests/test_wikijson_schema.py::test_schema_recipe_ingredients_serializable PASSED [ 95%]
+tests/test_wikijson_schema.py::test_schema_item_damage_tiers_serializable PASSED [ 96%]
+tests/test_wikijson_schema.py::test_schema_empty_result_valid PASSED     [ 96%]
+tests/test_wikijson_schema.py::test_schema_nested_json_deeply_compatible PASSED [ 96%]
+tests/test_wikijson_schema.py::test_schema_processor_type_in_metadata PASSED [ 96%]
+tests/test_wikijson_schema.py::test_schema_chunk_index_start_offset_valid PASSED [ 96%]
+tests/test_wikijson_schema.py::test_schema_all_expected_collection_types_present PASSED [ 96%]
+tests/test_workshop_scanner.py::test_scan_detects_mods PASSED            [ 97%]
+tests/test_workshop_scanner.py::test_scan_mod_names PASSED               [ 97%]
+tests/test_workshop_scanner.py::test_scan_empty_root PASSED              [ 97%]
+tests/test_workshop_scanner.py::test_scan_nonexistent_root PASSED        [ 97%]
+tests/test_workshop_scanner.py::test_scan_metadata_author PASSED         [ 97%]
+tests/test_workshop_scanner.py::test_scan_metadata_description PASSED    [ 97%]
+tests/test_workshop_scanner.py::test_scan_metadata_file_count PASSED     [ 98%]
+tests/test_workshop_scanner.py::test_scan_no_addoninfo_fallback_name PASSED [ 98%]
+tests/test_workshop_scanner.py::test_scan_no_addoninfo_author_is_none PASSED [ 98%]
+tests/test_workshop_scanner.py::test_find_by_id_existing PASSED          [ 98%]
+tests/test_workshop_scanner.py::test_find_by_id_missing PASSED           [ 98%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_valid_space_format PASSED [ 98%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_equals_format PASSED [ 99%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_corrupted PASSED    [ 99%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_special_chars PASSED [ 99%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_empty_file PASSED   [ 99%]
+tests/test_workshop_scanner.py::test_parse_addoninfo_tags PASSED         [ 99%]
+tests/test_workshop_scanner.py::test_mod_info_to_metadata PASSED         [ 99%]
+tests/test_workshop_scanner.py::test_content_root_is_resolved PASSED     [100%]
+
+================================== FAILURES ===================================
+E   assert <coroutine object PostgresStorageBackend.ensure_collection at 0x0000027205B6FBE0> is True
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:60: assert <coroutine object PostgresStorageBackend.ensure_collection at 0x0000027205B6FBE0> is True
+E   assert <coroutine object PostgresStorageBackend.ensure_collection at 0x0000027205DA0700> is False
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:70: assert <coroutine object PostgresStorageBackend.ensure_collection at 0x0000027205DA0700> is False
+E   NameError: name 'StorageBackend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:168: NameError: name 'StorageBackend' is not defined
+E   assert False
+     +  where False = isinstance(<coroutine object PostgresStorageBackend.ensure_collection at 0x0000027205DA0A60>, bool)
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:187: assert False
+E   NameError: name 'StorageBackend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:213: NameError: name 'StorageBackend' is not defined
+E   assert False
+     +  where False = isinstance(<coroutine object AsyncMockMixin._execute_mock_call at 0x0000027205D67840>, list)
+F:\Antigravity DEV\Zomboid_Architect\tests\test_game_version_filtering.py:209: assert False
+E   AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+---------------------------- Captured stderr call -----------------------------
+\x1b[33m2026-07-08 16:24:11  WARNING  [bot.engine_client]                \x1b[0m  StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+------------------------------ Captured log call ------------------------------
+WARNING  bot.engine_client:engine_client.py:190 StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+F:\Antigravity DEV\Zomboid_Architect\bot\engine_client.py:236: AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+E   AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+---------------------------- Captured stderr call -----------------------------
+\x1b[33m2026-07-08 16:24:11  WARNING  [bot.engine_client]                \x1b[0m  StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+------------------------------ Captured log call ------------------------------
+WARNING  bot.engine_client:engine_client.py:190 StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+F:\Antigravity DEV\Zomboid_Architect\bot\engine_client.py:236: AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   assert 0 >= 1
+     +  where 0 = len([])
+---------------------------- Captured stderr call -----------------------------
+[33m2026-07-08 16:24:13  WARNING  [ingestor.monitoring]              [0m  Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+[33m2026-07-08 16:24:13  WARNING  [ingestor.monitoring]              [0m  Erreur _recent_ingestion_cycles : 
+------------------------------ Captured log call ------------------------------
+WARNING  ingestor.monitoring:monitoring.py:516 Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+WARNING  ingestor.monitoring:monitoring.py:452 Erreur _recent_ingestion_cycles :
+F:\Antigravity DEV\Zomboid_Architect\tests\test_monitoring.py:351: assert 0 >= 1
+E   assert False
+     +  where False = any(<generator object TestStandaloneFunctions.test_check_critical_collections_wrapper.<locals>.<genexpr> at 0x0000027206853ED0>)
+---------------------------- Captured stderr call -----------------------------
+[33m2026-07-08 16:24:13  WARNING  [ingestor.monitoring]              [0m  Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+[33m2026-07-08 16:24:13  WARNING  [ingestor.monitoring]              [0m  Erreur _recent_ingestion_cycles : 
+------------------------------ Captured log call ------------------------------
+WARNING  ingestor.monitoring:monitoring.py:516 Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+WARNING  ingestor.monitoring:monitoring.py:452 Erreur _recent_ingestion_cycles :
+F:\Antigravity DEV\Zomboid_Architect\tests\test_monitoring.py:505: assert False
+E   assert False is True
+F:\Antigravity DEV\Zomboid_Architect\tests\test_postgres_backend.py:265: assert False is True
+E   AssertionError: assert 'qdrant' == 'postgres'
+      
+      - postgres
+      + qdrant
+F:\Antigravity DEV\Zomboid_Architect\tests\test_postgres_backend.py:471: AssertionError: assert 'qdrant' == 'postgres'
+E   AttributeError: 'PostgresStorageBackend' object has no attribute 'backend_type'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:384: AttributeError: 'PostgresStorageBackend' object has no attribute 'backend_type'
+E   NameError: name 'mod' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:397: NameError: name 'mod' is not defined
+E   AttributeError: module 'src.storage' has no attribute '_load_storage_config'. Did you mean: 'get_storage_config'?
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:426: AttributeError: module 'src.storage' has no attribute '_load_storage_config'. Did you mean: 'get_storage_config'?
+E   NameError: name 'mod' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:471: NameError: name 'mod' is not defined
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:165: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:182: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:198: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:212: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:231: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:248: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:260: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:424: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:437: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:453: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:471: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:485: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:498: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:521: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:25  INFO     [ingestor.processors.wikijson]     [0m  Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-167\test_e2o_full_pipeline_all_col0\pz-wiki-data
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:292 Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-167\test_e2o_full_pipeline_all_col0\pz-wiki-data
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:581: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:25  INFO     [ingestor.processors.wikijson]     [0m  Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-167\test_e2o_query_after_store_all0\pz-wiki-data
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:292 Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-167\test_e2o_query_after_store_all0\pz-wiki-data
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:603: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:620: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:634: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:662: TypeError: PostgresStorageBackend.__init__() got an unexpected keyword argument 'data_dir'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   assert 1 == 0
+F:\Antigravity DEV\Zomboid_Architect\tests\test_watchdog.py:310: assert 1 == 0
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:34  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (6 Ko)
+[33m2026-07-08 16:24:34  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (6 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:333: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:36  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (0 Ko)
+[33m2026-07-08 16:24:36  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (0 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:440: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:37  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (6 Ko)
+[33m2026-07-08 16:24:37  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (6 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:472: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:24:39  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (0 Ko)
+[33m2026-07-08 16:24:39  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (0 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:513: assert False is True
+============================== warnings summary ===============================
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:68: RuntimeWarning: coroutine 'PostgresStorageBackend.ensure_collection' was never awaited
+    backend.ensure_collection("pz_test_dupe")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+tests/test_auto_create_collections.py::TestAutoCreateStorageWriter::test_writer_ensure_collection
+tests/test_auto_create_collections.py::TestAutoCreateQdrantSync::test_sync_embeddings_calls_ensure_collection
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:42: RuntimeWarning: coroutine 'PostgresStorageBackend.ensure_collection' was never awaited
+    gc.collect()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_golden_set.py::test_gate_result_passes_at_threshold
+  C:\Users\ElChibros\AppData\Local\Python\pythoncore-3.14-64\Lib\tarfile.py:752: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    class SpecialFileError(FilterError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_new_mcp_tool.py::test_tool
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_new_mcp_tool.py:6: RuntimeWarning: coroutine 'PostgresStorageBackend.get_by_id' was never awaited
+    result = pz_get_guide("lua_debug_guide")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_postgres_backend.py::TestPgInitHealth::test_health_available_with_pool
+  F:\Antigravity DEV\Zomboid_Architect\src\storage\postgres_backend.py:505: RuntimeWarning: coroutine 'PostgresStorageBackend.health.<locals>._check' was never awaited
+    return {"available": False, "mode": "postgresql", "error": str(exc)}
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_qdrant_backend.py::test_health_unavailable
+  C:\Users\ElChibros\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qdrant_client\qdrant_remote.py:290: UserWarning: Failed to obtain server version. Unable to check client-server compatibility. Set check_compatibility=False to skip version check.
+    show_warning(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_creates_table
+FAILED tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_calls_qdrant_when_ready
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_fallback_no_crash
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrantSync::test_sync_embeddings_calls_ensure_collection
+FAILED tests/test_game_version_filtering.py::test_storage_backend_query_accepts_game_version
+FAILED tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_accepts_game_version
+FAILED tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_no_version_filter
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_detects_unchanged_files
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_processes_new_file
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_detects_modified_file
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_updates_index_on_success
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_empty - TypeEr...
+FAILED tests/test_ingestor_processors.py::test_text_processor_reads_file - Ty...
+FAILED tests/test_ingestor_processors.py::test_text_processor_word_count - Ty...
+FAILED tests/test_ingestor_processors.py::test_text_processor_file_hash_consistency
+FAILED tests/test_ingestor_processors.py::test_engine_init_with_default_config
+FAILED tests/test_mod_ingester.py::test_invalid_directory_returns_empty - Typ...
+FAILED tests/test_mod_ingester.py::test_ingest_non_numeric_dir - TypeError: I...
+FAILED tests/test_mod_ingester.py::test_ingest_single_numeric_mod - TypeError...
+FAILED tests/test_monitoring.py::TestCheckCritical::test_critical_alert_when_empty_collection
+FAILED tests/test_monitoring.py::TestStandaloneFunctions::test_check_critical_collections_wrapper
+FAILED tests/test_postgres_backend.py::TestPgInitHealth::test_health_available_with_pool
+FAILED tests/test_postgres_backend.py::TestPgStorageBackendIntegration::test_backend_type_postgres_default
+FAILED tests/test_qdrant_backend.py::test_backend_type_qdrant_when_configured
+FAILED tests/test_qdrant_backend.py::test_health_reports_qdrant - NameError: ...
+FAILED tests/test_qdrant_backend.py::test_qdrant_fallback_on_import_error - A...
+FAILED tests/test_qdrant_backend.py::test_qdrant_collection_auto_created - Na...
+FAILED tests/test_regression_collection_extend.py::test_pg_write_to_pz_mechanics_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_query_pz_mechanics_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_upsert_in_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_write_to_pz_web_pages_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_query_pz_web_pages_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_web_pages
+FAILED tests/test_regression_collection_extend.py::test_pg_storage_custom_collection_name
+FAILED tests/test_regression_collection_extend.py::test_pg_list_collections_reflects_all_created
+FAILED tests/test_regression_collection_extend.py::test_pg_count_across_multiple_collections
+FAILED tests/test_regression_collection_extend.py::test_pg_delete_in_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_delete_in_pz_web_pages
+FAILED tests/test_regression_collection_extend.py::test_pg_cross_collection_filter_on_type_metadata
+FAILED tests/test_regression_collection_extend.py::test_regression_all_ensure_collection_idempotent
+FAILED tests/test_regression_collection_extend.py::test_e2o_full_pipeline_all_collections
+FAILED tests/test_regression_collection_extend.py::test_e2o_query_after_store_all_collections
+FAILED tests/test_regression_collection_extend.py::test_regression_pz_items_still_works
+FAILED tests/test_regression_collection_extend.py::test_regression_pz_recipes_still_works
+FAILED tests/test_regression_collection_extend.py::test_regression_get_by_id_still_works_all_collections
+FAILED tests/test_steamcmd_client.py::test_download_game_builds_correct_command
+FAILED tests/test_steamcmd_client.py::test_install_workshop_success - TypeErr...
+FAILED tests/test_steamcmd_client.py::test_install_workshop_failure - TypeErr...
+FAILED tests/test_watchdog.py::test_cli_stop_no_server - assert 1 == 0
+FAILED tests/test_wikijson_e2o.py::test_e2o_store_chunks_via_storagewriter - ...
+FAILED tests/test_wikijson_e2o.py::test_e2o_malformed_entries_skipped_gracefully
+FAILED tests/test_wikijson_e2o.py::test_e2o_large_item_set - assert False is ...
+FAILED tests/test_wikijson_e2o.py::test_e2o_metadata_propagates_through_pipeline
+=========== 55 failed, 547 passed, 2 skipped, 8 warnings in 36.25s ============

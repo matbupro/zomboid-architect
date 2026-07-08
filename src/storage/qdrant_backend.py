@@ -68,7 +68,7 @@ def _set_qdrant_client_class(mock_cls: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Resultat unifie (identique a sqlite_storage.SearchResult)
+# Resultat unifie (identique a SearchResult PG)
 # ---------------------------------------------------------------------------
 
 

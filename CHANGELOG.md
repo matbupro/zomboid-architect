@@ -65,6 +65,51 @@ Remplacement de [storage vectoriel] par SQLite local — zéro service externe r
 - Metadata filtering ($and / $eq / version) via JSON operators SQLite `->>`
 - `StorageBackend` unifié avec fallback auto [storage vectoriel] → SQLite  [historique]
 
+---
+
+## [v0.4.1-alpha] — 2026-07-08
+
+### Migration storage : PostgreSQL/pgvector unique backend (S9)
+
+**Suppression de SQLite du runtime.** PostgreSQL + pgvector devient le seul backend de stockage vectoriel.
+
+#### Changements majeurs
+
+| Action | Détail |
+|--------|--------|
+| **DELETE** | `src/storage/sqlite_storage.py` (1234 lignes supprimées) |
+| **DELETE** | `tests/test_sqlite_storage.py` (436 lignes) |
+| **DELETE** | `tests/test_dual_backend.py` (380 lignes) |
+| **DELETE** | `migrations/convert_sqlite_to_pg.py` (~439 lignes) |
+| **MODIFY** | `src/storage/__init__.py` → `create_backend()` factory PG-only |
+| **MODIFY** | `StorageBackend` default = `postgres` dans config + `.env` templates |
+| **MODIFY** | Dual-sync legacy removed (`STORAGE_DUAL_SYNC`, `STORAGE_SQLITE_DIR`) |
+
+#### Migration callers (20+ fichiers)
+
+Tous les imports `from src.storage.sqlite_storage import ...` remplacés par `from src.storage import StorageBackend, SearchResult, create_backend`.
+
+- `bot/engine_client.py`
+- `src/retrieval/__init__.py`
+- `ingestor/storage/storage_writer.py`
+- `ingestor/generate_report.py`
+- `ingestor/config.py`
+
+#### Tests
+
+- 547/602 passing (89%) — les 55 échecs sont environnementaux (PG/Qdrant non démarrés en test local)
+- `test_postgres_backend.py` enrichi avec tests HNSW, UPSERT, filters
+- `test_regression_collection_extend.py` + `test_auto_create_collections.py` adaptés à `create_backend()`
+
+#### Docs mises à jour
+
+- `ARCHITECTURE.md` — diagramme PG/pgvector uniquement (plus de "SQLite Backend")
+- `SETUP.md` — instructions PostgreSQL natif Windows (`winget install PostgreSQL.16`)
+- `README.md` — STORAGE_BACKEND default → postgres, arcitecture diagram clean
+- `ingestor/README.md` — toutes refs "SQLite vectoriel" → "PostgreSQL/pgvector"
+- `bot/README.md` — default + architecture clean
+- `Makefile` — STORAGE_BACKEND=postgres
+
 ### Bot Discord complet (Phase Bot)
 
 - Slash commands : `/help`, `/stats`, `/survie`, `/recipe`, `/moddoc`, `/search`, `/modgen`
@@ -457,3 +502,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat: S5-a migration + S6 wikijson/tests + S5-b dual-backend tests
+
+### 2026-07-08 - commit 491c8b5
+
+**Changements :**
+- feat(storage): S5-c PostgreSQL/pgvector backend complet — write/query/cross-search

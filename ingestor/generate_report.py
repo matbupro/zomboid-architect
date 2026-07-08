@@ -28,7 +28,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from ingestor.config import load_config          # noqa: E402
 from src.retrieval import list_collections, query_staging  # noqa: E402
-from src.storage.sqlite_storage import StorageBackend, _load_storage_config  # noqa: E402
+from src.storage import StorageBackend, create_backend  # noqa: E402
 from src.governance.logger import get_logger     # noqa: E402
 
 logger = get_logger("ingestor.generate_report")
@@ -129,8 +129,9 @@ class GoldenReport:
 
 def _collect_collections() -> list[CollectionInfo]:
     """Liste les collections du storage et compte les documents."""
-    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+    from src.storage import create_backend
 
+    backend = create_backend()
     infos: list[CollectionInfo] = []
     known = (
         "pz_items", "pz_recipes", "pz_mechanics",
@@ -138,9 +139,6 @@ def _collect_collections() -> list[CollectionInfo]:
         "pz_pdfs", "pz_images", "pz_videos", "pz_audios",
         "pz_mods", "pz_workshop_items", "pz_mod_lua_scripts", "pz_mod_configs",
     )
-
-    cfg = _load_storage_config()
-    backend = StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
 
     collection_names: set[str] = set()
     try:
@@ -273,14 +271,13 @@ def _check_services() -> ServiceHealth:
 
     # Storage vectoriel (check de compatibilité)
     try:
-        from src.storage.sqlite_storage import _load_storage_config, StorageBackend
-        cfg = _load_storage_config()
-        backend = StorageBackend(data_dir=cfg.data_dir if hasattr(cfg, 'data_dir') else None,
-                                 ollama_url=cfg.ollama_url if hasattr(cfg, 'ollama_url') else None)
+        from src.storage import create_backend
+        backend = create_backend()
         health.storage_online = True
+        health.storage_mode = backend.backend_type  # type: ignore[union-attr]
         health.storage_version = f"v{backend.backend_type}"
-        except Exception:  # noqa: BLE001
-            pass
+    except Exception:  # noqa: BLE001
+        pass
 
     # Disk free
     try:

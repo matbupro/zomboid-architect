@@ -1,6 +1,6 @@
 # Zomboid Knowledge Engine — Moteur d'Ingestion Multi-Format
 
-Le moteur d'ingestion lit **tout format de fichier** et le transforme en chunks vectorisés pour StorageBackend (SQLite vectoriel). Il peut aussi **naviguer sur le web**, **scanner Steam/Workshop**, et **extraire le contenu de mods PZ**.
+Le moteur d'ingestion lit **tout format de fichier** et le transforme en chunks vectorisés pour StorageBackend (PostgreSQL/pgvector). Il peut aussi **naviguer sur le web**, **scanner Steam/Workshop**, et **extraire le contenu de mods PZ**.
 
 ## Table des matières
 
@@ -43,7 +43,7 @@ Utiliser `.env.unified` à la racine du projet :
 
 ```powershell
 # Il est déjà fourni — remplir les valeurs nécessaires dans .env.unified
-STORAGE_BACKEND=sqlite
+STORAGE_BACKEND=postgres
 STORAGE_PG_HOST=localhost
 STORAGE_PG_PORT=5432
 STORAGE_PG_DB=zomboid_storage
@@ -59,7 +59,7 @@ EMBEDDING_MODEL=nomic-embed-text
 ### 4. Premier test
 
 ```powershell
-# Lister les collections StorageBackend (SQLite vectoriel)
+# Lister les collections StorageBackend (PostgreSQL/pgvector)
 python -m ingestor.cli --list-collections
 
 # Recherche web simple
@@ -77,7 +77,7 @@ python -m ingestor.cli --file "C:/docs/manual.pdf"
 ingestor/
 ├── cli.py                    # Entrée CLI (--search, --file, --dir, --crawl, --steam-scan, ...)
 ├── engine.py                 # Router MIME → processeur + IngestionEngine orchestrateur
-├── config.py                 # Settings (StorageBackend (SQLite vectoriel), Ollama, crawling, OCR, Steam)
+├── config.py                 # Settings (StorageBackend (PostgreSQL/pgvector), Ollama, crawling, OCR, Steam)
 ├── processors/
 │   ├── base.py               # Interface Processor + Chunk + ExtractionResult
 │   ├── text.py               # .txt .md .csv .json — stdlib only
@@ -100,7 +100,7 @@ ingestor/
 │   ├── library_folders.py    # Parsing libraryfolders.vdf
 │   └── qr_auth.py            # Authentification QR SteamCMD
 ├── storage/
-│   └── storage_writer.py     # Écriture StorageBackend (SQLite vectoriel) + embedding Ollama + cross-search
+│   └── storage_writer.py     # Écriture StorageBackend (PostgreSQL/pgvector) + embedding Ollama + cross-search
 ├── quarantine_manager.py     # Dédup SHA-256, circuit breaker, monitoring disque
 ├── requirements.txt          # Dépendances Python
 └── Dockerfile                # Containerisation (optionnel)
@@ -129,7 +129,7 @@ ingestor/
 
 | Commande | Description |
 |----------|-----------|
-| `--search-all "query"` | Recherche vectorielle sur **toutes** les collections StorageBackend (SQLite vectoriel) |
+| `--search-all "query"` | Recherche vectorielle sur **toutes** les collections StorageBackend (PostgreSQL/pgvector) |
 | `--list-collections` | Liste les collections disponibles + nombre de documents |
 
 ### Steam & Workshop
@@ -140,7 +140,7 @@ ingestor/
 | `--steamcmd-download-game [DIR]` | Télécharge PZ via SteamCMD (anonyme) |
 | `--steamcmd-install-mod <ID>` | Installe un mod workshop via SteamCMD |
 | `--workshop-scan` | Scanne les mods installés dans le Steam Workshop |
-| `--mod-ingest <DIR>` | Ingestion StorageBackend (SQLite vectoriel) de tous les mods d'un dossier (.pbo, lua, cfg) |
+| `--mod-ingest <DIR>` | Ingestion StorageBackend (PostgreSQL/pgvector) de tous les mods d'un dossier (.pbo, lua, cfg) |
 
 ### Options globales
 
@@ -163,7 +163,7 @@ python -m ingestor.cli --crawl "https://pzmods.net" --max-depth 3 --max-pages 10
 # 3. Ingestion PDF d'un manuel PZ
 python -m ingestor.cli --file "C:/docs/pz_cooking.pdf"
 
-# 4. Scanner les mods installés + ingestion dans StorageBackend (SQLite vectoriel)
+# 4. Scanner les mods installés + ingestion dans StorageBackend (PostgreSQL/pgvector)
 python -m ingestor.cli --workshop-scan
 python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 
@@ -184,7 +184,7 @@ Toutes les variables se chargent depuis `.env.unified` à la racine du projet.
 
 | Variable | Par défaut | Description |
 |----------|-----------|-------------|
-| `STORAGE_BACKEND` | `sqlite` | Type de stockage vectoriel (sqlite, postgres) |
+| `STORAGE_BACKEND` | `postgres` | Type de stockage vectoriel (postgres par défaut, optionnel : `qdrant`) |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | URL du serveur Ollama |
 | `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle d'embedding utilisé |
 
@@ -251,7 +251,7 @@ processor.extract() → list[Chunk] + ExtractionResult
     ▼
 storage_writer.StorageWriter.write_chunks_to_storage()
     ├── embedding via Ollama (nomic-embed-text)
-    └── stockage dans collection StorageBackend (SQLite vectoriel)
+    └── stockage dans collection StorageBackend (PostgreSQL/pgvector)
         pz_items       — Entités jeu (objets, ressources)
         pz_recipes     — Recettes de craft
         pz_mechanics   — Mécaniques de jeu
@@ -283,7 +283,7 @@ python -m ingestor.cli --steam-scan
 # 2. Scanner les mods installés (affiche un résumé)
 python -m ingestor.cli --workshop-scan
 
-# 3. Ingester les mods dans StorageBackend (SQLite vectoriel) pour la recherche vectorielle
+# 3. Ingester les mods dans StorageBackend (PostgreSQL/pgvector) pour la recherche vectorielle
 python -m ingestor.cli --mod-ingest "C:/Steam/steamapps/workshop/content/1042170"
 ```
 
@@ -293,7 +293,7 @@ Chaque mod est traité par `mod_ingester.py` :
 1. Parse `ZomboidModDescriptor.txt` → metadata (nom, description, author, fichiers)
 2. Extrait chaque `.lua` / `.cfg` / `.txt` du mod → chunks
 3. Extrait le contenu des `.pbo` si présents (architecture ArmA/Steam)
-4. Injecte dans StorageBackend (SQLite vectoriel) (`pz_mod_lua_scripts` + `pz_mod_configs`)
+4. Injecte dans StorageBackend (PostgreSQL/pgvector) (`pz_mod_lua_scripts` + `pz_mod_configs`)
 
 ---
 
@@ -369,10 +369,10 @@ playwright install chromium --with-deps
 ### `.pbo` extraction fails (LZMA)
 Les `.pbo` signés utilisent une signature au début du fichier qui doit être ignorée. Le processeur `pbo.py` détecte et saute automatiquement la signature (header + data length). Si le .pbo est compressé avec autre chose que LZMA, l'extraction peut échouer.
 
-### Collections StorageBackend (SQLite vectoriel) vides après ingestion
-1. Vérifie que StorageBackend (SQLite vectoriel) est accessible : `python -m ingestor.cli --list-collections`
+### Collections StorageBackend (PostgreSQL/pgvector) vides après ingestion
+1. Vérifie que StorageBackend (PostgreSQL/pgvector) est accessible : `python -m ingestor.cli --list-collections`
 2. Les chunks sont-ils generés ? Regarde les logs (`--verbose`)
-3. La confirmation StorageBackend (SQLite vectoriel) a-t-elle été faite (prompt [y/N]) ?
+3. La confirmation StorageBackend (PostgreSQL/pgvector) a-t-elle été faite (prompt [y/N]) ?
 
 ---
 
@@ -380,7 +380,7 @@ Les `.pbo` signés utilisent une signature au début du fichier qui doit être i
 
 L'ingestor est utilisé en arrière-plan par le bot `bot/` pour :
 
-1. **Recherche vectorielle** — Le bot interroge les collections via `src.retrieval` + `StorageBackend` (SQLite/PostgreSQL)
+1. **Recherche vectorielle** — Le bot interroge les collections via `src.retrieval` + `StorageBackend` (PostgreSQL/pgvector)
 2. **Ingestion web automatique** — `/search "query"` dans Discord déclenche la même pipeline que `--search`
 3. **Modding assisté** — Les mods ingérés via `--mod-ingest` alimentent la base de connaissances du bot
 

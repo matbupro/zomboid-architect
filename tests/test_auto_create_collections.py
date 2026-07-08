@@ -1,7 +1,7 @@
-"""Tests S4-i — Auto-create collections sur tous les backends.
+﻿"""Tests S4-i — Auto-create collections sur tous les backends.
 
 Couverture :
-- StorageBackend.ensure_collection cree la collection SQLite par defaut
+- StorageBackend.ensure_collection cree la collection par defaut (postgres)
 - StorageWriter.write_chunks_to_storage appelle ensure_collection avant écriture
 - Qdrant ensure_collection appele quand backend=qdrant + qdrant_ready=True
 - _sync_embeddings_qdrant auto-create avant batch_upsert
@@ -43,31 +43,27 @@ def tmp_path():
 
 
 # ============================================================================
-# Test S4-i : ensure_collection auto-create (SQLite via StorageBackend)
+# Test S4-i : ensure_collection auto-create (default backend)
 # ============================================================================
 
 
-class TestAutoCreateSQLite:
-    """Auto-create collections sur StorageBackend."""
+class TestAutoCreateDefault:
+    """Auto-create collections sur le backend par defaut (postgres)."""
 
     def test_ensure_collection_creates_table(self, tmp_path):
         """ensure_collection cree la table si elle n'existe pas."""
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        cfg.data_dir = str(tmp_path)
-        backend = StorageBackend(data_dir=str(tmp_path), config=cfg)
+        backend = create_backend()
 
         result = backend.ensure_collection("pz_test_items")
         assert result is True
 
     def test_ensure_collection_no_double_create(self, tmp_path):
         """Deux appels ne recréent pas la table."""
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        cfg.data_dir = str(tmp_path)
-        backend = StorageBackend(data_dir=str(tmp_path), config=cfg)
+        backend = create_backend()
 
         backend.ensure_collection("pz_test_dupe")
         result = backend.ensure_collection("pz_test_dupe")
@@ -158,10 +154,9 @@ class TestAutoCreateQdrant:
         # Forcer le mode qdrant via env (c'est StorageBackend.__init__ qui lit cfg)
         os.environ["STORAGE_BACKEND"] = "qdrant"
 
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        cfg.data_dir = str(tmp_path)
+        backend = create_backend()
         # Pointer vers un port inconnu pour que la connexion echoue silencieusement
         os.environ["STORAGE_QDRANT_URL"] = "http://localhost:19999"  # pas de real serveur
 
@@ -170,7 +165,7 @@ class TestAutoCreateQdrant:
             mock_qdb.ensure_collection = MagicMock(return_value=True)
             MockQdrant.return_value = mock_qdb
 
-            backend = StorageBackend(data_dir=str(tmp_path), config=cfg)
+            backend = create_backend()
 
             # _qdrant_ready doit etre True car _ensure_qd retourne le mock (connecte)
             assert backend._qdrant_ready, "Qdrant doit etre pret (mock)"
@@ -183,12 +178,10 @@ class TestAutoCreateQdrant:
             assert mock_qdb.ensure_collection.call_args[0][0] == "pz_test_qdrant"
 
     def test_ensure_collection_fallback_no_crash(self, tmp_path):
-        """Meme sans Qdrant, ensure_collection fonctionne (SQLite)."""
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        """Sans Qdrant, ensure_collection fonctionne sur le backend par defaut."""
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        cfg.data_dir = str(tmp_path)
-        backend = StorageBackend(data_dir=str(tmp_path), config=cfg)
+        backend = create_backend()
 
         result = backend.ensure_collection("pz_fallback_test")
         assert isinstance(result, bool)
@@ -207,10 +200,9 @@ class TestAutoCreateQdrantSync:
         os.environ["STORAGE_BACKEND"] = "qdrant"
         os.environ["STORAGE_QDRANT_URL"] = "http://localhost:19999"
 
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        cfg.data_dir = str(tmp_path)
+        backend = create_backend()
 
         with patch("src.storage.qdrant_backend.QdrantVectorBackend") as MockQdrant:
             mock_qdb = MagicMock()
@@ -218,7 +210,7 @@ class TestAutoCreateQdrantSync:
             mock_qdb.batch_upsert = MagicMock(return_value=True)
             MockQdrant.return_value = mock_qdb
 
-            backend = StorageBackend(data_dir=str(tmp_path), config=cfg)
+            backend = create_backend()
 
             assert backend._qdrant_ready, "Qdrant doit etre pret"
 

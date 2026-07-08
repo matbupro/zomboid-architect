@@ -463,11 +463,9 @@ class TestPgFilterLogic:
 class TestPgStorageBackendIntegration:
 
     @pytest.mark.asyncio
-    async def test_backend_type_sqlite_default(self):
-        """Par defaut, le backend est sqlite."""
-        from src.storage.sqlite_storage import StorageBackend
+    async def test_backend_type_postgres_default(self):
+        """Par defaut, le backend est postgresql."""
+        from src.storage import create_backend, get_storage_config
 
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmpdir:
-            sb = StorageBackend(data_dir=tmpdir)
-            assert sb.backend_type == "sqlite"
+        cfg = get_storage_config()
+        assert cfg["backend"] == "postgres"

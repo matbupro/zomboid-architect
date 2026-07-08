@@ -194,3 +194,14 @@
 ## Sync auto: last_sync: 2026-07-07
 
 ## Sync auto: last_sync: 2026-07-08
+
+## NOUVEAU : Phase S9 — Migration SQLite → PostgreSQL-only ⬜ (détaillé dans agent/todo_storage_migration.md)
+- [ ] P1-Supprimer fichiers morts (sqlite_storage.py, test_sqlite_storage.py, test_dual_backend.py, convert_sqlite_to_pg.py)
+- [ ] P2-Refactor core storage layer (PG default, clean __init__.py)
+- [ ] P3-Migrer tous les callers (bot/, retrieval/, ingestor/)
+- [ ] P4-Config default → postgres, remove dual-sync legacy
+- [ ] P5-Adapter tests + full suite validation
+- [ ] P6-Update docs (ARCHITECTURE, SETUP, README, CHANGELOG)
+- [ ] P7-Validate final: pytest full + lint + import check
+
+## Sync auto: last_sync: 2026-07-08

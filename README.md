@@ -6,7 +6,7 @@ Sert deux buts : **stratégie de survie** (conseils précis) et **développement
 
 ## Version
 
-`0.4.0-alpha` — Moteur d'ingestion multi-format, bot Discord complet, SQLite storage V1
+`0.4.0-alpha` — Moteur d'ingestion multi-format, bot Discord complet, PostgreSQL/pgvector storage
 
 **Nouveau depuis v0.3.0 :**
 - **Phases 7–9** : Ingestion multi-format (PDF, images, vidéo, audio, docx, epub, web) + crawler DuckDuckGo/Playwright
@@ -24,7 +24,7 @@ Zomboid_Architect/
 ├── agent/                 # Mémoire interne de l'agent (GOAL, rules, todo, etc.)
 ├── bot/                   # Bot Discord — /stats, /survie, /recipe, /search
 │   ├── main.py            # Point d'entrée
-│   ├── engine_client.py   # Client StorageBackend (SQLite/PostgreSQL) + fallback local
+│   ├── engine_client.py   # Client StorageBackend (PostgreSQL/pgvector) + fallback local
 │   ├── llm_adapter.py     # Ollama (local) → Claude API (fallback)
 │   ├── pipeline.py        # message → search → prompt → LLM → réponse
 │   ├── config.py          # Settings depuis .env
@@ -51,11 +51,11 @@ Zomboid_Architect/
 │   ├── production/        # Base validée (serveur MCP / bot) — jamais édité à la main
 │   ├── quarantine/        # Fichiers en erreur de parsing
 │   └── raw/               # Sources brutes ingérées
-├── db/                    # Bases persistantes (SQLite/PostgreSQL)
-│   ├── staging/           # données staging (SQLite)
-│   └── production/        # données validées (SQLite)
+├── db/                    # Bases persistantes (PostgreSQL)
+│   ├── staging/           # données staging
+│   └── production/        # données validées
 ├── backups/               # Snapshots horodatés (.tar.gz)
-│   ├── sqlite/            # snapshots SQLite de promote.py
+│   ├── pg_snapshots/      # snapshots PostgreSQL de promote.py
 │   ├── manual/            # Backups manuels nommés
 │   └── scheduled/         # Backups cron planifiés
 ├── logs/                  # project.log (rotatif) + audit.json (JSONL)
@@ -94,7 +94,7 @@ Zomboid_Architect/
 | **Redis** | `docker-compose.pz-agent.yml` | 6379 | Cache layer + pub/sub pour notifications |
 | **Ollama** | `docker-compose.yml` | 11434 | Embedding (nomic-embed-text) + LLM local |
 
-> **Pour commencer sans Docker : `STORAGE_BACKEND=sqlite` dans `.env.unified`. Le bot Discord démarre directement.**
+> **Pour commencer avec PostgreSQL natif Windows :** `STORAGE_BACKEND=postgres` (par défaut) + PG 16 installé. Le bot Discord démarre directement sans Docker.
 
 
 ## Démarrage rapide
@@ -119,8 +119,8 @@ make env-init
 | `OLLAMA_BASE_URL` | non | `http://host.docker.internal:11434` | bot, ingestor | Serveur Ollama pour LLM local. |
 | `OLLAMA_MODEL` | non | `llama3.2` (→ `qwen3.6:35b-a3b` en prod) | bot | Modèle par défaut du LLM. |
 | `LLM_TEMPERATURE` | non | `0.7` | bot | Température [0.0-1.0]. 0 = déterministe. |
-| `ZOMBOID_EMBEDDING_MODEL` | non | `nomic-embed-text` | ingestor | Modèle d'embedding pour l'index vectoriel (SQLite/PostgreSQL). |
-| `STORAGE_BACKEND` | non | `sqlite` | bot, ingestor | Type de stockage (sqlite, postgres). |
+| `ZOMBOID_EMBEDDING_MODEL` | non | `nomic-embed-text` | ingestor | Modèle d'embedding pour l'index vectoriel (PostgreSQL/pgvector). |
+| `STORAGE_BACKEND` | non | `postgres` | bot, ingestor | Type de stockage (postgres par défaut, optionnel : `qdrant`). |
 | `STORAGE_PG_HOST` | non | `localhost` | ingestor | Hôte PostgreSQL. |
 | `CLAUDE_API_KEY` | **optionnel** | — (fallback activé si défini) | bot, ingestor | Fallback LLM si Ollama indisponible. |
 | `CLAUDE_MODEL` | non | `claude-sonnet-4-20250514` | bot | Modèle Claude en fallback. |

@@ -121,12 +121,9 @@ class StorageWriter:
 
     def _get_backend(self) -> Any:
         """Retourne le backend StorageBackend (lazy import)."""
-        from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+        from src.storage import create_backend
 
-        cfg = _load_storage_config()
-        if hasattr(cfg, 'data_dir') and cfg.data_dir:
-            return StorageBackend(data_dir=cfg.data_dir, ollama_url=self.ollama_url, config=cfg)
-        return StorageBackend(ollama_url=self.ollama_url, config=cfg)
+        return create_backend()
 
     # -- Initialisation --
 

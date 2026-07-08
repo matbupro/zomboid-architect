@@ -79,3 +79,6 @@ S4-e pipeline ingest-pz-full + S4-f coverage-report — orchestrateur complet + 
 
 ## Session du 2026-07-08
 daily auto-sync routine — post RuntimeWarning fixes, test suite analysis
+
+## Session du 2026-07-08
+S9: Migration SQLite→PostgreSQL-only — suppression sqlite_storage.py, refacto storage layer PG, migration 20+ callers, update docs

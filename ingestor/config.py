@@ -2,9 +2,8 @@
 config — Settings du moteur d'ingestion multi-format.
 
 Variables d'environnement (voir .env.unified) :
-  STORAGE_BACKEND   — type de stockage: sqlite, postgres, qdrant (défaut: sqlite)
+  STORAGE_BACKEND   — type de stockage: postgres, qdrant (défaut: postgres)
   STORAGE_QDRANT_URL — URL du serveur Qdrant (défaut: http://localhost:6333)
-  STORAGE_DUAL_SYNC — dual-write SQLite+PG pendant migration (défaut: false)
   STORAGE_PG_HOST   — hôte PostgreSQL (défaut: localhost)
   STORAGE_PG_PORT   — port PostgreSQL (défaut: 5432)
   STORAGE_PG_DB     — nom BDD PostgreSQL (défaut: zomboid_storage)
@@ -31,10 +30,9 @@ from pathlib import Path
 class IngestorConfig:
     """Configuration centralisée de l'ingestion."""
 
-    # Storage (SQLite / PostgreSQL / Qdrant via StorageBackend)
-    STORAGE_BACKEND: str = "sqlite"
-    STORAGE_QDRANT_URL: str = "http://localhost:6333"  # serveur vectoriel distant
-    STORAGE_DUAL_SYNC: bool = False  # dual-write SQLite + PG pendant migration
+    # Storage (PostgreSQL pgvector par defaut, Qdrant optionnel)
+    STORAGE_BACKEND: str = "postgres"
+    STORAGE_QDRANT_URL: str = "http://localhost:6333"  # serveur vectoriel distant (optionnel)
 
     # Ollama (embedding)
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"

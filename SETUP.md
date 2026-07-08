@@ -29,13 +29,13 @@ Copy-Item .env.unified.example .env.unified 2>$null
 # OU (si pas de template) :
 New-Item -ItemType File .env.unified -Force
 Add-Content .env.unified "DISCORD_TOKEN=votre_token_discord"
-Add-Content .env.unified "STORAGE_BACKEND=sqlite"   # ou postgres
+Add-Content .env.unified "STORAGE_BACKEND=postgres"  # backend par défaut (PG/pgvector)
 ```
 
 | Variable | Requis ? | Défaut | Description |
 |----------|----------|--------|-------------|
 | `DISCORD_TOKEN` | **OUI** | — | Token bot Discord (le bot refuse de démarrer sans) |
-| `STORAGE_BACKEND` | non | `sqlite` | `sqlite` (local, zéro infra) ou `postgres` |
+| `STORAGE_BACKEND` | non | `postgres` | stockage vectoriel (postgres/pgvector par défaut, optionnel : `qdrant`) |
 | `STORAGE_PG_PASS` | si postgres | `""` | Mot de passe PG |
 | `OLLAMA_BASE_URL` | non | `http://host.docker.internal:11434` | Serveur embedding local |
 | `OLLAMA_MODEL` | non | `nomic-embed-text` | Modèle d'embedding vectoriel |
@@ -43,9 +43,11 @@ Add-Content .env.unified "STORAGE_BACKEND=sqlite"   # ou postgres
 | `MINIO_ROOT_USER` | — | `minioadmin` | Accès MinIO object storage |
 | `GITEA_URL` | — | `http://localhost:3000` | Instance Gitea pour mods |
 
-> **Pour un premier test sans Docker : `STORAGE_BACKEND=sqlite` suffit.** Le bot Discord démarre directement.
+> **Pour un premier test avec PostgreSQL natif Windows :** installer PG 16 (`winget install PostgreSQL.16`), démarrer le service, et laisser `STORAGE_BACKEND=postgres` (par défaut). Le bot Discord démarre directement.
 
-## 3. Infrastructure Docker (optionnel — requis si STORAGE_BACKEND=postgres)
+> **Alternative légère :** `STORAGE_BACKEND=qdrant` avec un serveur Qdrant local pour testing vectoriel sans base relationnelle.
+
+## 3. Infrastructure Docker (optionnel — requise pour STORAGE_BACKEND=postgres en mode conteneur)
 
 ```powershell
 # Lancer toute la stack infra en arrière-plan

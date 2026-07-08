@@ -3,7 +3,7 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-08 par sync_agent.ps1 automatique.**
 
-Dernier commit : 215cc50
+Dernier commit : 491c8b5
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
@@ -13,6 +13,12 @@ Version moteur : 0.4.0-alpha
   |-- .env.unified
   |-- .github/workflows/tests.yml
   |-- .gitignore
+  |-- .test_output/.gitkeep
+  |-- .test_output/ztest_1hx1jdbi/err.txt
+  |-- .test_output/ztest_1hx1jdbi/out.txt
+  |-- _test_result.txt
+  |-- _test_result2.txt
+  |-- _test_run.py
   |-- agent/.agent_memory.md
   |-- agent/architecture.md
   |-- agent/GOAL.md
@@ -25,6 +31,7 @@ Version moteur : 0.4.0-alpha
   |-- agent/syntax.md
   |-- agent/todo.md
   |-- agent-autonome-mods-pz.md
+  |-- ARCHITECTURE.md
   |-- audit.ps1
   |-- bot/__init__.py
   |-- bot/cleanup_channels.py
@@ -67,6 +74,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/generate_report.py
   |-- ingestor/ingest.py
   |-- ingestor/inject_mod.sh
+  |-- ingestor/monitoring.py
   |-- ingestor/parser/__init__.py
   |-- ingestor/parser/dual_field.py
   |-- ingestor/parser/schemas.py
@@ -76,6 +84,7 @@ Version moteur : 0.4.0-alpha
   |-- ingestor/processors/docx.py
   |-- ingestor/processors/epub.py
   |-- ingestor/processors/image.py
+  |-- ingestor/processors/java_class.py
   |-- ingestor/processors/pbo.py
   |-- ingestor/processors/pdf.py
   |-- ingestor/processors/text.py
@@ -125,6 +134,7 @@ Version moteur : 0.4.0-alpha
   |-- notion_client/tests/unit/test_parser.py
   |-- notion_client/tests/unit/test_sync_logic.py
   |-- notion_sync.py
+  |-- pyproject.toml
   |-- pytest.ini
   |-- README.md
   |-- requirements.txt
@@ -133,6 +143,9 @@ Version moteur : 0.4.0-alpha
   |-- restore.py
   |-- run-bot.bat
   |-- run-bot.ps1
+  |-- scripts/generate_secrets.ps1
+  |-- scripts/run_full_tests.py
+  |-- SETUP.md
   |-- setup.ps1
   |-- src/__init__.py
   |-- src/constants_shared.py
@@ -164,8 +177,12 @@ Version moteur : 0.4.0-alpha
   |-- src/storage/qdrant_backend.py
   |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
+  |-- tests/fixtures/test_mod_zombo_small/media/lua/ZomboSmallInit.lua
+  |-- tests/fixtures/test_mod_zombo_small/media/scripts/ZomboSmallConfig.lua
+  |-- tests/fixtures/test_mod_zombo_small/mod.info
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
+  |-- tests/test_auto_create_collections.py
   |-- tests/test_brave_search.py
   |-- tests/test_cli.py
   |-- tests/test_dual_backend.py
@@ -174,12 +191,15 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_incremental_ingest.py
   |-- tests/test_ingest.py
   |-- tests/test_ingestor_processors.py
+  |-- tests/test_java_class_processor.py
   |-- tests/test_library_folders.py
   |-- tests/test_mod_ingester.py
   |-- tests/test_modgen.py
   |-- tests/test_modgen_integration.py
+  |-- tests/test_monitoring.py
   |-- tests/test_new_mcp_tool.py
   |-- tests/test_pbo_processor.py
+  |-- tests/test_postgres_backend.py
   |-- tests/test_qdrant_backend.py
   |-- tests/test_regression.py
   |-- tests/test_regression_collection_extend.py
@@ -187,7 +207,9 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_steamcmd_client.py
   |-- tests/test_storage_writer.py
   |-- tests/test_tag_release.py
+  |-- tests/test_validation_levels.py
   |-- tests/test_watchdog.py
+  |-- tests/test_wikijson_chunking.py
   |-- tests/test_wikijson_completeness.py
   |-- tests/test_wikijson_crossref.py
   |-- tests/test_wikijson_e2o.py

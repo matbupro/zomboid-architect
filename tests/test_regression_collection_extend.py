@@ -1,4 +1,4 @@
-"""test_regression_collection_extend — Regression tests etendus pour nouvelles collections.
+﻿"""test_regression_collection_extend — Regression tests etendus pour nouvelles collections.
 
 Couvre les gaps identifies dans les tests existants :
   - pz_mechanics (mobs/skills/weather/crops/achievements) — jamais teste en write/query
@@ -41,7 +41,7 @@ from ingestor.processors.wikijson import WikiJsonProcessor, TYPE_TO_COLLECTION
 
 # StorageBackend est dans src.storage (pas ingestor.storage) — import dynamique pour eviter ModuleNotFoundError
 import importlib
-StorageBackend = importlib.import_module("src.storage.sqlite_storage").StorageBackend
+StorageBackend = importlib.import_module("src.storage").StorageBackend
 
 
 def _chunk(text: str, metadata: dict | None = None) -> Any:
@@ -162,7 +162,7 @@ def _write_wikidrive(tmp_path: Path, data: dict[str, Any]) -> Path:
 
 async def test_pg_write_to_pz_mechanics_collection(tmp_path: Path):
     """Ecrire dans pz_mechanics via StorageBackend → count valide."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_mech_data"))
+    db = create_backend()
 
     # ensure_collection pour pz_mechanics (jamais fait par les tests existants)
     assert db.ensure_collection("pz_mechanics") is True
@@ -179,7 +179,7 @@ async def test_pg_write_to_pz_mechanics_collection(tmp_path: Path):
 
 async def test_pg_query_pz_mechanics_collection(tmp_path: Path):
     """Query dans pz_mechanics retourne des resultats par type (mob/skill)."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_mech_q_data"))
+    db = create_backend()
     db.ensure_collection("pz_mechanics")
 
     chunks = [
@@ -195,7 +195,7 @@ async def test_pg_query_pz_mechanics_collection(tmp_path: Path):
 
 async def test_pg_upsert_in_pz_mechanics(tmp_path: Path):
     """Upsert dans pz_mechanics — mise a jour existe → count stable."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_mech_up"))
+    db = create_backend()
     db.ensure_collection("pz_mechanics")
 
     # write_chunk avec ID fixe simule un upsert
@@ -209,7 +209,7 @@ async def test_pg_upsert_in_pz_mechanics(tmp_path: Path):
 
 async def test_pg_metadata_jsonb_pz_mechanics(tmp_path: Path):
     """Metadata JSONB dans pz_mechanics — keys/values valides."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_mech_meta"))
+    db = create_backend()
     db.ensure_collection("pz_mechanics")
 
     chunk = _chunk(text="Skill: cooking", metadata={"type": "skill", "key": "cooking", "max_level": 50})
@@ -228,7 +228,7 @@ async def test_pg_metadata_jsonb_pz_mechanics(tmp_path: Path):
 
 async def test_pg_write_to_pz_web_pages_collection(tmp_path: Path):
     """Ecrire dans pz_web_pages via StorageBackend → count valide."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_wp_data"))
+    db = create_backend()
 
     # ensure_collection pour pz_web_pages (jamais fait par les tests existants)
     assert db.ensure_collection("pz_web_pages") is True
@@ -245,7 +245,7 @@ async def test_pg_write_to_pz_web_pages_collection(tmp_path: Path):
 
 async def test_pg_query_pz_web_pages_collection(tmp_path: Path):
     """Query dans pz_web_pages retourne des resultats maps/POI."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_wp_q_data"))
+    db = create_backend()
     db.ensure_collection("pz_web_pages")
 
     chunks = [_chunk(text="Map: RooksPort\n  Biomes: Suburbs", metadata={"type": "map", "key": "RooksPort"})]
@@ -257,7 +257,7 @@ async def test_pg_query_pz_web_pages_collection(tmp_path: Path):
 
 async def test_pg_metadata_jsonb_pz_web_pages(tmp_path: Path):
     """Metadata JSONB dans pz_web_pages — biomes en liste serialisee."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_wp_meta"))
+    db = create_backend()
     db.ensure_collection("pz_web_pages")
 
     meta = {"type": "map", "key": "RooksPort", "biomes": ["Suburbs", "Outlands"], "loot": "high"}
@@ -421,7 +421,7 @@ async def test_all_type_to_collection_mappings_valid():
 
 async def test_pg_storage_custom_collection_name(tmp_path: Path):
     """Collection custom nommee → ensure + write + count works."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_custom"))
+    db = create_backend()
 
     assert db.ensure_collection("pz_custom_test") is True
     assert db.count_collection("pz_custom_test") == 0
@@ -434,7 +434,7 @@ async def test_pg_storage_custom_collection_name(tmp_path: Path):
 
 async def test_pg_list_collections_reflects_all_created(tmp_path: Path):
     """list_collections retourne TOUTES les collections creees (items + mechanics + web_pages)."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_list"))
+    db = create_backend()
 
     db.ensure_collection("pz_items")
     db.ensure_collection("pz_mechanics")
@@ -450,7 +450,7 @@ async def test_pg_list_collections_reflects_all_created(tmp_path: Path):
 
 async def test_pg_count_across_multiple_collections(tmp_path: Path):
     """Count par collection quand plusieurs collections existent — pas de confusion."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_multi_count"))
+    db = create_backend()
 
     db.ensure_collection("pz_items")
     db.ensure_collection("pz_mechanics")
@@ -468,7 +468,7 @@ async def test_pg_count_across_multiple_collections(tmp_path: Path):
 
 async def test_pg_delete_in_pz_mechanics(tmp_path: Path):
     """Delete dans pz_mechanics → count diminue."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_mech_del"))
+    db = create_backend()
     db.ensure_collection("pz_mechanics")
 
     db.write_chunk("pz_mechanics", "d::1", "Test delete", {"type": "mob"})
@@ -482,7 +482,7 @@ async def test_pg_delete_in_pz_mechanics(tmp_path: Path):
 
 async def test_pg_delete_in_pz_web_pages(tmp_path: Path):
     """Delete dans pz_web_pages → count diminue."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_wp_del"))
+    db = create_backend()
     db.ensure_collection("pz_web_pages")
 
     db.write_chunk("pz_web_pages", "d::1", "Test delete web", {"type": "map"})
@@ -495,7 +495,7 @@ async def test_pg_delete_in_pz_web_pages(tmp_path: Path):
 
 async def test_pg_cross_collection_filter_on_type_metadata(tmp_path: Path):
     """Cross-collection search avec filtre metadata type=mob."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_filter"))
+    db = create_backend()
 
     db.ensure_collection("pz_items")
     db.ensure_collection("pz_mechanics")
@@ -518,7 +518,7 @@ async def test_pg_cross_collection_filter_on_type_metadata(tmp_path: Path):
 
 async def test_regression_all_ensure_collection_idempotent(tmp_path: Path):
     """Toutes les collections PG -> ensure_collection appelle idempotent (2x = pas d'erreur)."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_idem"))
+    db = create_backend()
 
     for col in ["pz_items", "pz_recipes", "pz_mechanics", "pz_web_pages"]:
         r1 = db.ensure_collection(col)
@@ -578,7 +578,7 @@ async def test_e2o_full_pipeline_all_collections(tmp_path: Path):
     assert "pz_mechanics" in by_collection  # ← gap corrige ici !
 
     # Ecrire chaque collection dans le storage
-    db = StorageBackend(data_dir=str(tmp_path / "pg_e2o"))
+    db = create_backend()
     for col_name, chunks in by_collection.items():
         db.ensure_collection(col_name)
         written = db.write_chunks(chunks, collection=col_name, source="e2o")
@@ -600,7 +600,7 @@ async def test_e2o_query_after_store_all_collections(tmp_path: Path):
     result = await proc.extract()
 
     # Ecrire pz_mechanics dans le storage
-    db = StorageBackend(data_dir=str(tmp_path / "pg_e2o_query"))
+    db = create_backend()
     mech_chunks = [c for c in result.chunks if c.metadata.get("type") == "mob"]
     db.ensure_collection("pz_mechanics")
     db.write_chunks(mech_chunks, collection="pz_mechanics", source="e2o")
@@ -617,7 +617,7 @@ async def test_e2o_query_after_store_all_collections(tmp_path: Path):
 
 async def test_regression_pz_items_still_works(tmp_path: Path):
     """pz_items fonctionne toujours apres ajout des nouvelles collections."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_reg"))
+    db = create_backend()
     assert db.ensure_collection("pz_items") is True
 
     chunks = [_chunk(text="Iron Pipe melee weapon", metadata={"type": "item", "key": "iron_pipe"})]
@@ -631,7 +631,7 @@ async def test_regression_pz_items_still_works(tmp_path: Path):
 
 async def test_regression_pz_recipes_still_works(tmp_path: Path):
     """pz_recipes fonctionne toujours apres ajout des nouvelles collections."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_reg2"))
+    db = create_backend()
     assert db.ensure_collection("pz_recipes") is True
 
     chunks = [_chunk(text="Crafting nails recipe", metadata={"type": "recipe"})]
@@ -659,7 +659,7 @@ async def test_regression_cross_collection_still_works(tmp_path: Path):
 
 async def test_regression_get_by_id_still_works_all_collections(tmp_path: Path):
     """get_by_id fonctionne sur TOUTES les collections (items, recipes, mechanics, web_pages)."""
-    db = StorageBackend(data_dir=str(tmp_path / "pg_getbyid"))
+    db = create_backend()
 
     for col in ["pz_items", "pz_recipes", "pz_mechanics", "pz_web_pages"]:
         db.ensure_collection(col)

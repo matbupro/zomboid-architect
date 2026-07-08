@@ -52,7 +52,7 @@ help:
 	@echo "  ===== Variables d'environnement (voir .env.unified) ====="
 	@echo "  [REQUIS]        DISCORD_TOKEN — sans ce .env, le bot ne démarre pas"
 	@echo "  [DEFAUT]        OLLAMA_BASE_URL=http://host.docker.internal:11434"
-	@echo "  [DEFAUT]        STORAGE_BACKEND=sqlite"
+	@echo "  [DEFAUT]        STORAGE_BACKEND=postgres (PG/pgvector)"
 	@echo "  [OPTIONNEL]     CLAUDE_API_KEY — fallback LLM si Ollama indisponible"
 	@echo "  [OPTIONNEL]     WORKSPACE_CHANNEL_ID — résolu auto si absent"
 	@echo ""

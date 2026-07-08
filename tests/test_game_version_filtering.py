@@ -196,11 +196,10 @@ def test_tag_chunk_preserves_existing_metadata(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_storage_backend_query_accepts_game_version():
-    """StorageBackend.query() accepte game_version sans lever (mock SQLite)."""
-    from src.storage.sqlite_storage import StorageBackend, _load_storage_config
+    """StorageBackend.query() accepte game_version sans lever (mock PG)."""
+    from src.storage import create_backend
 
-    cfg = _load_storage_config()
-    backend = StorageBackend(data_dir=cfg.data_dir, ollama_url=cfg.ollama_url, config=cfg)
+    backend = create_backend()
     # Mock query to return empty results — we just verify no crash with game_version
     with patch.object(backend, 'query', return_value=[]):
         result = backend.query("pz_items", "test question", n_results=3, filters=None, game_version="b41")

@@ -1,0 +1,274 @@
+﻿FF..FFF..................................F.FF........................... [ 11%]
+......FFFFF.......................................................FFF... [ 23%]
+.F.................................FFF..........................s....... [ 35%]
+...........................................F.......F.................... [ 47%]
+.....Fs...........F.............FFF..F........................FFFFFFF... [ 59%]
+...FFFFFFFFFFF.F...........FFF.......................................... [ 71%]
+..............................F......................................... [ 83%]
+F...FFF................................................................. [ 95%]
+............................                                             [100%]
+================================== FAILURES ===================================
+E   assert <coroutine object PostgresStorageBackend.ensure_collection at 0x000001F39B521120> is True
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:60: assert <coroutine object PostgresStorageBackend.ensure_collection at 0x000001F39B521120> is True
+E   assert <coroutine object PostgresStorageBackend.ensure_collection at 0x000001F39B521B40> is False
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:70: assert <coroutine object PostgresStorageBackend.ensure_collection at 0x000001F39B521B40> is False
+E   AttributeError: 'PostgresStorageBackend' object has no attribute '_qdrant_ready'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:171: AttributeError: 'PostgresStorageBackend' object has no attribute '_qdrant_ready'
+E   assert False
+     +  where False = isinstance(<coroutine object PostgresStorageBackend.ensure_collection at 0x000001F39B5227A0>, bool)
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:187: assert False
+E   AttributeError: 'PostgresStorageBackend' object has no attribute '_qdrant_ready'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:215: AttributeError: 'PostgresStorageBackend' object has no attribute '_qdrant_ready'
+E   assert False
+     +  where False = isinstance(<coroutine object AsyncMockMixin._execute_mock_call at 0x000001F39B4BF240>, list)
+F:\Antigravity DEV\Zomboid_Architect\tests\test_game_version_filtering.py:209: assert False
+E   AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+---------------------------- Captured stderr call -----------------------------
+\x1b[33m2026-07-08 16:35:30  WARNING  [bot.engine_client]                \x1b[0m  StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+------------------------------ Captured log call ------------------------------
+WARNING  bot.engine_client:engine_client.py:190 StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+F:\Antigravity DEV\Zomboid_Architect\bot\engine_client.py:236: AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+E   AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+---------------------------- Captured stderr call -----------------------------
+\x1b[33m2026-07-08 16:35:30  WARNING  [bot.engine_client]                \x1b[0m  StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+------------------------------ Captured log call ------------------------------
+WARNING  bot.engine_client:engine_client.py:190 StorageBackend initialisation \xe9chou\xe9e ('PostgresStorageBackend' object has no attribute 'backend_type') \u2192 fallback local
+F:\Antigravity DEV\Zomboid_Architect\bot\engine_client.py:236: AttributeError: '_LocalFallback' object has no attribute 'get_by_id'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   assert 0 >= 1
+     +  where 0 = len([])
+---------------------------- Captured stderr call -----------------------------
+[33m2026-07-08 16:35:32  WARNING  [ingestor.monitoring]              [0m  Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+[33m2026-07-08 16:35:32  WARNING  [ingestor.monitoring]              [0m  Erreur _recent_ingestion_cycles : 
+------------------------------ Captured log call ------------------------------
+WARNING  ingestor.monitoring:monitoring.py:516 Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+WARNING  ingestor.monitoring:monitoring.py:452 Erreur _recent_ingestion_cycles :
+F:\Antigravity DEV\Zomboid_Architect\tests\test_monitoring.py:351: assert 0 >= 1
+E   assert False
+     +  where False = any(<generator object TestStandaloneFunctions.test_check_critical_collections_wrapper.<locals>.<genexpr> at 0x000001F39BEAE5A0>)
+---------------------------- Captured stderr call -----------------------------
+[33m2026-07-08 16:35:32  WARNING  [ingestor.monitoring]              [0m  Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+[33m2026-07-08 16:35:32  WARNING  [ingestor.monitoring]              [0m  Erreur _recent_ingestion_cycles : 
+------------------------------ Captured log call ------------------------------
+WARNING  ingestor.monitoring:monitoring.py:516 Erreur _get_collection_health : IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+WARNING  ingestor.monitoring:monitoring.py:452 Erreur _recent_ingestion_cycles :
+F:\Antigravity DEV\Zomboid_Architect\tests\test_monitoring.py:505: assert False
+E   assert False is True
+F:\Antigravity DEV\Zomboid_Architect\tests\test_postgres_backend.py:265: assert False is True
+E   AssertionError: assert 'qdrant' == 'postgres'
+      
+      - postgres
+      + qdrant
+F:\Antigravity DEV\Zomboid_Architect\tests\test_postgres_backend.py:471: AssertionError: assert 'qdrant' == 'postgres'
+E   AttributeError: 'PostgresStorageBackend' object has no attribute 'backend_type'
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:384: AttributeError: 'PostgresStorageBackend' object has no attribute 'backend_type'
+E   NameError: name 'mod' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:397: NameError: name 'mod' is not defined
+E   AttributeError: module 'src.storage' has no attribute '_load_storage_config'. Did you mean: 'get_storage_config'?
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:426: AttributeError: module 'src.storage' has no attribute '_load_storage_config'. Did you mean: 'get_storage_config'?
+E   NameError: name 'mod' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_qdrant_backend.py:471: NameError: name 'mod' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:165: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:182: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:198: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:212: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:231: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:248: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:260: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:424: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:437: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:453: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:471: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:485: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:498: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:521: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:43  INFO     [ingestor.processors.wikijson]     [0m  Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-169\test_e2o_full_pipeline_all_col0\pz-wiki-data
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:292 Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-169\test_e2o_full_pipeline_all_col0\pz-wiki-data
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:581: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:44  INFO     [ingestor.processors.wikijson]     [0m  Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-169\test_e2o_query_after_store_all0\pz-wiki-data
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:292 Chargement des data drives depuis dossier : C:\Users\ElChibros\AppData\Local\Temp\pytest-of-ElChibros\pytest-169\test_e2o_query_after_store_all0\pz-wiki-data
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:603: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:620: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:634: NameError: name 'create_backend' is not defined
+E   NameError: name 'create_backend' is not defined
+F:\Antigravity DEV\Zomboid_Architect\tests\test_regression_collection_extend.py:662: NameError: name 'create_backend' is not defined
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+F:\Antigravity DEV\Zomboid_Architect\ingestor\config.py:109: TypeError: IngestorConfig.__init__() got an unexpected keyword argument 'STORAGE_DUAL_SYNC'
+E   assert 1 == 0
+F:\Antigravity DEV\Zomboid_Architect\tests\test_watchdog.py:310: assert 1 == 0
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:52  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (6 Ko)
+[33m2026-07-08 16:35:52  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (6 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:333: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:54  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (0 Ko)
+[33m2026-07-08 16:35:54  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (0 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:440: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:54  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (6 Ko)
+[33m2026-07-08 16:35:54  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (6 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:472: assert False is True
+E   assert False is True
+---------------------------- Captured stderr call -----------------------------
+[32m2026-07-08 16:35:56  INFO     [ingestor.processors.wikijson]     [0m  Chargement Wiki.json depuis : Wiki.json (0 Ko)
+[33m2026-07-08 16:35:57  WARNING  [src.storage.postgres_backend]     [0m  asyncpg non installe � impossible d'utiliser PostgreSQL
+------------------------------ Captured log call ------------------------------
+INFO     ingestor.processors.wikijson:wikijson.py:286 Chargement Wiki.json depuis : Wiki.json (0 Ko)
+WARNING  src.storage.postgres_backend:postgres_backend.py:101 asyncpg non installe � impossible d'utiliser PostgreSQL
+F:\Antigravity DEV\Zomboid_Architect\tests\test_wikijson_e2o.py:513: assert False is True
+============================== warnings summary ===============================
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:68: RuntimeWarning: coroutine 'PostgresStorageBackend.ensure_collection' was never awaited
+    backend.ensure_collection("pz_test_dupe")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+tests/test_auto_create_collections.py::TestAutoCreateStorageWriter::test_writer_ensure_collection
+tests/test_auto_create_collections.py::TestAutoCreateQdrantSync::test_sync_embeddings_calls_ensure_collection
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_auto_create_collections.py:42: RuntimeWarning: coroutine 'PostgresStorageBackend.ensure_collection' was never awaited
+    gc.collect()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_golden_set.py::test_gate_result_passes_at_threshold
+  C:\Users\ElChibros\AppData\Local\Python\pythoncore-3.14-64\Lib\tarfile.py:886: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    class TarInfo(object):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_new_mcp_tool.py::test_tool
+  F:\Antigravity DEV\Zomboid_Architect\tests\test_new_mcp_tool.py:6: RuntimeWarning: coroutine 'PostgresStorageBackend.get_by_id' was never awaited
+    result = pz_get_guide("lua_debug_guide")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_postgres_backend.py::TestPgInitHealth::test_health_available_with_pool
+  F:\Antigravity DEV\Zomboid_Architect\src\storage\postgres_backend.py:505: RuntimeWarning: coroutine 'PostgresStorageBackend.health.<locals>._check' was never awaited
+    return {"available": False, "mode": "postgresql", "error": str(exc)}
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_qdrant_backend.py::test_health_unavailable
+  C:\Users\ElChibros\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qdrant_client\qdrant_remote.py:290: UserWarning: Failed to obtain server version. Unable to check client-server compatibility. Set check_compatibility=False to skip version check.
+    show_warning(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_creates_table
+FAILED tests/test_auto_create_collections.py::TestAutoCreateSQLite::test_ensure_collection_no_double_create
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_calls_qdrant_when_ready
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrant::test_ensure_collection_fallback_no_crash
+FAILED tests/test_auto_create_collections.py::TestAutoCreateQdrantSync::test_sync_embeddings_calls_ensure_collection
+FAILED tests/test_game_version_filtering.py::test_storage_backend_query_accepts_game_version
+FAILED tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_accepts_game_version
+FAILED tests/test_game_version_filtering.py::test_knowledge_engine_get_by_id_no_version_filter
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_detects_unchanged_files
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_processes_new_file
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_detects_modified_file
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_updates_index_on_success
+FAILED tests/test_incremental_ingest.py::test_ingest_directory_empty - TypeEr...
+FAILED tests/test_ingestor_processors.py::test_text_processor_reads_file - Ty...
+FAILED tests/test_ingestor_processors.py::test_text_processor_word_count - Ty...
+FAILED tests/test_ingestor_processors.py::test_text_processor_file_hash_consistency
+FAILED tests/test_ingestor_processors.py::test_engine_init_with_default_config
+FAILED tests/test_mod_ingester.py::test_invalid_directory_returns_empty - Typ...
+FAILED tests/test_mod_ingester.py::test_ingest_non_numeric_dir - TypeError: I...
+FAILED tests/test_mod_ingester.py::test_ingest_single_numeric_mod - TypeError...
+FAILED tests/test_monitoring.py::TestCheckCritical::test_critical_alert_when_empty_collection
+FAILED tests/test_monitoring.py::TestStandaloneFunctions::test_check_critical_collections_wrapper
+FAILED tests/test_postgres_backend.py::TestPgInitHealth::test_health_available_with_pool
+FAILED tests/test_postgres_backend.py::TestPgStorageBackendIntegration::test_backend_type_postgres_default
+FAILED tests/test_qdrant_backend.py::test_backend_type_qdrant_when_configured
+FAILED tests/test_qdrant_backend.py::test_health_reports_qdrant - NameError: ...
+FAILED tests/test_qdrant_backend.py::test_qdrant_fallback_on_import_error - A...
+FAILED tests/test_qdrant_backend.py::test_qdrant_collection_auto_created - Na...
+FAILED tests/test_regression_collection_extend.py::test_pg_write_to_pz_mechanics_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_query_pz_mechanics_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_upsert_in_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_write_to_pz_web_pages_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_query_pz_web_pages_collection
+FAILED tests/test_regression_collection_extend.py::test_pg_metadata_jsonb_pz_web_pages
+FAILED tests/test_regression_collection_extend.py::test_pg_storage_custom_collection_name
+FAILED tests/test_regression_collection_extend.py::test_pg_list_collections_reflects_all_created
+FAILED tests/test_regression_collection_extend.py::test_pg_count_across_multiple_collections
+FAILED tests/test_regression_collection_extend.py::test_pg_delete_in_pz_mechanics
+FAILED tests/test_regression_collection_extend.py::test_pg_delete_in_pz_web_pages
+FAILED tests/test_regression_collection_extend.py::test_pg_cross_collection_filter_on_type_metadata
+FAILED tests/test_regression_collection_extend.py::test_regression_all_ensure_collection_idempotent
+FAILED tests/test_regression_collection_extend.py::test_e2o_full_pipeline_all_collections
+FAILED tests/test_regression_collection_extend.py::test_e2o_query_after_store_all_collections
+FAILED tests/test_regression_collection_extend.py::test_regression_pz_items_still_works
+FAILED tests/test_regression_collection_extend.py::test_regression_pz_recipes_still_works
+FAILED tests/test_regression_collection_extend.py::test_regression_get_by_id_still_works_all_collections
+FAILED tests/test_steamcmd_client.py::test_download_game_builds_correct_command
+FAILED tests/test_steamcmd_client.py::test_install_workshop_success - TypeErr...
+FAILED tests/test_steamcmd_client.py::test_install_workshop_failure - TypeErr...
+FAILED tests/test_watchdog.py::test_cli_stop_no_server - assert 1 == 0
+FAILED tests/test_wikijson_e2o.py::test_e2o_store_chunks_via_storagewriter - ...
+FAILED tests/test_wikijson_e2o.py::test_e2o_malformed_entries_skipped_gracefully
+FAILED tests/test_wikijson_e2o.py::test_e2o_large_item_set - assert False is ...
+FAILED tests/test_wikijson_e2o.py::test_e2o_metadata_propagates_through_pipeline
+55 failed, 547 passed, 2 skipped, 8 warnings in 33.80s

@@ -32,14 +32,28 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.governance.logger import get_logger
-from src.storage.sqlite_storage import SearchResult
 
 logger = get_logger(__name__)
 
 
 @dataclass
+class SearchResult:
+    """Résultat d'une requête — format unifié (PG)."""
+
+    collection: str
+    id: str
+    prose: str
+    distance: float = 0.0
+    metadata_: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.metadata_ is None:
+            self.metadata_ = {}
+
+
+@dataclass
 class PostgresChunk:
-    """Chargement chunk depuis PostgreSQL."""
+    """Chargement chunk depuis PostgreSQL (alias SearchResult)."""
 
     collection: str
     id: str
@@ -77,6 +91,11 @@ class PostgresStorageBackend:
         self._user = user
         self._password = password
         self._conn = None  # asyncpg connection pool (initialise lazy)
+
+    @property
+    def backend_type(self) -> str:
+        """Type du backend — expose le meme attribut que les autres backends."""
+        return "postgresql"
 
     def _get_pool(self) -> Any:
         """Retourne le pool de connexions asyncpg (lazy)."""

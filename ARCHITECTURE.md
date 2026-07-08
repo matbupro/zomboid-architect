@@ -14,7 +14,7 @@
 │         │                   │             │           │             │
 │    Wiki.json,Mods,PZWiki  PDF/Video/Web  PG+Qdrant  /survie,/moddoc│
 │    Steam Workshop          ClassZ/GitHub   MinIO       MCP Server   │
-│    PZForge Loot Tables     Lua/Java API   SQLite     Claude/API    │
+│    PZForge Loot Tables     Lua/Java API   PG/pgvector  Claude/API  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -23,7 +23,7 @@
 | Principe | Implémentation |
 |----------|---------------|
 | **Zero hallucination** | Retrieval-only (RAG), pas de génération sans contexte |
-| **Storage agnostique** | `STORAGE_BACKEND` switch : sqlite (dev) ↔ postgres/pgvector (prod) |
+| **PostgreSQL par défaut** | Storage unique : PostgreSQL + pgvector. Optionnel : Qdrant comme backend alternatif. |
 | **Multi-modal** | Un seul `engine.py` routeur vers 10+ processeurs spécialisés |
 | **Promotion gateée** | golden set → validate → promote → production (jamais d'édition manuelle) |
 | **Observabilité** | Monitoring dashboard, coverage tracking, disk alerts, critical collection alerts |
@@ -38,7 +38,7 @@ Sources externes                    Ingestion                          Storage
 
 Wiki.json ─┐                      engine.py ──→ WikiJsonProcessor ──→
 PZWiki    ├─→ crawl/playwright   Engine.route() → Processor.process()  StorageWriter
-Lua API   │                      MIME detection + chunking             (SQLite / PG/pgvector)
+Lua API   │                      MIME detection + chunking             PG/pgvector
 ClassZ    │                      chunk_size=512                        pg_trgm search
 Mods      │                       ↓                                    MinIO (raw artifacts)
 PZForge   │                    embeddings                               Redis (cache)
@@ -78,15 +78,17 @@ Engine.route(file_path / url / crawl_seed)
 ### 3.2 Storage Layer (`ingestor/storage/`)
 
 ```
-StorageWriter (abstraction multi-backend)
-    ├── SQLite Backend
-    │   └── Zomboid.db (SQLite + fts5 + vector extension)
-    │       └── tables: z_pz_items, z_pz_recipes, z_pz_mechanics, etc.
-    │
-    ├── PostgreSQL Backend (via pgvector)
+StorageWriter (abstraction multi-backend : PG + optionnel Qdrant)
+    ├── PostgreSQL/pgvector Backend (default)
+    │   ├── pz_agent DB → 17 tables (schema migrations/001_initial_schema.sql)
+    │   ├── pg_trgm for fuzzy text search
+    │   └── pgvector HNSW index pour cosine similarity sur embeddings
     │   ├── pz_agent DB → 17 tables (schema migrations/001_initial_schema.sql)
     │   ├── pg_trgm for fuzzy text search
     │   └── pgvector for cosine similarity on embeddings
+    │
+    ├── Qdrant Backend (optionnel, STORAGE_BACKEND=qdrant)
+    │   └── Vector store alternatif pour embeddings
     │
     └── Extension PZStorageExt (supervision pipeline)
         ├── ingestion_runs  : cycle tracking (run_id, source_type, status, chunks)
@@ -211,7 +213,7 @@ IngestMonitor (ingestor/monitoring.py)
     ├── ingest_status_short()    : CI one-liner ("last_run=done chunks=12500 | avg_cov=95%")
     ├── check_critical()         : alerts empty/stale/low-coverage collections
     ├── detect_coverage_drop()   : coverage drift between 2 consecutive runs
-    └── disk_monitor()           : multi-backend (PG, SQLite, Qdrant) free space
+    └── disk_monitor()           : multi-backend (PG, Qdrant) free space
 
 CLI access:
     python -m ingestor.cli --ingest-status        # full dashboard

@@ -1,4 +1,4 @@
-"""test_qdrant_backend — S5-c: Qdrant backend pour recherche vectorielle.
+﻿"""test_qdrant_backend — S5-c: Qdrant backend pour recherche vectorielle.
 
 Verifie que le backend Qdrant gere correctement:
 - Creation/verification de collections
@@ -376,10 +376,10 @@ def test_backend_type_qdrant_when_configured():
     os.environ.pop("STORAGE_DUAL_SYNC", None)
 
     qdb_mod = _inject_mock_and_import()
-    mod = __import__("src.storage.sqlite_storage", fromlist=["StorageBackend"])
-    # Re-inject mock for sqlite_storage import
+    from src.storage import create_backend
+
     qdb_mod._set_qdrant_client_class(_MockQdrantClient)
-    backend = mod.StorageBackend(config=mod._load_storage_config())
+    backend = create_backend()
     # backend_type peut contenir 'qdrant' meme si d'autres backends presentes
     assert "qdrant" in backend.backend_type
 
@@ -391,7 +391,8 @@ def test_health_reports_qdrant():
     os.environ["STORAGE_BACKEND"] = "qdrant"
 
     qdb_mod = _inject_mock_and_import()
-    mod = __import__("src.storage.sqlite_storage", fromlist=["StorageBackend"])
+    from src.storage import create_backend
+
     qdb_mod._set_qdrant_client_class(_MockQdrantClient)
     backend = mod.StorageBackend(config=mod._load_storage_config())
     health = backend.health()
@@ -416,12 +417,12 @@ def test_qdrant_fallback_on_import_error():
     try:
         # Supprimer toutes les caches qdrant
         sys.modules.pop("src.storage.qdrant_backend", None)
-        sys.modules.pop("src.storage.sqlite_storage", None)
+        sys.modules.pop("src.storage", None)
 
         import src.storage.qdrant_backend as _qb_mod
         _qb_mod._set_qdrant_client_class(None)  # type: ignore[arg-type]
 
-        mod = __import__("src.storage.sqlite_storage", fromlist=["StorageBackend"])
+        mod = __import__("src.storage", fromlist=["StorageBackend"])
         backend = mod.StorageBackend(config=mod._load_storage_config())
 
         # Qdrant init echoue -> fallback sqlite ou dual-sync selon env
@@ -464,7 +465,8 @@ def test_qdrant_collection_auto_created():
     os.environ["STORAGE_BACKEND"] = "qdrant"
 
     qdb_mod = _inject_mock_and_import()
-    mod = __import__("src.storage.sqlite_storage", fromlist=["StorageBackend"])
+    from src.storage import create_backend
+
     qdb_mod._set_qdrant_client_class(_MockQdrantClient)
     backend = mod.StorageBackend(config=mod._load_storage_config())
     qdb = backend._qdrant
