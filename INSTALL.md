@@ -26,7 +26,6 @@ Cela fait **tout** : deps Python, git hooks, .env, Playwright Chromium, vérific
 
 ### 1. Deps Python
 ```powershell
-pip install -r notion_client/pyproject.toml
 pip install -r ingestor/requirements.txt
 pip install -r bot/requirements.txt
 ```
@@ -55,9 +54,6 @@ docker compose up -d
 # Tests unitaires
 pytest tests/ --tb=short
 
-# Sync Notion (si config OK)
-python -m notion_client --push
-
 # Bot Discord (si .env + Ollama OK)
 .\run-bot.ps1
 ```
@@ -75,6 +71,6 @@ Le projet est ensuite 100% fonctionnel.
 
 | Fichier | Contenu | Où le sauvegarder |
 |---------|---------|-------------------|
-| `.env.unified` | Toutes les clés (Discord, Ollama, Notion, Steam...) | Toi-même (jamais commité) |
+| `.env.unified` | Toutes les clés (Discord, Ollama, Steam...) | Toi-même (jamais commité) |
 
 Ces fichiers sont dans `.gitignore` — **tu es le seul à les avoir**.

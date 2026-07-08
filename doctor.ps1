@@ -65,7 +65,6 @@ if($Repair){
 
     # 3. Deps Python
     $deps = @(
-        @{ name="notion_client"; req="notion_client/pyproject.toml" },
         @{ name="ingestor";      req="ingestor/requirements.txt" },
         @{ name="bot";           req="bot/requirements.txt" }
     )
@@ -74,7 +73,7 @@ if($Repair){
             try{
                 Write-Host "`n  [!!] pip install $($d.name)..." -ForegroundColor $Yellow
                 & pip install -r $d.req 2>&1 | Out-Null
-                $mod = switch($d.name){ "notion_client"{"notion_client.api"}; "ingestor"{"ingestor.engine"}; "bot"{"bot.config"} }
+                $mod = switch($d.name){ "ingestor"{"ingestor.engine"}; "bot"{"bot.config"} }
                 & python -c "import $($mod)" 2>&1 | Out-Null
                 if($?){ Write-Host "  [OK] $($d.name) installe" -ForegroundColor Green; AddRepair ok }
                 else{ Write-Host "  [XX] $($d.name) introuvable apres pip" -ForegroundColor Red; AddRepair fail }
@@ -217,7 +216,6 @@ if(Test-Cmd git){
 DrawSectionHeader "Deps Python"
 # Verifier que chaque sous-module a ses dependances Python installees (import testable)
 $deps = @(
-    @{ name="notion_client"; mod="notion_client.api";  req="notion_client/pyproject.toml" },
     @{ name="ingestor";      mod="ingestor.engine";    req="ingestor/requirements.txt" },
     @{ name="bot";           mod="bot.config";         req="bot/requirements.txt" }
 )
@@ -298,7 +296,7 @@ try{
 DrawSectionHeader ".env Configurations"
 
 $envFiles = @(
-    @{ path=".env.unified"; desc="Toutes les variables du projet (Discord, Ollama, Notion, Steam...)"; crit=$true }
+    @{ path=".env.unified"; desc="Toutes les variables du projet (Discord, Ollama, Steam...)"; crit=$true }
 )
 
 foreach($ef in $envFiles){

@@ -59,7 +59,7 @@ Suppression 12 golden reports obsolètes + 6 fichiers database/ superseded. Proj
 - Phase 12 ajoutée : pipeline de génération de mods + sanity check cohérence projet
 - Phase 6: Filtrage B41/B42 natif — game_version filtering, integre dans engine_client/pipeline/bot. 24 nouveaux tests, 84 total.
 - Phase Steam + workshop + .pbo : nouveau module steam/ (path_discovery, library_folders, workshop_scanner, steamcmd_client), processeur .pbo, mod_ingester, 4 nouvelles collections, commandes CLI --steam-scan/--workshop-scan/--mod-ingest, tests 12/12
-- Golden set recall@5 test suite (17 tests) + lock.py import fix + notion scripts cleanup
+- Golden set recall@5 test suite (17 tests) + lock.py import fix
 
 ### 2026-07-02 — Foundation phases
 - Phase 5+11 tests : golden set recall@5 (17/17) + StorageWriter unitaires (22/22), commit 1298527

@@ -214,21 +214,11 @@ Chaque fichier ingéré a son SHA-256 hashé dans `data/quarantine/.seen_hashes`
 
 ---
 
-## 9. Notion Sync
-
-Le projet synchronise `agent/todo.md` avec une base Notion via [`notion_client/`](../notion_client/).
-- CLI : `python -m notion_client --push`
-- Le pre-commit hook auto-synchronise quand un commit touche `todo.md`
-- Lancement manuel du sync : `.\agent\maintenance\sync_agent.ps1 "description"`
-
----
-
 ## 10. Scripts & Outils spéciaux
 
 | Script | Rôle |
 |--------|------|
 | `restore.py` | Restauration depuis backup |
-| `notion_sync.py` | Sync Notion (ancienne interface) |
 | `database/extract_pz.py` | Extraction des données PZ brutes |
 | `database/extract_mods.py` | Extraction des mods |
 | `downloads/Steam-QR-Code-Login/` | Auth Steam par QR code |

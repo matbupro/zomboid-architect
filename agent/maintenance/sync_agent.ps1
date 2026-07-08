@@ -193,14 +193,6 @@ if ($LastSessionNotes) {
     Write-Host "    [SKIP] todo/memories/CHANGELOG - aucune note fournies" -ForegroundColor DarkGray
 }
 
-# ============ 4. Notion sync (toujours) ============
-try {
-    $env:PYTHONUTF8 = '1'
-    & python -m notion_client --push 2>&1 | Out-Null
-    Write-Host "    [OK] Notion sync" -ForegroundColor Green
-} catch {
-    Write-Host "    [WARN] Notion sync echoue (clé API manquante ?) : $_" -ForegroundColor DarkGray
-}
 
 Write-Host ""
 Write-Host "<<< sync termine." -ForegroundColor Cyan

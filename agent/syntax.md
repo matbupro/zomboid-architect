@@ -121,23 +121,6 @@ Version moteur : 0.4.0-alpha
   |-- Makefile
   |-- migrations/001_initial_schema.sql
   |-- mods/.gitkeep
-  |-- notion_client/.gitignore
-  |-- notion_client/__init__.py
-  |-- notion_client/__main__.py
-  |-- notion_client/api.py
-  |-- notion_client/cli.py
-  |-- notion_client/GOVERNANCE.md
-  |-- notion_client/parser.py
-  |-- notion_client/pyproject.toml
-  |-- notion_client/README.md
-  |-- notion_client/sync.py
-  |-- notion_client/tests/__init__.py
-  |-- notion_client/tests/conftest.py
-  |-- notion_client/tests/unit/__init__.py
-  |-- notion_client/tests/unit/test_api_client.py
-  |-- notion_client/tests/unit/test_parser.py
-  |-- notion_client/tests/unit/test_sync_logic.py
-  |-- notion_sync.py
   |-- pyproject.toml
   |-- pytest.ini
   |-- README.md

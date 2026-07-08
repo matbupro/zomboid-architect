@@ -58,7 +58,7 @@ Write-Host "--- DOCUMENTATION ---" -ForegroundColor Magenta
 $docPatterns = @(
     'README.md', 'INSTALL.md', 'CHANGELOG.md', 'CONTRIBUTING.md',
     'agent/README.md', 'agent/todo.md', 'agent/architecture.md', 'agent/memories.md',
-    'notion_client/README.md', 'bot/README.md', 'ingestor/README.md'
+    'bot/README.md', 'ingestor/README.md'
 )
 
 $docResults = @()

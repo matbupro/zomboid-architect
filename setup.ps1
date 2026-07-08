@@ -11,7 +11,7 @@
     4. Docker Desktop (via winget si absent)
     5. Ollama + modele qwen3.6:35b-a3b (via winget + ollama pull si absent)
     6. Playwright Chromium (via pip + playwright install)
-    7. Git hooks pre-commit (sync auto Notion)
+    7. Git hooks pre-commit
     8. .env files from templates (.gitignore)
     9. Docker compose up (Storage vectoriel + Bot)
 
@@ -111,7 +111,6 @@ Write-Host "`n--- Etape 1 : Dependances Python ---`n" -ForegroundColor Magenta
 
 # Distinguer pyproject.toml (pip install -e) de requirements.txt (pip install -r)
 $requirementsFiles = @(
-    @{ "path"="notion_client/pyproject.toml";  "label"="notion_client"; "type"="pyproject" },
     @{ "path"="ingestor/requirements.txt";     "label"="ingestor";      "type"="requirements" },
     @{ "path"="bot/requirements.txt";          "label"="bot";           "type"="requirements" }
 )
@@ -252,8 +251,6 @@ if (-not (Test-Path $EnvUnified)) {
         'STORAGE_PG_DB=zomboid_storage',
         'STORAGE_PG_USER=postgres',
         'STORAGE_PG_PASS=',
-        'NOTION_API_KEY=ntn_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-        'NOTION_DATABASE_ID=00000000-0000-0000-0000-000000000000',
         'STEAM_USER=ranger_fleo',
         'STEAM_PASS=',
         'STEAM_WEB_API_KEY=',

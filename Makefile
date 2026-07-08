@@ -66,7 +66,6 @@ env-init:
 DISCORD_TOKEN=ton_token_discord_ici
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 STORAGE_BACKEND=postgresql
-NOTION_API_KEY=ntn_XXXX
 STEAM_USER=ranger_fleo
 EOF
 	else \
