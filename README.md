@@ -6,13 +6,13 @@ Sert deux buts : **stratégie de survie** (conseils précis) et **développement
 
 ## Version
 
-`0.4.0-alpha` — Moteur d'ingestion multi-format, bot Discord complet, PostgreSQL/pgvector storage
+`0.4.1-alpha` — PostgreSQL/pgvector uniquement (SQLite supprimé), S9 migration complète
 
 **Nouveau depuis v0.3.0 :**
 - **Phases 7–9** : Ingestion multi-format (PDF, images, vidéo, audio, docx, epub, web) + crawler DuckDuckGo/Playwright
 - **Bot Discord** : /help, /survie, /recipe, /moddoc, /search, /modgen — mode DM automatique
 - **Phase 12** : Génération de mods PZ valides (32+15 tests)
-- **Phase 3.5 V1** : Storage layer SQLite + Ollama embedding (zéro service externe, 36/36 tests)
+- **Stockage** : PostgreSQL/pgvector (vecteurs + texte) — zéro dépendance externe SQLite
 - **Phase 10** : Infrastructure Docker ingstor, quarantine manager, circuit breaker
 
 Voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md) pour l'historique complet.

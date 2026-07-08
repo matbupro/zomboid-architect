@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Architecture complète du Pipeline Zomboid Knowledge Engine
 
-**Version : v0.4.0** — Moteur RAG multi-modal + bot Discord + ingestion PZ automatisée.
+**Version : v0.4.1** — PostgreSQL/pgvector unique backend, SQLite supprimé (S9)
 
 ---
 
