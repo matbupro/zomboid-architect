@@ -166,8 +166,8 @@ class NotionClient:
             if resp.status_code == 429 and retry_count < MAX_RETRIES:
                 backoff = INITIAL_BACKOFF * (2 ** retry_count)
                 print(
-                    f"⚠️  Rate limited. Attente {backoff}s "
-                    f"(réessay {retry_count + 1}/{MAX_RETRIES}...)",
+                    f"[WARN]  Rate limited. Attente {backoff}s "
+                    f"(reessaye {retry_count + 1}/{MAX_RETRIES}...)",
                     file=sys.stderr,
                 )
                 time.sleep(backoff)

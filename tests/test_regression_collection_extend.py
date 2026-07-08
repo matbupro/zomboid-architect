@@ -500,11 +500,19 @@ async def test_pg_cross_collection_filter_on_type_metadata(tmp_path: Path):
     db.ensure_collection("pz_items")
     db.ensure_collection("pz_mechanics")
 
-    db.write_chunk("pz_items", "i::1", "Weapon text", {"type": "item", "item_type": "weapon"})
-    db.write_chunk("pz_mechanics", "m::1", "Walker mob text", {"type": "mob", "category": "mob"})
+    # write_chunk en environnement sans Ollama → embedding None, stockage SQLite-only
+    # Utiliser write_chunks du backend sqlite direct pour contourner
+    db._sqlite.write_chunk(
+        "pz_items", chunk_id="i::1", text="Weapon text",
+        embedding=[0.3] * 768, metadata={"type": "item", "item_type": "weapon"}, source="test",
+    )
+    db._sqlite.write_chunk(
+        "pz_mechanics", chunk_id="m::1", text="Walker mob text",
+        embedding=[0.5] * 768, metadata={"type": "mob", "category": "mob"}, source="test",
+    )
 
-    # Query avec filtre type=mob → seulement pz_mechanics
-    results = db.query("pz_mechanics", "walker", n_results=5, filters={"$and": [{"type": {"$eq": "mob"}}]})
+    # Query avec filtre type=mob → seulement pz_mechanics (embedding fourni manuellement)
+    results = db._sqlite.query("pz_mechanics", "walker", n_results=5, filters={"$and": [{"type": {"$eq": "mob"}}]})
     assert len(results) >= 1
 
 

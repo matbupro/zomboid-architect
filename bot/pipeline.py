@@ -35,16 +35,16 @@ logger = get_logger(__name__)
 
 LLM_ERROR_MESSAGES: dict[str, str] = {
     "timeout": (
-        "⏱ La reponse du modele a expire. Merci de reessayer dans quelques instants."
+        "[TIMEOUT] La reponse du modele a expire. Merci de reessayer dans quelques instants."
     ),
     "unavailable": (
-        "🔌 Le modele LLM est temporairement inaccessible. Tentative du fallback..."
+        "[CONN] Le modele LLM est temporairement inaccessible. Tentative du fallback..."
     ),
     "rate_limit": (
-        "⚠️ La limite d'appels API a ete atteinte. Veuillez recommencer plus tard."
+        "[WARN] La limite d'appels API a ete atteinte. Veuillez recommencer plus tard."
     ),
     "unknown": (
-        "❌ Une erreur inattendue s'est produite lors de la generation de la reponse."
+        "[ERR] Une erreur inattendue s'est produite lors de la generation de la reponse."
     ),
 }
 

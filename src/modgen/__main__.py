@@ -151,7 +151,7 @@ def _cmd_validate(args: argparse.Namespace) -> None:
     if errors:
         print("\nErreurs de validation :")
         for e in errors:
-            print(f"  ✗ {e}")
+            print(f"  [FAIL] {e}")
         sys.exit(1)
     else:
         print("\nValidation reussie ! Le mod est structurellement valide.")

@@ -262,7 +262,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         for pq in result.per_question:
             if pq["recall"] < 0.75:
                 missing = pq.get("missing", [])
-                print(f"  ✗ {pq['id']}: recall={pq['recall']:.2f} missing={missing}")
+                print(f"  [FAIL] {pq['id']}: recall={pq['recall']:.2f} missing={missing}")
 
     # Regressions vs baseline
     if args.baseline and "regressions" in (result_dict := result.to_dict()):
@@ -270,7 +270,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if reals:
             print(f"\n[Regression] Regressions détectées:")
             for r in reals:
-                print(f"  ✗ {r['id']}: {r['old']:.2f} → {r['new']:.2f} ({r['delta']:+.4f})")
+                print(f"  [FAIL] {r['id']}: {r['old']:.2f} -> {r['new']:.2f} ({r['delta']:+.4f})")
 
     # Output JSON si demande
     if args.json:

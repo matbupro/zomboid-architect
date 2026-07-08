@@ -219,7 +219,7 @@ def test_knowledge_engine_search_accepts_game_version():
     """KnowledgeEngineClient.search() passe game_version a chaque requete interne."""
     from bot.engine_client import KnowledgeEngineClient
 
-    client = KnowledgeEngineClient(storage_dir=None)  # Fallback local → ne fait rien
+    client = KnowledgeEngineClient()  # __init__() sans parametre — fallback auto si storage injoignable
     # On ne peut pas verifier le where dans le fallback, mais on s'assure que
     # la methode accepte le parametre sans lever
     results = client.search(
@@ -234,7 +234,7 @@ def test_knowledge_engine_get_by_id_accepts_game_version():
     """get_by_id() accepte game_version sans planter (mock HTTP 503)."""
     from bot.engine_client import KnowledgeEngineClient
 
-    client = KnowledgeEngineClient(storage_dir="http://localhost:9999")  # Inj oignable → retourne None
+    client = KnowledgeEngineClient()  # fallback auto → get_by_id retourne None
     result = client.get_by_id("Base.Axe", collection="pz_items", game_version="b41")
     # L'important est que la methode n'eleve pas — le filtre version est compose correcte
     assert result is None  # HTTP error → None, acceptable
@@ -244,7 +244,7 @@ def test_knowledge_engine_get_by_id_no_version_filter():
     """get_by_id() sans game_version fonctionne egalement (regression check)."""
     from bot.engine_client import KnowledgeEngineClient
 
-    client = KnowledgeEngineClient(storage_dir="http://localhost:9999")
+    client = KnowledgeEngineClient()  # fallback auto → None si pas de data
     result = client.get_by_id("Base.Axe", collection="pz_items")
     assert result is None  # HTTP error → None, acceptable (regression check)
 
@@ -253,7 +253,7 @@ def test_query_staging_accepts_game_version():
     """query_staging() accepte game_version sans lever."""
     from bot.engine_client import KnowledgeEngineClient
 
-    client = KnowledgeEngineClient(storage_dir=None)
+    client = KnowledgeEngineClient()  # fallback auto → resultats vides
     result = client.query_staging("test", k=5, game_version="b42")
     assert "chunks" in result
     assert "query" in result

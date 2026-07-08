@@ -19,7 +19,6 @@ from typing import Any, Optional
 from ingestor.agent_core.state import (
     ValidationLevel,
     ValidationOutcome,
-    ValidationResult,
 )
 
 
@@ -47,25 +46,43 @@ def validate_level1(mod_path: Path) -> ValidationResult:
     files_checked = 0
 
     # --- 1. luacheck sur tous les .lua ----------------------------------------
-    lua_files = sorted(mod_path.rglob("*.lua"))
-    for lua_file in lua_files:
-        result = subprocess.run(
-            ["luacheck", "--codes", str(lua_file)],
-            capture_output=True,
-            text=True,
-            timeout=30,
+    # Verifier que luacheck est installe (peut manquer en environnement CI/Windows)
+    has_luacheck = False
+    try:
+        check = subprocess.run(
+            ["luacheck", "--version"],
+            capture_output=True, text=True, timeout=10,
         )
-        files_checked += 1
-        if result.returncode != 0:
-            # Convertir chaque ligne d'erreur en une entree structurée
-            for line in (result.stderr or result.stdout).strip().splitlines():
-                if line.strip():
-                    errors.append({
-                        "file": str(lua_file.relative_to(mod_path)),
-                        "level": ValidationLevel.L1_STATIC.value,
-                        "type": "lua_syntax_error",
-                        "detail": line.strip(),
-                    })
+        has_luacheck = check.returncode == 0
+    except (FileNotFoundError, OSError):
+        has_luacheck = False
+
+    if has_luacheck:
+        lua_files = sorted(mod_path.rglob("*.lua"))
+        for lua_file in lua_files:
+            result = subprocess.run(
+                ["luacheck", "--codes", str(lua_file)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            files_checked += 1
+            if result.returncode != 0:
+                # Convertir chaque ligne d'erreur en une entree structurée
+                for line in (result.stderr or result.stdout).strip().splitlines():
+                    if line.strip():
+                        errors.append({
+                            "file": str(lua_file.relative_to(mod_path)),
+                            "level": ValidationLevel.L1_STATIC.value,
+                            "type": "lua_syntax_error",
+                            "detail": line.strip(),
+                        })
+    else:
+        warnings.append({
+            "level": ValidationLevel.L1_STATIC.value,
+            "type": "luacheck_not_available",
+            "detail": "Luacheck non installe — skip validation syntaxe Lua (aucun echec auto)",
+        })
 
     # --- 2. mod.info existant et valide ---------------------------------------
     mod_info = mod_path / "mod.info"
@@ -105,14 +122,14 @@ def validate_level1(mod_path: Path) -> ValidationResult:
     passed = len(errors) == 0
     outcome = ValidationOutcome.PASSED if passed else ValidationOutcome.ERROR
 
-    return ValidationResult(
-        level=ValidationLevel.L1_STATIC,
-        outcome=outcome,
-        passed=passed,
-        errors=errors,
-        warnings=warnings,
-        files_checked=files_checked,
-    )
+    return {
+        "level": ValidationLevel.L1_STATIC,
+        "outcome": outcome,
+        "passed": passed,
+        "errors": errors,
+        "warnings": warnings,
+        "files_checked": files_checked,
+    }
 
 
 # =============================================================================
@@ -146,17 +163,17 @@ def validate_level2(mod_id: str, mod_path: Path, docker_compose_file: Optional[P
         if docker_compose_file and docker_compose_file.exists():
             inject_via_docker(mod_id, mod_path, Path("pz-agent-pzserver"), str(pz_mods_dir))
         else:
-            return ValidationResult(
-                level=ValidationLevel.L2_BOOT,
-                outcome=ValidationOutcome.WARNING,
-                passed=False,
-                errors=[{
+            return {
+                "level": ValidationLevel.L2_BOOT,
+                "outcome": ValidationOutcome.WARNING,
+                "passed": False,
+                "errors": [{
                     "type": "pz_server_not_available",
                     "detail": "Le serveur PZ headless n'est pas monte — skip boot test (warning).",
                 }],
-                warnings=[{"type": "skip_reason", "detail": "Container pz-agent-pzserver non accessible"}],
-                files_checked=0,
-            )
+                "warnings": [{"type": "skip_reason", "detail": "Container pz-agent-pzserver non accessible"}],
+                "files_checked": 0,
+            }
     else:
         inject_local(mod_id, mod_path, pz_mods_dir)
 
@@ -185,14 +202,14 @@ def validate_level2(mod_id: str, mod_path: Path, docker_compose_file: Optional[P
     passed = len(detected_errors) == 0
     outcome = ValidationOutcome.PASSED if passed else ValidationOutcome.ERROR
 
-    return ValidationResult(
-        level=ValidationLevel.L2_BOOT,
-        outcome=outcome,
-        passed=passed,
-        errors=detected_errors,
-        warnings=[],
-        files_checked=0,
-    )
+    return {
+        "level": ValidationLevel.L2_BOOT,
+        "outcome": outcome,
+        "passed": passed,
+        "errors": detected_errors,
+        "warnings": [],
+        "files_checked": 0,
+    }
 
 
 # =============================================================================
@@ -224,17 +241,17 @@ def validate_level3(mod_id: str, mod_path: Path, timeout: int = 90) -> Validatio
     lines_found = 0
 
     if not console_log.exists():
-        return ValidationResult(
-            level=ValidationLevel.L3_RUNTIME,
-            outcome=ValidationOutcome.ERROR,
-            passed=False,
-            errors=[{
+        return {
+            "level": ValidationLevel.L3_RUNTIME,
+            "outcome": ValidationOutcome.ERROR,
+            "passed": False,
+            "errors": [{
                 "type": "no_console_log",
                 "detail": f"Aucun log de console trouve pour le mod {mod_id}.",
             }],
-            warnings=[],
-            files_checked=0,
-        )
+            "warnings": [],
+            "files_checked": 0,
+        }
 
     content = console_log.read_text(errors="replace")
     lines_found = len(content.splitlines())
@@ -260,14 +277,14 @@ def validate_level3(mod_id: str, mod_path: Path, timeout: int = 90) -> Validatio
     passed = len(runtime_errors) == 0
     outcome = ValidationOutcome.PASSED if passed else ValidationOutcome.ERROR
 
-    return ValidationResult(
-        level=ValidationLevel.L3_RUNTIME,
-        outcome=outcome,
-        passed=passed,
-        errors=runtime_errors,
-        warnings=[],
-        files_checked=lines_found,
-    )
+    return {
+        "level": ValidationLevel.L3_RUNTIME,
+        "outcome": outcome,
+        "passed": passed,
+        "errors": runtime_errors,
+        "warnings": [],
+        "files_checked": lines_found,
+    }
 
 
 # =============================================================================
@@ -305,17 +322,17 @@ def validate_level4(
     try:
         from ingestor.agent_core.rcon_client import RCONClient  # lazy import
     except ImportError:
-        return ValidationResult(
-            level=ValidationLevel.L4_FUNCTIONAL,
-            outcome=ValidationOutcome.WARNING,
-            passed=False,
-            errors=[{
+        return {
+            "level": ValidationLevel.L4_FUNCTIONAL,
+            "outcome": ValidationOutcome.WARNING,
+            "passed": False,
+            "errors": [{
                 "type": "rcon_not_available",
                 "detail": "Le module rcon_client n'est pas installe ou RCON non accessible.",
             }],
-            warnings=[{"type": "skip_reason", "detail": "Validation L4 partiellement skippee"}],
-            files_checked=0,
-        )
+            "warnings": [{"type": "skip_reason", "detail": "Validation L4 partiellement skippee"}],
+            "files_checked": 0,
+        }
 
     rcon = RCONClient("pz-agent-pzserver", 16261, "rcontest123")
     try:
@@ -368,15 +385,15 @@ def validate_level4(
 
     outcome = ValidationOutcome.PASSED if passed_all else ValidationOutcome.ERROR
 
-    return ValidationResult(
-        level=ValidationLevel.L4_FUNCTIONAL,
-        outcome=outcome,
-        passed=passed_all,
-        errors=errors,
-        warnings=[],
-        files_checked=len(tests),
-        tests_passed=tests,
-    )
+    return {
+        "level": ValidationLevel.L4_FUNCTIONAL,
+        "outcome": outcome,
+        "passed": passed_all,
+        "errors": errors,
+        "warnings": [],
+        "files_checked": len(tests),
+        "tests_passed": tests,
+    }
 
 
 # =============================================================================

@@ -49,6 +49,12 @@ data/raw/*
 logs/
 !logs/.gitkeep
 
+# Test output (full captures — files ignored, empty dir kept via .gitkeep)
+.test_output/*.log
+.test_output/*.raw
+.test_output/*_run.ps1
+!.test_output/.gitkeep
+
 # Backups (manual/scheduled snapshots)
 backups/manual/
 backups/staging/

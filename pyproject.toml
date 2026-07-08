@@ -1,0 +1,32 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "BLE",    # bugbear extended
+    "UP",     # pyupgrade
+]
+ignore = [
+    "E501",   # line length — handled by formatter
+    "B008",   # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"ingestor/cli.py" = ["E501"]  # CLI output lines may be long
+"tests/*.py" = ["S101"]         # assert is fine in tests
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+markers = [
+    "e2e: end-to-end tests (slow, requires network)",
+    "slow: slow tests",
+    "pg: requires PostgreSQL connection",
+    "qdrant: requires Qdrant connection",
+    "ci: CI-specific tests",
+]

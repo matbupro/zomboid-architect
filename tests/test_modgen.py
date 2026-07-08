@@ -119,7 +119,8 @@ def test_validate_empty_name(generator_with_tmp_output: Any):
 
     spec = ModSpec(name="", description="desc")
     errors = _validate_spec(spec)
-    assert any("ne peut pas etre vide" in e for e in errors)
+    # Normalisation accents pour compatibilite encoding
+    assert any("ne peut" in e and "vide" in e for e in errors)
 
 
 def test_validate_invalid_chars(generator_with_tmp_output: Any):
@@ -139,7 +140,7 @@ def test_validate_name_too_long(generator_with_tmp_output: Any):
 
     spec = ModSpec(name="A" * 200, description="desc")
     errors = _validate_spec(spec)
-    assert any("depasser 128" in e for e in errors)
+    assert any("128" in e and ("caractère" in e or "caracter" in e) for e in errors)
 
 
 def test_validate_valid_spec_no_errors(generator_with_tmp_output: Any):
@@ -258,7 +259,8 @@ async def test_generate_rejects_invalid_spec(generator_with_tmp_output: Any, tmp
 
     invalid_spec = ModSpec(name="", description="desc")
     gen = ModGenerator(generator_with_tmp_output.config)
-    with pytest.raises(ValueError, match="ne peut pas etre vide"):
+    # match la partie commune du message (sans accents pour robustesse)
+    with pytest.raises(ValueError, match=r"ne peut.*vide"):
         await gen.generate(invalid_spec)
 
 

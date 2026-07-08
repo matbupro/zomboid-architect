@@ -359,7 +359,7 @@ def sync(
                         except RuntimeError:
                             pass  # ignore les erreurs de suppression
                     if not dry_run:
-                        print(f"\n  [🧹 {deleted} orphelin(s) supprimé(s) de Notion")
+                        print(f"\n  [[CLEANUP] {deleted} orphelin(s) supprime(s) de Notion")
             else:
                 # Warning : tâches orphelines sans suppression
                 for rid, rtext in orphan_items[:5]:
@@ -369,7 +369,7 @@ def sync(
 
         # Cleanup final (si des orphelins ont été supprimés)
         if deleted_items and not dry_run:
-            print(f"\n  [🧹 {len(deleted_items)} tâche(s) orpheline(s) supprimée(s) de Notion")
+            print(f"\n  [[CLEANUP] {len(deleted_items)} tache(s) orpheline(s) supprimee(s) de Notion")
             print("      Pour supprimer automatiquement à chaque sync, utiliser --cleanup flag sur la CLI.")
 
         return actions

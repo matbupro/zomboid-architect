@@ -39,6 +39,35 @@ class _StorageWrapper:
     def __init__(self, backend: _StorageBackend):
         self._backend = backend
 
+    # ── Helper sync/async interop ────────────────────────────────────────
+
+    @staticmethod
+    def _run_sync(coro):
+        """Executer un coroutine de manière synchrone (compat event loop actif ou standalone)."""
+        import asyncio as _asyncio
+
+        try:
+            loop = _asyncio.get_running_loop()
+        except RuntimeError:
+            return _asyncio.run(coro)
+        # Event loop déjà actif (pytest --asyncio=auto, etc.)
+        try:
+            return loop.run_until_complete(coro)
+        except RuntimeError:
+            # Loop fermé ou inutilisable — fallback
+            return _asyncio.run(coro)
+
+    @staticmethod
+    def _maybe_await(result):
+        """Retourner le résultat tel quel ou await si c'est un coroutine."""
+        import asyncio as _asyncio
+
+        if _asyncio.iscoroutine(result):
+            return _StorageWrapper._run_sync(result)
+        return result
+
+    # ── Méthodes publiques ───────────────────────────────────────────────
+
     def query(
         self,
         collection: str,
@@ -54,10 +83,10 @@ class _StorageWrapper:
             return self._query_with_embedding(collection, query_text, embedding, n_results)
 
         # Sinon on genere l'embedding via Ollama intégré au SQLiteStorage
-        results = self._backend.query(
+        results = self._maybe_await(self._backend.query(
             collection, query_text, n_results=n_results,
             filters=where, game_version=game_version,
-        )
+        ))
         return [SearchResult(
             collection=r.collection,
             id=r.id,
@@ -73,9 +102,9 @@ class _StorageWrapper:
         n_results: int,
     ) -> list[SearchResult]:
         """Recherche en utilisant un embedding fourni (ancien appel HTTP)."""
-        results = self._backend.query(
+        results = self._maybe_await(self._backend.query(
             collection, query_text, n_results=n_results,
-        )
+        ))
         return [SearchResult(
             collection=r.collection,
             id=r.id,
@@ -86,6 +115,23 @@ class _StorageWrapper:
     def list_collections(self) -> list[str]:
         """Retourne les collections disponibles."""
         return self._backend.list_collections()
+
+    def get_by_id(
+        self,
+        collection: str,
+        item_id: str,
+        game_version: str | None = None,
+    ) -> SearchResult | None:
+        """Récupère une entité par ID deterministe (delegate au backend)."""
+        result = self._maybe_await(self._backend.get_by_id(collection, item_id, game_version))
+        if result is None:
+            return None
+        return SearchResult(
+            collection=result.collection,
+            id=result.id,
+            prose=result.prose,
+            metadata_=result.metadata_ or {},
+        )
 
 
 # --- Pipeline de fallback local (sans stockage vectoriel) ---

@@ -15,6 +15,7 @@ Schéma de données par chunk :
 
 from __future__ import annotations
 
+import asyncio
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -133,7 +134,10 @@ class StorageWriter:
         """S'assure qu'une collection existe (la crée si nécessaire)."""
         if name in self._collections_initialized:
             return
-        self._backend.ensure_collection(name)
+        result = self._backend.ensure_collection(name)
+        # Le backend est sync en production mais les tests utilisent AsyncMock → vérifier si coroutine
+        if asyncio.iscoroutine(result):  # type: ignore[arg-type]
+            await result  # type: ignore[misc]
         self._collections_initialized.add(name)
         logger.debug("Collection '%s' prête.", name)
 

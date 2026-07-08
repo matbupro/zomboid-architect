@@ -39,15 +39,16 @@ Zomboid_Architect/
 │   └── retrieval/         # Interface de retrieval (query_staging, query_production)
 ├── ingestor/              # Moteur d'ingestion multi-format (PDF, images, web…)
 │   ├── engine.py          # Router détection MIME → processeur
-│   ├── cli.py             # CLI : --search, --file, --crawl, --dir
+│   ├── cli.py             # CLI : --search, --file, --crawl, --ingest-status, --validate-collections
 │   ├── processors/        # text, pdf, image, video, audio, docx, epub, web
-│   ├── storage/           # storage_writer (écrivain StorageBackend)
+│   ├── storage/           # storage_writer (écrivain StorageBackend) + pz_storage (supervision pipeline)
+│   ├── monitoring.py      # Dashboard, coverage drop detection, disk alerts (S7)
 │   ├── search/            # DuckDuckGo + Brave Search
 │   ├── promote.py         # Gate promotion staging → production
 │   └── requirements.txt
 ├── data/                  # Données du moteur RAG
 │   ├── staging/           # Zone de travail (données en test)
-│   ├── production/        # Base validée (serveur MCP / bot)
+│   ├── production/        # Base validée (serveur MCP / bot) — jamais édité à la main
 │   ├── quarantine/        # Fichiers en erreur de parsing
 │   └── raw/               # Sources brutes ingérées
 ├── db/                    # Bases persistantes (SQLite/PostgreSQL)
@@ -65,13 +66,36 @@ Zomboid_Architect/
 ├── docs/                  # Documentation gouvernance
 │   ├── VERSIONING.md      # Règles SemVer + cycle alpha→release
 ├── mods/                  # Mods générés par src/modgen/ (Phase 12)
+├── migrations/            # Schéma PostgreSQL complet (migrations versionnées)
+│   └── 001_initial_schema.sql  # 17 tables, 7 ENUMs, 3 vues, triggers
+├── .github/workflows/     # CI pipeline : lint → test → security gate → e2e
 ├── VERSION                # Source unique de vérité (majeur.minor.patch[-pre])
 ├── CHANGELOG.md           # Keep a Changelog format
-├── .env.unified           # Source de vérité unique pour TOUTES les variables
+├── .env.unified           # Source de vérité unique pour TOUTES les variables (jamais commité)
 ├── requirements.txt       # Dépendances unifiées (bot + ingestor + governance)
-├── docker-compose.yml     # Orchestre bot + ollama (ingestor en lancement à la demande)
+├── pyproject.toml         # ruff linter + pytest markers
+├── docker-compose.yml     # Orchestre bot + ollama (ingestor à la demande)
+├── docker-compose.pz-agent.yml  # Stack complète : PG + Qdrant + MinIO + Gitea + Redis
+├── ARCHITECTURE.md        # Diagramme complet du pipeline et mapping collections
+├── SETUP.md               # Bootstrap infra en 5 min (docker-compose + psql migration)
 └── Makefile               # 13 cibles : install-hooks, ingest, test, promote, backup…
 ```
+
+## Stack infrastructure complète
+
+| Service | Docker | Port | Usage dans le pipeline |
+|---------|--------|------|----------------------|
+| **PostgreSQL 16** | `docker-compose.pz-agent.yml` | 5432 | Storage backend principal (PG/pgvector) |
+| **pg_trgm** | intégré PG | — | Recherche texte fuzzy sur PG |
+| **pgvector** | intégré PG | — | Cosine similarity sur embeddings vectoriels |
+| **Qdrant** | `docker-compose.pz-agent.yml` | 6333 | Alternative backend vectoriel (optionnel) |
+| **MinIO** | `docker-compose.pz-agent.yml` | 9000/9001 | Object storage S3 pour raw artifacts |
+| **Gitea** | `docker-compose.pz-agent.yml` | 3000 | Git server pour mod management |
+| **Redis** | `docker-compose.pz-agent.yml` | 6379 | Cache layer + pub/sub pour notifications |
+| **Ollama** | `docker-compose.yml` | 11434 | Embedding (nomic-embed-text) + LLM local |
+
+> **Pour commencer sans Docker : `STORAGE_BACKEND=sqlite` dans `.env.unified`. Le bot Discord démarre directement.**
+
 
 ## Démarrage rapide
 

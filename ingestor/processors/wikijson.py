@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -312,16 +313,21 @@ class WikiJsonProcessor(Processor):
     Parse le JSON brut fourni par TheIndoor/PZ-wiki-data (ou equivalent)
     et genere des chunks categorises pour injection dans StorageBackend.
 
+    S4-c : chunking optimal — split automatique si entity trop grande,
+    cross-references en metadata, max_chunk_size configurable.
+
     Usage :
         proc = WikiJsonProcessor("/path/to/pz-wiki-data")
         result = await proc.extract()
         # result.chunks → [Chunk(...)] avec metadata {"type": "items|recipes|mobs|..."}
     """
 
-    def __init__(self, config, source: str = "", **kwargs):
+    def __init__(self, config, source: str = "", *, max_chunk_words: int = 800, **kwargs):
         super().__init__(config, **kwargs)
         self._source = source
         self._loaded_data: dict[str, Any] | None = None
+        # S4-c : parametre chunking (800 mots ≈ ~2500 chars avec tokens embedding)
+        self.max_chunk_words = max_chunk_words
 
     async def extract(self, source: str | None = None) -> ExtractionResult:
         """Extrait et normalise les donnees du PZ Data Drive en chunks.
@@ -370,6 +376,14 @@ class WikiJsonProcessor(Processor):
                     if chunk is None:
                         continue
 
+                    # S4-c : ajout cross-references en metadata (recipes → items)
+                    refs = self._add_cross_references(category_name, item_data, key)
+                    if refs:
+                        chunk.metadata["cross_refs"] = refs
+
+                    # S4-c : split automatique des chunks excessifs
+                    sub_chunks = self._split_large_chunk(chunk, category_name)
+
                     # Determiner la sous-collection (subcategory) pour les items
                     subcollection = collection
                     if category_name == "items":
@@ -386,7 +400,8 @@ class WikiJsonProcessor(Processor):
                         }
                         subcollection = subcollection_map.get(item_type, collection)
 
-                    all_chunks.append(chunk)
+                    for sc in sub_chunks:
+                        all_chunks.append(sc)
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("Erreur processing %s/%s : %s", category_name, key, exc)
 
@@ -450,3 +465,114 @@ class WikiJsonProcessor(Processor):
         if "building" in item_type:
             return "building_material"
         return "generic"
+
+    # S4-c : split sémantique automatique + cross-references
+
+
+    def _split_large_chunk(self, chunk: Chunk, category_name: str) -> list[Chunk]:
+        """Splitte un chunk excessif en sous-chunks sémantiques.
+
+        Utilise les separators logiques (`---`, `###`) comme breakpoints naturels
+        pour preserver le sens de chaque sous-chunk.
+
+        S4-c : chaque sub-chunk garde le header contextuel (nom + type) et
+        reste ≤ max_chunk_words mots.
+        """
+        text = chunk.text
+        if len(text.split()) <= self.max_chunk_words:
+            return [chunk]  # Pas besoin de splitter
+
+        # Tenter de splitter par `---` ou `###` comme sections logiques
+        sections = [s.strip() for s in re.split(r'\n-{3,}|\n#{2,}\s', text) if s.strip()]
+
+        if len(sections) <= 1:
+            # Fallback : splitter par paragraphes (lignes vides)
+            sections = [s.strip() for s in re.split(r'\n\n+', text) if s.strip()]
+
+        # Extrait le header contextuel (premieres lignes avec nom + type)
+        header_lines = []
+        remaining_sections: list[str] = []
+        found_header_end = False
+        for sec in sections:
+            if not found_header_end and (sec.startswith("Item:") or sec.startswith("Recipe:")
+                                         or sec.startswith("Mob:") or "Key:" in sec):
+                header_lines.append(sec)
+            else:
+                found_header_end = True
+                remaining_sections.append(sec)
+
+        # Si pas de header detecte, prendre les 2 premieres sections comme header
+        if not header_lines and remaining_sections:
+            header_lines = [remaining_sections.pop(0)]
+
+        header_ctx = "\n".join(header_lines) + "\n\n" if header_lines else ""
+
+        sub_chunks: list[Chunk] = []
+        current_text_parts: list[str] = []
+        current_word_count = 0
+
+        for i, section in enumerate(remaining_sections):
+            section_words = len(section.split())
+
+            if current_word_count + section_words > self.max_chunk_words and current_text_parts:
+                # Flush le chunk courant
+                full_text = header_ctx + "\n".join(current_text_parts)
+                sub_chunks.append(Chunk(
+                    text=full_text,
+                    index=i - len(current_text_parts),
+                    start_offset=0,
+                    metadata={**chunk.metadata, "_split_sub": True, "_max_words": self.max_chunk_words},
+                ))
+                current_text_parts = []
+                current_word_count = 0
+
+            current_text_parts.append(section)
+            current_word_count += section_words
+
+        # Flush le dernier chunk
+        if current_text_parts:
+            full_text = header_ctx + "\n".join(current_text_parts)
+            sub_chunks.append(Chunk(
+                text=full_text,
+                index=len(remaining_sections) - len(current_text_parts),
+                start_offset=0,
+                metadata={**chunk.metadata, "_split_sub": True, "_max_words": self.max_chunk_words},
+            ))
+
+        return sub_chunks if sub_chunks else [chunk]
+
+    def _add_cross_references(self, category_name: str, item_data: dict, key: str) -> dict[str, Any]:
+        """Ajoute les cross-references en metadata pour recipes → items.
+
+        S4-c : quand on trouve des ingredients dans une recipe, on inclut
+        les keys des items references pour permettre la recherche inverse.
+        """
+        refs: dict[str, Any] = {}
+
+        if category_name == "recipes":
+            # Chercher les fields d'ingredients possibles
+            for ing_field in ("Ingredients", "ingredients", "ingredient_items", "required_components"):
+                ings = item_data.get(ing_field)
+                if ings and isinstance(ings, list):
+                    ref_keys = []
+                    for ing in ings:
+                        if isinstance(ing, dict):
+                            ref_keys.append(ing.get("Item") or ing.get("item") or ing.get("key", ""))
+                        elif isinstance(ing, str):
+                            ref_keys.append(ing)
+                    if ref_keys:
+                        refs["ingredient_refs"] = [k for k in ref_keys if k]
+                elif ings and isinstance(ings, dict):
+                    # Format {item_key: quantity}
+                    refs["ingredient_refs"] = list(ings.keys())
+
+            # Referencer result item
+            for res_field in ("Result", "result", "result_item", "resultItem"):
+                res = item_data.get(res_field)
+                if res:
+                    if isinstance(res, str):
+                        refs["result_ref"] = res
+                    elif isinstance(res, dict):
+                        refs["result_ref"] = res.get("Item") or res.get("item") or res.get("key", "")
+
+        return refs

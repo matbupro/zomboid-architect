@@ -46,12 +46,15 @@ def temp_pid_file(temp_state_dir: Path) -> Path:
 
 def test_config_from_env_uses_defaults_when_no_env(tmp_path: Path):
     """Pas de .env → valeurs par défaut."""
-    from ingestor.watchdog import WatchdogConfig
+    import ingestor.watchdog as wd_mod
 
-    with patch.object(WatchdogConfig, "CONFIG_PATH", tmp_path / ".nonexistent"):
+    nonexistent = tmp_path / ".nonexistent"
+    with patch.object(wd_mod, "CONFIG_PATH", nonexistent):
+        from ingestor.watchdog import WatchdogConfig
         config = WatchdogConfig.from_env()
 
-    assert config.PID_FILE == tmp_path / "data" / "watchdog" / "server.pid"  # default
+    # DEFAULT_PID_FILE est PROJECT_ROOT / "data" / "watchdog" / "server.pid"
+    assert str(config.PID_FILE).endswith("data" + os.sep + "watchdog" + os.sep + "server.pid")
     assert config.HEALTH_CHECK_URL is None
     assert config.MAX_RESTARTS_PER_HOUR == 10
     assert config.RESTART_COOLDOWN_S == 30.0
@@ -59,7 +62,7 @@ def test_config_from_env_uses_defaults_when_no_env(tmp_path: Path):
 
 def test_config_from_env_reads_custom_values(tmp_path: Path):
     """Variables WATCHDOG_* lues depuis .env."""
-    from ingestor.watchdog import WatchdogConfig
+    import ingestor.watchdog as wd_mod
 
     env_file = tmp_path / ".env"
     env_file.write_text(
@@ -70,10 +73,12 @@ def test_config_from_env_reads_custom_values(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with patch.object(WatchdogConfig, "CONFIG_PATH", env_file):
+    with patch.object(wd_mod, "CONFIG_PATH", env_file):
+        from ingestor.watchdog import WatchdogConfig
         config = WatchdogConfig.from_env()
 
-    assert str(config.PID_FILE) == "/custom/pid.pid"
+    assert config.PID_FILE.name == "pid.pid"
+    assert str(config.PID_FILE.parent).replace("\\", "/").endswith("/custom")
     assert config.HEALTH_CHECK_URL == "http://localhost:3000/health"
     assert config.MAX_RESTARTS_PER_HOUR == 5
     assert config.RESTART_COOLDOWN_S == 60.0
@@ -106,11 +111,13 @@ def test_state_recent_crashes_threshold():
     from ingestor.watchdog import WatchdogState
 
     state = WatchdogState()
+    # Reset pour isolation (éviter pollution d'autres tests)
+    state.restarts_last_hour = []
     now = time.time()
-    # Ajoute des timestamps récents + anciens
-    state.restarts_last_hour.extend([now - 60, now - 120, now - 300])  # > 1h → exclus
-    state.restarts_last_hour.extend([now - 1800, now - 1900])           # > 1h → exclus
-    state.restarts_last_hour.extend([now - 3599])                        # < 1h → inclus
+    # Timestamps > 1h avant → exclus du compte récent
+    state.restarts_last_hour.extend([now - 4200, now - 7200])
+    # Timestamps < 1h → inclus (seul celui-ci dans la fenêtre)
+    state.restarts_last_hour.append(now - 3599)
 
     assert state.recent_crashes == 1
 
@@ -160,9 +167,11 @@ def test_writeread_pid_file(temp_state_dir: Path, temp_pid_file: Path):
     wd._write_pid_file(12345)
     assert temp_pid_file.exists()
 
-    # Lecture
-    loaded_pid = wd._get_current_pid()
-    assert loaded_pid == 12345
+    # Lecture — _get_current_pid vérifie la vivacité du PID via os.kill
+    # Donc on mock _is_process_alive pour que le test fonctionne en isolation
+    with patch.object(ServerWatchdog, "_is_process_alive", return_value=True):
+        loaded_pid = wd._get_current_pid()
+        assert loaded_pid == 12345
 
 
 def test_pid_file_removal(temp_state_dir: Path, temp_pid_file: Path):
@@ -308,7 +317,7 @@ def test_cli_stop_no_server(temp_state_dir: Path):
 
 def test_config_from_env_ignores_comments(tmp_path: Path):
     """Lignes commençant par # ignorées."""
-    from ingestor.watchdog import WatchdogConfig
+    import ingestor.watchdog as wd_mod
 
     env_file = tmp_path / ".env"
     env_file.write_text(
@@ -319,7 +328,8 @@ def test_config_from_env_ignores_comments(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with patch.object(WatchdogConfig, "CONFIG_PATH", env_file):
+    with patch.object(wd_mod, "CONFIG_PATH", env_file):
+        from ingestor.watchdog import WatchdogConfig
         config = WatchdogConfig.from_env()
 
     assert config.MAX_RESTARTS_PER_HOUR == 7
@@ -327,7 +337,7 @@ def test_config_from_env_ignores_comments(tmp_path: Path):
 
 def test_config_from_env_ignores_invalid_lines(tmp_path: Path):
     """Lignes sans '=' ignorées."""
-    from ingestor.watchdog import WatchdogConfig
+    import ingestor.watchdog as wd_mod
 
     env_file = tmp_path / ".env"
     env_file.write_text(
@@ -336,7 +346,8 @@ def test_config_from_env_ignores_invalid_lines(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with patch.object(WatchdogConfig, "CONFIG_PATH", env_file):
+    with patch.object(wd_mod, "CONFIG_PATH", env_file):
+        from ingestor.watchdog import WatchdogConfig
         config = WatchdogConfig.from_env()
 
     assert config.MAX_RESTARTS_PER_HOUR == 3

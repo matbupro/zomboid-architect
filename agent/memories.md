@@ -76,3 +76,6 @@ feat: S3 LangGraph agent loop implementation — new ingestor/agent_core/ packag
 
 ## Session du 2026-07-07
 S4-e pipeline ingest-pz-full + S4-f coverage-report — orchestrateur complet + rapport de couverture
+
+## Session du 2026-07-08
+daily auto-sync routine — post RuntimeWarning fixes, test suite analysis

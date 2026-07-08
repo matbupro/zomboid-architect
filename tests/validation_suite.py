@@ -8,9 +8,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 def run_test(name: str, result: dict) -> None:
     print(f"--- Test {name} ---")
     if "error" in result:
-        print(f"❌ ÉCHEC : {result['error']}")
+        print(f"[FAIL] ÉCHEC : {result['error']}")
     else:
-        print(f"✅ SUCCÈS !")
+        print(f"[OK] SUCCÈS !")
         print(f"Détails : {result}")
     print("-" * 30)
 

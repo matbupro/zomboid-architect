@@ -44,7 +44,7 @@ def _print_actions(actions: list[sync.SyncAction]) -> None:
             print(f"      ... et {len(updated) - 10} autres")
 
     if synced:
-        print(f"\n  [✓ {len(synced)} déjà synchronisé(es)")
+        print(f"\n  [[OK] {len(synced)} déjà synchronisé(es)")
 
     if not created and not updated and not synced:
         print("\n  Rien à faire — tout est jour.")

@@ -70,8 +70,8 @@ def parse_todo(file_path: str | None = None) -> list[Phase]:
                 phases.append(current_phase)
             phase_num = int(phase_match.group(1))
             phase_name = phase_match.group(3).strip()
-            # Nettoyer les emojis/marqueurs de status (✅ TERMINE, etc.)
-            phase_name = re.sub(r"\s*[✓✔✅]+\s*\w*", "", phase_name).strip()
+            # Nettoyer les marqueurs de status ([OK] TERMINE, etc.)
+            phase_name = re.sub(r"\s*\[OK\]\s*\w*", "", phase_name).strip()
             phase_name = re.sub(r"\s*\(\d{4}[-–]\d{2}\)\s*$", "", phase_name).strip()
             # Ajouter la num&#233;rotation au nom si manquante
             if f"Phase {phase_num} :" not in phase_name and f"Phase {phase_num}-" not in phase_name:
@@ -89,8 +89,8 @@ def parse_todo(file_path: str | None = None) -> list[Phase]:
             # Nettoyer le texte : enlever les balises de code inline comme *impl&#233;ment&#233;*
             clean_text = re.sub(r"\*([^*]+)\*", r"\1", task_text)
             clean_text = re.sub(r"`([^`]+)`", r"\1", clean_text)
-            # Enlever les marqueurs de completion comme "✅ TERMINE"
-            clean_text = re.sub(r"\s*[✓✔✅]+\s*$", "", clean_text).strip()
+            # Enlever les marqueurs de completion comme "[OK] TERMINE"
+            clean_text = re.sub(r"\s*\[OK\]\s*$", "", clean_text).strip()
 
             current_phase.tasks.append(Task(text=clean_text, done=done))
 

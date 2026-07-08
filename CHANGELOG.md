@@ -452,3 +452,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat(ingestor): S4-e pipeline --ingest-pz-full + S4-f --coverage-report
+
+### 2026-07-08 - commit 215cc50
+
+**Changements :**
+- feat: S5-a migration + S6 wikijson/tests + S5-b dual-backend tests

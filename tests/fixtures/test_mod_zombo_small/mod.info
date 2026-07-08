@@ -1,0 +1,6 @@
+id = "ZomboSmallTest"
+name = "Zombo Small Test Mod"
+description = "Test mod for CI validation pipeline — no real PZ content, just structure."
+author = "matbupro"
+poster = "https://steamcommunity.com/id/matbupro"
+version = "1.0.0"

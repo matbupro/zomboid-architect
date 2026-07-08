@@ -20,11 +20,10 @@ from ingestor.steam.steamcmd_client import CmdResult, SteamCMDClient
 
 
 def test_discover_steamcmd_returns_none_when_not_found():
-    """_discover_steamcmd retourne None quand aucun steamcmd.exe n'existe."""
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=None) as mock:
+    """Le discover retourne None quand aucun steamcmd.exe n'existe."""
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=None):
         client = SteamCMDClient()
         assert client.steamcmd_exe is None
-        mock.assert_called_once()
 
 
 def test_discover_steamcmd_uses_provided_path():
@@ -88,7 +87,7 @@ async def test_run_cmd_success():
     mock_proc.communicate = AsyncMock(return_value=(b"[  OK  ] - Downloaded!\nDone!", b""))
     mock_proc.returncode = 0
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client._run_cmd("+login", "anonymous")
@@ -105,7 +104,7 @@ async def test_run_cmd_failure_exit_code():
     mock_proc.communicate = AsyncMock(return_value=(b"error", b""))
     mock_proc.returncode = 1
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client._run_cmd("+login", "anonymous")
@@ -121,7 +120,7 @@ async def test_run_cmd_error_stream():
     mock_proc.communicate = AsyncMock(return_value=(b"output", b"stderr error msg"))
     mock_proc.returncode = 0
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client._run_cmd("+login", "anonymous")
@@ -137,7 +136,7 @@ async def test_run_cmd_timeout():
     mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
     mock_proc.returncode = -1
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client._run_cmd("+login", "anonymous")
@@ -168,7 +167,7 @@ async def test_download_game_builds_correct_command():
     mock_proc.communicate = AsyncMock(return_value=(b"[  OK  ]", b""))
     mock_proc.returncode = 0
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_exec.return_value = mock_proc
@@ -197,7 +196,7 @@ async def test_install_workshop_success():
     mock_proc.communicate = AsyncMock(return_value=(b"[  OK  ] - Done!", b""))
     mock_proc.returncode = 0
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client.install_workshop_item(1234567890)
@@ -213,7 +212,7 @@ async def test_install_workshop_failure():
     mock_proc.communicate = AsyncMock(return_value=(b"", b"download failed"))
     mock_proc.returncode = 1
 
-    with patch.object(SteamCMDClient, "_discover_steamcmd", return_value=fake_exe):
+    with patch("ingestor.steam.steamcmd_client._discover_steamcmd_path", return_value=fake_exe):
         client = SteamCMDClient()
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await client.install_workshop_item(1234567890)

@@ -187,12 +187,12 @@ async def _run_llm_command(interaction: discord.Interaction, cmd_type: str, quer
     except asyncio.TimeoutError:
         logger.exception("cmd_%s(%q) timeout après %.0fs", cmd_type, query_text[:50], LLM_TIMEOUT)
         await interaction.followup.send(
-            "⏳ Le modèle met du temps à répondre (premier chargement de ~24 GB). Réessaie dans 30 secondes."
+            "[TIMEOUT] Le modèle met du temps à répondre (premier chargement de ~24 GB). Réessaie dans 30 secondes."
         )
         return
     except Exception as exc:  # noqa: BLE001
         logger.exception("cmd_%s(%q) échoué", cmd_type, query_text[:50])
-        await interaction.followup.send(f"⚠️ Erreur : {exc}")
+        await interaction.followup.send(f"[WARN] Erreur : {exc}")
         return
 
     response_parts = _trunc_string(result.llm_response, settings.MAX_RESPONSE_LENGTH)
@@ -301,7 +301,7 @@ async def _handle_modgen_command(interaction: discord.Interaction, description: 
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("cmd_modgen(%q) echoue", description[:50])
-        await interaction.followup.send(f"⚠️ Erreur lors de la generation du mod : {exc}")
+        await interaction.followup.send(f"[WARN] Erreur lors de la generation du mod : {exc}")
 
 
 @bot.tree.command(name="modgen", description="Genere un mod Project Zomboid a partir d'une description")
@@ -432,20 +432,20 @@ async def _handle_modpublish_command(interaction: discord.Interaction, mod_name:
         mod_dir = _find_mod_dir(name_to_use)
         if not mod_dir:
             await interaction.followup.send(
-                f"⚠️ Mod introuvable. Verifie que le mod a ete genere par `/modgen`.\n\n"
+                f"[WARN] Mod introuvable. Verifie que le mod a ete genere par `/modgen`.\n\n"
                 f"Hint : utiliser `/modpublish <nom_du_mod>` ou `/modpublish folder_path:C:\\path\\to\\mod`"
             )
             return
 
     if not mod_dir.is_dir():
-        await interaction.followup.send(f"⚠️ Dossier inexistant : `{mod_dir}`")
+        await interaction.followup.send(f"[WARN] Dossier inexistant : `{mod_dir}`")
         return
 
     # 2. Valider que c'est un mod valide (contient mod.info)
     mod_info = mod_dir / "mod.info"
     if not mod_info.is_file():
         await interaction.followup.send(
-            f"⚠️ `{mod_dir}` ne semble pas etre un mod valide (manque `mod.info`).\n"
+            f"[WARN] `{mod_dir}` ne semble pas etre un mod valide (manque `mod.info`).\n"
             f"Genere d'abord le mod avec `/modgen`."
         )
         return
@@ -458,13 +458,13 @@ async def _handle_modpublish_command(interaction: discord.Interaction, mod_name:
         from ingestor.steam.steamcmd_client import SteamCMDClient
     except ImportError as exc:
         logger.exception("Import SteamCMDClient echoue")
-        await interaction.followup.send(f"⚠️ Impossible de charger le client SteamCMD : {exc}")
+        await interaction.followup.send(f"[WARN] Impossible de charger le client SteamCMD : {exc}")
         return
 
     client = SteamCMDClient()
     if not client.steamcmd_exe:
         await interaction.followup.send(
-            "⚠️ steamcmd.exe introuvable.\n\n"
+            "[WARN] steamcmd.exe introuvable.\n\n"
             "Installe-le dans `tools/steamcmd/` ou sur ton PATH.\n"
             "Telechargement : https://store.steampowered.com/About"
         )
@@ -490,7 +490,7 @@ async def _handle_modpublish_command(interaction: discord.Interaction, mod_name:
                     break
 
         url = f"https://steamcommunity.com/workshop/filedetails/?id={workshop_id}" if workshop_id else None
-        emoji_ok = "✅" if result.success else "⚠️"
+        emoji_ok = "[OK]" if result.success else "[WARN]"
         status = "Succes !" if result.success else "Termine (verifie l'output)"
         message = f"{emoji_ok} **{status}**\n\nDossier : `{mod_dir}`\n"
         if url:
@@ -502,7 +502,7 @@ async def _handle_modpublish_command(interaction: discord.Interaction, mod_name:
         # Montrer l'output steamcmd pour debugging (tronque si trop long)
         output_preview = result.output[:1500] if result.output else "(vide)"
         await interaction.followup.send(
-            f"❌ Upload Workshop echoue.\n\n"
+            f"[FAIL] Upload Workshop echoue.\n\n"
             f"**Erreur** : {error_msg}\n\n"
             f"**Output SteamCMD** :\n```\n{output_preview}\n```"
         )
@@ -518,7 +518,7 @@ async def cmd_modpublish(interaction: discord.Interaction, mod_name: str | None 
     # Au moins un argument doit etre fourni
     if not mod_name and not folder_path:
         await interaction.response.send_message(
-            "⚠️ Fournis soit `mod_name` soit `folder_path`.\n\n"
+            "[WARN] Fournis soit `mod_name` soit `folder_path`.\n\n"
             "Exemple : `/modpublish MonEpée` ou `/modpublish folder_path:C:\\path\\to\\mod`",
             ephemeral=True,
         )
@@ -547,20 +547,20 @@ def _get_git_log(max_lines: int = 15) -> str:
             ["git", "-C", str(_PROJECT_ROOT), "log", "--oneline", "-n", str(max_lines)],
             capture_output=True, text=True, timeout=10,
         )
-        return result.stdout.strip() or "⚠️ Git non accessible dans le conteneur (mount -v ?)"
+        return result.stdout.strip() or "[WARN] Git non accessible dans le conteneur (mount -v ?)"
     except FileNotFoundError:
-        return "⚠️ Git non disponible — installe-le dans l'image Docker ou monte le volume"
+        return "[WARN] Git non disponible — installe-le dans l'image Docker ou monte le volume"
     except subprocess.TimeoutExpired:
-        return "⚠️ Timeout git log"
+        return "[WARN] Timeout git log"
     except Exception as exc:  # noqa: BLE001
-        return f"⚠️ Erreur git : {exc}"
+        return f"[WARN] Erreur git : {exc}"
 
 
 def _parse_phase_progress(todo_path: Path) -> tuple[str, int, int]:
     """Parse todo.md et retourne (titre_phases, total_cases, cases_faites)."""
     content = _read_file_safe(todo_path)
     if not content:
-        return "⚠️ TODO introuvable", 0, 0
+        return "[WARN] TODO introuvable", 0, 0
 
     total = content.count("- [x]") + content.count("- [ ]") + content.count("[-]")
     done = content.count("- [x]")
@@ -594,56 +594,56 @@ def _generate_workspace_report() -> str:
     git_log = _get_git_log(12)
 
     # Ollama health
-    ollama_status = "⚠️ Non testé"
+    ollama_status = "[WARN] Non teste"
     try:
         import urllib.request
         resp = urllib.request.urlopen(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5)
         if resp.status == 200:
             data = json.loads(resp.read())
             models = [m["name"] for m in data.get("models", [])]
-            ollama_status = f"✅ En ligne — modèles : {', '.join(models[:5])}"
+            ollama_status = f"[OK] En ligne — modeles : {', '.join(models[:5])}"
     except Exception:
-        ollama_status = "❌ Hors ligne ou injoignable"
+        ollama_status = "[FAIL] Hors ligne ou injoignable"
 
     # Health du storage vectoriel (SQLite/PostgreSQL)
-    storage_status = "⚠️ Non testé"
+    storage_status = "[WARN] Non teste"
     try:
         from src.storage import StorageBackend
         health = StorageBackend().health()
         if health["available"]:
-            storage_status = f"✅ En ligne ({health['mode']}) — {health.get('db_path', '')}"
+            storage_status = f"[OK] En ligne ({health['mode']}) — {health.get('db_path', '')}"
         else:
-            storage_status = f"❌ Indisponible ({health.get('error', 'inconnu')})"
+            storage_status = f"[FAIL] Indisponible ({health.get('error', 'inconnu')})"
     except Exception as exc:
-        storage_status = f"❌ Erreur : {exc}"
+        storage_status = f"[FAIL] Erreur : {exc}"
 
     # LLM provider
     llm_info = f"{llm.name} (local={llm.is_local})"
 
-    report = f"""**📋 Zomboid_Architect — Rapport Workspace**
+    report = f"""**[REPORT] Zomboid_Architect — Rapport Workspace**
 *{now}*
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-**🏗️ Version** : `{version}`
-**🤖 LLM** : {llm_info}
+**[BUILD] Version** : `{version}`
+**[LLM] LLM** : {llm_info}
 
-**📊 Progression des phases** :
+**[STATS] Progression des phases** :
 `{phases}`
 
-**✅ Terminé** : {done}/{total} tâches
+**[OK] Termine** : {done}/{total} taches
 
-**📝 Derniers commits** :
+**[TODO] Derniers commits** :
 ```
 {git_log or "Aucun commit (dépôt vierge ou pas de git)"}
 ```
 
-**🔌 Services :**
+**[CONN] Services :**
 - Ollama : {ollama_status}
 - Storage (SQLite/PostgreSQL) : {storage_status}
 
-**📌 Canaux actifs :**
-- Discord : `{bot.user.name}` en ligne ✅
+**[CHANNEL] Canaux actifs :**
+- Discord : `{bot.user.name}` en ligne [OK]
 - Canal workspace : `{getattr(_workspace_target or _workspace_channel, 'name', '?')}` (ID: {getattr(_workspace_target or _workspace_channel, 'id', '?')})
 """
     return report
@@ -664,7 +664,7 @@ async def cmd_workspace(interaction: discord.Interaction):
         g = _find_guild()
         ch_names = [f"#{ch.name}" for ch in (g.text_channels if g else [])]
         await interaction.followup.send(
-            "⚠️ Aucun canal workspace trouvé.\nConfigure `WORKSPACE_CHANNEL_ID=<ton_id>` dans `.env`.\n"
+            "[WARN] Aucun canal workspace trouve. Configure `WORKSPACE_CHANNEL_ID=<ton_id>` dans `.env`.\n"
             f"Canaux : {', '.join(ch_names[:10])}",
             ephemeral=True,
         )
@@ -675,17 +675,17 @@ async def cmd_workspace(interaction: discord.Interaction):
         await target_ch.send(report)
         logger.info("Rapport workspace envoyé dans #%s", target_ch.name)
         await interaction.followup.send(
-            f"📋 Rapport envoyé dans `#{target_ch.name}` ✅",
+            f"[REPORT] Rapport envoye dans `#{target_ch.name}` [OK]",
             ephemeral=True,
         )
     except discord.Forbidden:
         await interaction.followup.send(
-            f"❌ Pas la permission d'envoyer dans `#{target_ch.name}`.",
+            f"[FAIL] Pas la permission d'envoyer dans `#{target_ch.name}`.",
             ephemeral=True,
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("cmd_workspace failed")
-        await interaction.followup.send(f"⚠️ Erreur : {exc}", ephemeral=True)
+        await interaction.followup.send(f"[WARN] Erreur : {exc}", ephemeral=True)
 
 
 # ---------------------------------------------------------------------------
@@ -712,13 +712,13 @@ async def on_ready():
     # Trouver le canal workspace — la catégorie peut contenir plusieurs canaux
     guild = target_guild or _find_guild()
     if guild:
-        target_cat_name = "💻 WORKSPACE Z-ARCHITECT"
+        target_cat_name = "[DESKTOP] WORKSPACE Z-ARCHITECT"
 
         # 1. Chercher d'abord la catégorie par son nom
         workspace_cat = None
         for cat in guild.categories:
             clean_cat = discord.utils.remove_markdown(cat.name).strip().lower()
-            if target_cat_name.lower().replace("💻 ", "").replace("📋 ", "") in clean_cat.replace("💻 ", "").replace("📋 ", ""):
+            if target_cat_name.lower().replace("[DESKTOP] ", "").replace("[REPORT] ", "") in clean_cat.replace("[DESKTOP] ", "").replace("[REPORT] ", ""):
                 workspace_cat = cat
                 logger.info("Catégorie workspace trouvée : %s (canaux: %d)", cat.name, len(cat.text_channels))
                 break
@@ -753,10 +753,10 @@ async def on_ready():
     # Fallback ultime : rapport envoyé dans le premier channel visible si aucun workspace trouvé
     fallback_channel = None
     if not _workspace_channel and guild:
-        for candidate in ["📊・rapports", "🧠・brainstorm", "📝・tasks", "💬・général-dev"]:
+        for candidate in ["[STATS]・rapports", "[IDEA]・brainstorm", "[TODO]・tasks", "[CHAT]・general-dev"]:
             for ch in guild.text_channels:
                 clean = discord.utils.remove_markdown(ch.name).strip().lower()
-                if candidate.replace("・", "").replace("📊 ", "").replace("🧠 ", "").replace("📝 ", "").replace("💬 ", "") in clean:
+                if candidate.replace("・", "").replace("[STATS] ", "").replace("[IDEA] ", "").replace("[TODO] ", "").replace("[CHAT] ", "") in clean:
                     fallback_channel = ch
                     break
             if fallback_channel:
@@ -814,7 +814,7 @@ async def on_message(message: discord.Message):
         return
     except Exception as exc:  # noqa: BLE001
         logger.exception("process_message DM échoué pour %s", message.author.name)
-        await message.reply(f"⚠️ Erreur interne : {exc}")
+        await message.reply(f"[WARN] Erreur interne : {exc}")
         return
 
     # Découper la réponse si elle dépasse les limites Discord

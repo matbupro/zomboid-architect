@@ -56,7 +56,7 @@ class Settings:
     EMBEDDING_DIM: int = 1024
 
     # Canal workspace Discord (nom ou ID)
-    WORKSPACE_CHANNEL_NAME: str = "💻 WORKSPACE Z-ARCHITECT"
+    WORKSPACE_CHANNEL_NAME: str = "[DESKTOP] WORKSPACE Z-ARCHITECT"
     WORKSPACE_CHANNEL_ID: int | None = None  # Résolu dynamiquement au démarrage
     DISCORD_GUILD_ID: int | None = None      # Serveur Discord cible (optionnel, aide la recherche de canal)
 
@@ -83,7 +83,7 @@ def load_settings() -> Settings:
         CLAUDE_MODEL=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514"),
         LLM_TEMPERATURE=float(os.getenv("LLM_TEMPERATURE", "0.7")),
         MAX_RESPONSE_LENGTH=int(os.getenv("MAX_RESPONSE_LENGTH", "4000")),
-        WORKSPACE_CHANNEL_NAME=os.getenv("WORKSPACE_CHANNEL_NAME", "💻 WORKSPACE Z-ARCHITECT"),
+        WORKSPACE_CHANNEL_NAME=os.getenv("WORKSPACE_CHANNEL_NAME", "[DESKTOP] WORKSPACE Z-ARCHITECT"),
         WORKSPACE_CHANNEL_ID=int(os.getenv("WORKSPACE_CHANNEL_ID")) if os.getenv("WORKSPACE_CHANNEL_ID") else None,
         DISCORD_GUILD_ID=int(os.getenv("DISCORD_GUILD_ID")) if os.getenv("DISCORD_GUILD_ID") else None,
         SYNC_HOOK_URL=os.getenv("SYNC_HOOK_URL"),

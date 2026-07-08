@@ -1,0 +1,2 @@
+# this folder exists so tests can write output files without git complaining
+# all *.log / *.raw are ignored in .gitignore — nothing here is committed

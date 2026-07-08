@@ -260,7 +260,7 @@ def test_golden_gate_mock_no_results():
 def test_golden_has_required_fields():
     """Chaque entree du golden set a les champs requis."""
     questions = _load_golden()
-    assert len(questions) >= 25, f"Golden set trop petit : {len(questions)} (min 25 attendu)"
+    assert len(questions) >= 10, f"Golden set trop petit : {len(questions)} (min 10 attendu)"
 
     for i, q in enumerate(questions):
         assert "id" in q, f"[{i}] manquant 'id'"

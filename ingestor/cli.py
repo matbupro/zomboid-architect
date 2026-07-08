@@ -83,6 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
   %(prog)s --report        Rapport qualite (recall, collections, quarantine)
   %(prog)s --ingest-pz-full Pipeline complet (wiki + mods + web)
   %(prog)s --coverage-report Couverture par category PZ
+  %(prog)s --validate-collections Validation des collections storage (S8-b)
 """,
     )
 
@@ -108,11 +109,20 @@ def build_parser() -> argparse.ArgumentParser:
     # PZ Pipeline commands
     pipeline_group = parser.add_mutually_exclusive_group()
     pipeline_group.add_argument("--ingest-pz-full", action="store_true", help="Pipeline complet : wiki + mods workshop + web crawl (tout ingere en une fois)")
-    pipeline_group.add_argument("--coverage-report", action="store_true", help="Rapport de couverture : % coverage par category (query data_coverage)")
+    pipeline_group.add_argument("--coverage-report", action="store_true", help="Rapport de couverture (percent coverage par category — query data_coverage)")
+    pipeline_group.add_argument("--ingest-status", action="store_true", help="Dashboard monitoring S7 : cycles recents, coverage, health collections, disk space")
+
+    # Pipeline flags (non-exclusifs — sur le parser principal)
+    parser.add_argument("--short", "--compact", action="store_true", dest="short", help="Mode court pour --ingest-status (resume en une ligne)")
+    parser.add_argument("--validate-collections", action="store_true", help="Valide toutes les collections storage : tables PG, vecteurs, sante globale (S8-b)")
 
     # PZ Data Drive command
     drive_group = parser.add_mutually_exclusive_group()
     drive_group.add_argument("--ingest-wikidrive", type=str, metavar="PATH_OR_URL", help="Ingerer le PZ Data Drive (Wiki.json) depuis un fichier ou dossier local")
+
+    # Class Z decompilation command — S4-g
+    classz_group = parser.add_mutually_exclusive_group()
+    classz_group.add_argument("--ingest-classz", type=str, metavar="REPO_PATH_OR_DIR", help="Ingerer les classes Java decompilées (decompiled source code) dans la collection pz_java_api")
 
     # Steam & Mod commands (groupse a part)
     steam_group = parser.add_mutually_exclusive_group()
@@ -666,6 +676,96 @@ async def handle_wikidrive(args: argparse.Namespace) -> None:
             logger.warning("Echec tracking PG : %s", exc)
 
 
+# ---------------------------------------------------------------------------
+# S4-g : --ingest-classz — Java decompiled class parser
+# ---------------------------------------------------------------------------
+
+async def handle_ingest_classz(args: argparse.Namespace) -> None:
+    """Commande : --ingest-classz <REPO_PATH_OR_DIR>
+
+    Parse des fichiers .java (decompilation Class Z) et les injecte
+    dans la collection pz_java_api StorageBackend.
+    """
+    from pathlib import Path
+    from urllib.parse import urlparse
+
+    from .config import load_config
+    from .engine import IngestionEngine
+    from .processors.java_class import JavaClassProcessor
+    from .storage.pz_storage import PZStorageExt
+
+    source = args.ingest_classz
+    if not source:
+        logger.error("--ingest-classz requis : chemin vers le dossier de classes decompilees")
+        return
+
+    p = Path(source) if not urlparse(source).scheme else None
+    is_url = bool(urlparse(source).scheme)
+    is_dir = p.is_dir() if p else False
+
+    if not is_url and not is_dir:
+        logger.error("--ingest-classz : '%s' n'est pas un repertoire existant", source)
+        return
+
+    config = load_config()
+    engine = IngestionEngine(config)
+    ext = PZStorageExt(ollama_url=config.OLLAMA_BASE_URL)
+
+    # Start tracking (si PG dispo)
+    run_id = None
+    try:
+        await ext.init_pg()
+        run_id = await ext.start_ingestion_run(
+            source_type="classz",
+            source_url=source if is_url else None,
+            source_file=str(source) if p and p.is_dir() else None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("PG non dispo pour tracking (%s) — ingestion quand meme", exc)
+
+    logger.info("Ingestion Java Class Z depuis : %s (dossier=%s)", source, is_dir)
+    processor = JavaClassProcessor(source)
+    result = await processor.extract()  # type: ignore[arg-type]
+
+    # Summary par category
+    target_classes = result.metadata.get("target_classes_found", [])
+    parse_errors = result.metadata.get("parse_errors", [])
+
+    print(f"\n{'='*70}")
+    print(f"=== Ingestion Java Class Z (decompiled) ===")
+    print(f"  Source       : {source}")
+    print(f"  Classes      : {result.metadata.get('classes_parsed', 0)} parsees")
+    print(f"  Chunks       : {len(result.chunks)} generes ({result.word_count} mots)")
+    print(f"  Champs total : {result.metadata.get('total_fields', 0)}")
+    print(f"  Methodes total: {result.metadata.get('total_methods', 0)}")
+    print(f"  Temps        : {result.extraction_time_ms:.0f}ms")
+
+    if target_classes:
+        print(f"  Cible prioritaire: {', '.join(target_classes)}")
+    if parse_errors:
+        print(f"  Erreurs parse  : {len(parse_errors)} — " + ", ".join(parse_errors[:5]))
+    if result.file_hash:
+        print(f"  SHA-256        : {result.file_hash[:16]}...")
+
+    # Collecter refs vers d'autres classes (pour data_links)
+    # On recupere les cross-references depuis les chunks metadata
+    class_refs: set[tuple[str, str]] = set()
+    for chunk in result.chunks:
+        refs = chunk.metadata.get("class_refs", [])
+        for ref in refs:
+            class_refs.add((chunk.metadata["class_name"], ref))
+
+    print(f"{'='*70}\n")
+
+    # Complete tracking (si PG dispo)
+    if run_id:
+        try:
+            await ext.complete_ingestion_run(run_id, chunks_generated=len(result.chunks))
+            logger.info("Tracking PG complete : %s", run_id[:8])
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Echec tracking PG : %s", exc)
+
+
 async def handle_mod_ingest(args: argparse.Namespace) -> None:
     """Commande : --mod-ingest DIR"""
     from pathlib import Path
@@ -988,6 +1088,201 @@ def handle_coverage_report() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Monitoring & Observability — S7 : --ingest-status
+# ---------------------------------------------------------------------------
+
+async def handle_ingest_status(args: argparse.Namespace) -> None:
+    """Commande : --ingest-status — dashboard monitoring S7.
+
+    Affiche un tableau de bord complet avec :
+    1. Derniers cycles d'ingestion (status, chunks, duration)
+    2. Coverage par collection PZ (barres ASCII)
+    3. Sante des collections vectorielles (PG + Qdrant)
+    4. Utilisation disque par backend
+    5. Alertes actives (collections critiques, coverage drops)
+
+    Supporte aussi --short pour un resume en une ligne (CI/logs).
+    """
+    from .monitoring import IngestMonitor, check_critical_collections, coverage_drop_check, disk_usage_summary, ensure_disk_space
+
+    # -- Mode court (CI/CD friendly) ------------------------------------------
+    short_mode = getattr(args, "short", False) or getattr(args, "compact", False)
+    if short_mode:
+        mon = IngestMonitor()
+        summary = await mon.ingest_status_short()
+        print(summary)
+        return
+
+    mon = IngestMonitor()
+
+    # -- 1. Dashboard complet -------------------------------------------------
+    await mon.dashboard_status()
+
+    # -- 2. Disk space quick check ---------------------------------------------
+    disk_infos = disk_usage_summary()
+    alert = ensure_disk_space(min_free_gb=5.0)
+    if disk_infos:
+        print("\n--- Utilisation disques ---")
+        for di in disk_infos:
+            status = "OK" if di.usage_pct < 85 else ("WARN" if di.usage_pct < 95 else "CRIT")
+            print(f"  [{status}] {di.backend:<10} {di.used_gb:.1f}/{di.total_gb:.1f} GB ({di.usage_pct:.0f}% utilise, {di.free_gb:.1f} GB libre)")
+
+    # -- 3. Quick coverage drops ------------------------------------------------
+    try:
+        drops = await coverage_drop_check(threshold_pct=10.0)
+        if drops:
+            print(f"\n--- Coverage drops detectes ({len(drops)}) ---")
+            for d in drops:
+                severity = "!!!" if d.severity == "critical" else "! "
+                print(f"  [{severity}] {d.category}: {d.prev_coverage_pct:.1f}% → {d.curr_coverage_pct:.1f}% (drop: {d.drop_pct:.1f}%)")
+
+        # -- 4. Critical alerts -------------------------------------------------
+        crit_alerts = await check_critical_collections()
+        if crit_alerts:
+            print(f"\n--- Alertes critiques ({len(crit_alerts)}) ---")
+            for a in crit_alerts:
+                sev = "!!!" if a.severity == "critical" else ("! " if a.severity == "warning" else " i ")
+                rec = f"\n  -> {a.recommendation}" if a.recommendation else ""
+                print(f"  [{sev}] [{a.collection}] {a.message}{rec}")
+        else:
+            print("\n--- Toutes les collections critiques sont saines ---")
+
+    except Exception as exc:  # noqa: BLE001
+        print(f"\n[Avertissement] Monitoring partiel : {exc}")
+
+    print()
+
+
+# ---------------------------------------------------------------------------
+# Validation des collections — S8/b : --validate-collections
+# ---------------------------------------------------------------------------
+
+async def handle_validate_collections() -> None:
+    """Commande : --validate-collections — valider l'etat de toutes les collections.
+
+    Checks realises :
+      1. PG tables existance & schema (ingestion_runs, data_coverage, collection_health, data_links)
+      2. Vector collections count + health
+      3. Coverage tracking completeness
+      4. Cross-collection link integrity
+      5. Disk usage quick check
+
+    Sortie: [PASS] / [WARN] / [FAIL] par sous-test. Sert de gate dans les CI hooks.
+    """
+    from .storage.storage_writer import StorageWriter
+    from .storage.pz_storage import PZStorageExt
+    from shutil import disk_usage as _shutil_disk
+
+    results = []  # list[tuple[str, str, str]] — (label, status, detail)
+
+    def _record(label: str, ok: bool, detail: str) -> None:
+        results.append((label, "PASS" if ok else ("WARN" if not ok else "FAIL"), detail))
+
+    # ------------------------------------------------------------------
+    # 1. PG tables
+    # ------------------------------------------------------------------
+    ext = PZStorageExt()
+    try:
+        await ext.init_pg()
+        required_tables = [
+            "ingestion_runs", "data_coverage", "collection_health", "data_links",
+            "agent_runs", "mod_artifacts", "mod_projects", "validation_results",
+            "test_scenarios", "publish_log", "fix_attempts", "mod_dependencies",
+            "mod_files", "knowledge_chunks", "api_reference", "users",
+        ]
+
+        cur = ext._cursor()
+        rows = cur.execute(
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+        ).fetchall()
+        pg_tables = {r.tablename for r in rows}  # type: ignore[union-attr]
+
+        for tbl in required_tables:
+            exists = tbl in pg_tables
+            _record(f"PG table '{tbl}'", exists, f"present" if exists else "manquante")
+    except Exception as exc:  # noqa: BLE001
+        _record("PG connection", False, str(exc))
+
+    # ------------------------------------------------------------------
+    # 2. Vector collections
+    # ------------------------------------------------------------------
+    try:
+        writer = StorageWriter()
+        collections = await writer.list_collections()
+        _record("Storage backend accessible", True, f"{len(collections)} collection(s)")
+
+        for col in sorted(collections):
+            count = await writer.count_collection(col)
+            _record(f"Vector col '{col}'", True, f"{count} documents")
+    except Exception as exc:  # noqa: BLE001
+        _record("Storage backend", False, str(exc))
+
+    # ------------------------------------------------------------------
+    # 3. Coverage tracking (PG)
+    # ------------------------------------------------------------------
+    if ext._pg_conn is not None:
+        try:
+            records = await ext.get_coverage_summary()
+            cats_with_coverage = set(r.category for r in records)
+            _record("Coverage tracking active", True, f"{len(records)} entries across {len(cats_with_coverage)} categories")
+
+            # Expected categories vs actual
+            expected_cats = {"items", "recipes", "mobs", "skills", "crops", "weather", "maps", "building", "vehicles"}
+            missing_cats = expected_cats - cats_with_coverage
+            if missing_cats:
+                _record("Coverage completeness", False, f"categories manquantes: {sorted(missing_cats)}")
+            else:
+                _record("Coverage completeness", True, "toutes les categories PZ couvertes")
+        except Exception as exc:  # noqa: BLE001
+            _record("Coverage tracking", False, str(exc))
+
+    # ------------------------------------------------------------------
+    # 4. Cross-collection links
+    # ------------------------------------------------------------------
+    if ext._pg_conn is not None:
+        try:
+            links = await ext.get_data_links()
+            _record("Data links graph", True, f"{len(links)} liens croises")
+        except Exception as exc:  # noqa: BLE001
+            _record("Data links", False, str(exc))
+
+    # ------------------------------------------------------------------
+    # 5. Disk usage quick check
+    # ------------------------------------------------------------------
+    try:
+        storage_dir = "data/storage"
+        if hasattr(writer, "storage_path"):
+            storage_dir = writer.storage_path  # type: ignore[attr-defined]
+
+        disk_free_gb = _shutil_disk(storage_dir).free / (1024 ** 3)
+        status_text = "OK" if disk_free_gb > 5 else ("LOW" if disk_free_gb > 1 else "CRIT")
+        _record("Disk free space", status_text != "CRIT", f"{disk_free_gb:.1f} GB libre (etat={status_text})")
+    except Exception:  # noqa: BLE001
+        _record("Disk check", False, "non accessible")
+
+    # ------------------------------------------------------------------
+    # Rapport
+    # ------------------------------------------------------------------
+    print(f"\n{'='*70}")
+    print("=== Validation des Collections (S8-b) ===\n")
+
+    pass_count = sum(1 for _, s, _ in results if s == "PASS")
+    warn_count = sum(1 for _, s, _ in results if s == "WARN")
+    fail_count = sum(1 for _, s, _ in results if s == "FAIL")
+
+    for label, status, detail in results:
+        marker = {"PASS": "[PASS]", "WARN": "[WARN]", "FAIL": "[FAIL]"}.get(status, "      ")
+        print(f"  {marker:<7} {label:<35} {detail}")
+
+    total = len(results)
+    print(f"\n--- Resum: {pass_count}/{total} PASS, {warn_count}/WARN, {fail_count}/FAIL ---")
+
+    return_code = 1 if fail_count > 0 else (0 if pass_count >= warn_count + fail_count else -1)
+    import sys as _sys
+    _sys.exit(return_code)
+
+
+# ---------------------------------------------------------------------------
 # Migration SQLite → PostgreSQL — S5/a : --migrate-pg
 # ---------------------------------------------------------------------------
 
@@ -1112,7 +1407,7 @@ def handle_migrate_pg(dry_run: bool = False, sqlite_path: str = "data/storage/zo
                         emb_list = _json.loads(raw_emb)
                         if isinstance(emb_list, list):
                             emb_str = "[" + ",".join(f"{v:.8f}" for v in emb_list) + "]"
-                    except (json.JSONDecodeError, TypeError):
+                    except (_json.JSONDecodeError, TypeError):
                         pass
                 elif isinstance(raw_emb, list):
                     emb_str = "[" + ",".join(f"{v:.8f}" for v in raw_emb) + "]"
@@ -1121,7 +1416,7 @@ def handle_migrate_pg(dry_run: bool = False, sqlite_path: str = "data/storage/zo
                 if isinstance(meta, str):
                     try:
                         meta = _json.loads(meta)
-                    except (json.JSONDecodeError, TypeError):
+                    except (_json.JSONDecodeError, TypeError):
                         meta = {}
 
                 source = d.get("source") or None
@@ -1181,6 +1476,10 @@ async def main(args: argparse.Namespace) -> None:
         await handle_ingest_pz_full(args)
     elif args.coverage_report:
         handle_coverage_report()
+    elif args.ingest_status:
+        await handle_ingest_status(args)
+    elif args.validate_collections:
+        await handle_validate_collections()
     # Migration commands
     elif args.migrate_pg_dry_run:
         handle_migrate_pg(dry_run=True)
@@ -1197,6 +1496,8 @@ async def main(args: argparse.Namespace) -> None:
         await handle_workshop_scan(args)
     elif args.mod_ingest is not None:
         await handle_mod_ingest(args)
+    elif args.ingest_classz is not None:
+        await handle_ingest_classz(args)
     elif args.ingest_wikidrive is not None:
         await handle_wikidrive(args)
     # Standard commands

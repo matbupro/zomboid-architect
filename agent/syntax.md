@@ -1,15 +1,16 @@
 # Etat Actuel du Projet
 
 ## Status
-**Derniere MAJ agent/ : 2026-07-07 par sync_agent.ps1 automatique.**
+**Derniere MAJ agent/ : 2026-07-08 par sync_agent.ps1 automatique.**
 
-Dernier commit : b1984cc
+Dernier commit : 215cc50
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
+  |-- .env.unified
   |-- .github/workflows/tests.yml
   |-- .gitignore
   |-- agent/.agent_memory.md
@@ -105,6 +106,7 @@ Version moteur : 0.4.0-alpha
   |-- INSTALL.md
   |-- Makefile
   |-- migrations/001_initial_schema.sql
+  |-- migrations/convert_sqlite_to_pg.py
   |-- mods/.gitkeep
   |-- notion_client/.gitignore
   |-- notion_client/__init__.py
@@ -159,12 +161,14 @@ Version moteur : 0.4.0-alpha
   |-- src/retrieval/__init__.py
   |-- src/storage/__init__.py
   |-- src/storage/postgres_backend.py
+  |-- src/storage/qdrant_backend.py
   |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
   |-- tests/golden_set/golden.json
   |-- tests/run_tests.py
   |-- tests/test_brave_search.py
   |-- tests/test_cli.py
+  |-- tests/test_dual_backend.py
   |-- tests/test_game_version_filtering.py
   |-- tests/test_golden_set.py
   |-- tests/test_incremental_ingest.py
@@ -176,12 +180,19 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_modgen_integration.py
   |-- tests/test_new_mcp_tool.py
   |-- tests/test_pbo_processor.py
+  |-- tests/test_qdrant_backend.py
   |-- tests/test_regression.py
+  |-- tests/test_regression_collection_extend.py
   |-- tests/test_sqlite_storage.py
   |-- tests/test_steamcmd_client.py
   |-- tests/test_storage_writer.py
   |-- tests/test_tag_release.py
   |-- tests/test_watchdog.py
+  |-- tests/test_wikijson_completeness.py
+  |-- tests/test_wikijson_crossref.py
+  |-- tests/test_wikijson_e2o.py
+  |-- tests/test_wikijson_processor.py
+  |-- tests/test_wikijson_schema.py
   |-- tests/test_workshop_scanner.py
   |-- tests/validation_suite.py
   |-- tools/steamcmd/.crash
@@ -414,4 +425,4 @@ Version moteur : 0.4.0-alpha
 
 | Date | Action | Detail |
 |------|--------|--------|
-| 2026-07-07 | sync_agent.ps1 | MAJ auto - tree, last commit, version |
+| 2026-07-08 | sync_agent.ps1 | MAJ auto - tree, last commit, version |

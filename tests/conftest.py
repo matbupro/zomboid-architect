@@ -13,6 +13,36 @@ from typing import Any
 
 import pytest
 
+# ---------------------------------------------------------------------------
+# Fix: patch wcwidth to avoid Python 3.14/Windows crash on emoji in
+# unicodedata.normalize("NFC", s).  pytest uses status emojis for terminal
+# output and wcswidth() crashes when normalizing them.
+# Patch BEFORE pytest's terminal module loads (pytest_configure runs early).
+# ---------------------------------------------------------------------------
+
+_orig_wcswidth: Any | None = None
+
+
+def _safe_wcswidth(s: str) -> int:
+    """Wrapper around wcswidth that handles Python 3.14/Windows emoji crash."""
+    if _orig_wcswidth is None:
+        return len(s)
+    try:
+        return _orig_wcswidth(s)
+    except (ValueError, TypeError, UnicodeError):
+        return len(s)
+
+
+def pytest_configure(config: Any) -> None:
+    """Patch wcswidth before terminal reporter uses it."""
+    global _orig_wcswidth
+    try:
+        from _pytest._io import wcwidth as _wcmod
+        _orig_wcswidth = _wcmod.wcswidth
+        _wcmod.wcswidth = _safe_wcswidth
+    except Exception:
+        pass  # non-fatal: only needed on Python 3.14/Windows
+
 # Project root = parent of tests/
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))

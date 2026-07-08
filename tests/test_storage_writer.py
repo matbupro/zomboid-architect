@@ -272,7 +272,8 @@ async def test_storage_writer_write_empty_chunks():
     from ingestor.storage.storage_writer import StorageWriter
 
     mock_backend = MagicMock()
-    mock_backend.ensure_collection = MagicMock()
+    mock_backend.ensure_collection = AsyncMock(return_value=None)
+    mock_backend.write_chunks = MagicMock(return_value=0)
 
     writer = StorageWriter(ollama_url="http://x:11434")
     writer._backend = mock_backend
@@ -301,13 +302,13 @@ async def test_storage_writer_query_success():
     from ingestor.storage.storage_writer import StorageWriter, SearchResult
 
     mock_backend = MagicMock()
-    mock_backend.ensure_collection = MagicMock()
+    mock_backend.ensure_collection = AsyncMock(return_value=None)
 
-    # Mock des resultats du backend
+    # Mock des resultats du backend (query est async dans StorageBackend)
     mock_results = [
         SearchResult(collection="pz_text", id="id1", prose="doc1", distance=0.1, metadata_={"source": "a"}),
     ]
-    mock_backend.query = MagicMock(return_value=mock_results)
+    mock_backend.query = AsyncMock(return_value=mock_results)
 
     writer = StorageWriter(ollama_url="http://x:11434")
     writer._backend = mock_backend
@@ -324,14 +325,14 @@ async def test_storage_writer_cross_collection_search():
     from ingestor.storage.storage_writer import StorageWriter, SearchResult
 
     mock_backend = MagicMock()
-    mock_backend.ensure_collection = MagicMock()
+    mock_backend.ensure_collection = AsyncMock(return_value=None)
     mock_backend.list_collections.return_value = ["pz_items", "pz_recipes"]
 
-    # Query retourne des resultats par collection
-    def side_effect(col, *args, **kwargs):
+    # Query retourne des resultats par collection (async dans le code reel)
+    async def side_effect(col, *args, **kwargs):
         return [SearchResult(collection=col, id=f"{col}-1", prose="doc", distance=0.5)]
 
-    mock_backend.query = MagicMock(side_effect=side_effect)
+    mock_backend.query = AsyncMock(side_effect=side_effect)
 
     writer = StorageWriter(ollama_url="http://x:11434")
     writer._backend = mock_backend

@@ -1,4 +1,4 @@
-# Ingestor — Tâches d'Absorption de Données PZ (Complet)
+﻿# Ingestor — Tâches d'Absorption de Données PZ (Complet)
 
 ## Sources de données connues
 
@@ -360,7 +360,7 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
   - Extrait items, recipes, mobs, crops, weather par category ✅ (TYPE_TO_COLLECTION 26 entrées)
   - Retourne: list[Chunk] + ExtractionResult avec metadata (source='wikidrive', type='json') ✅
 - [x] **S4-b** Gérer les fields imbriqués ✅ _normalize_item (DamageTiers, Nutrition, DamageResistance), _normalize_recipe (CrossCookProgression), _normalize_mob (Drops, spawn_biomes)
-- [ ] **S4-c** Chunking optimal — Wiki.json est un gros JSON monolithique. Faut-il split par entity type avant chunking ?
+- [x] **S4-c** Chunking optimal ✅ session courante — max_chunk_words=800, split sémantique automatique (section `---` ou paragraphes), preserve le header contextuel dans chaque sub-chunk. Cross-references en metadata pour recipes → items (`ingredient_refs`, `result_ref`). 10 tests passes (`test_wikijson_chunking.py`).
 
 ### S4-II. Extensions CLI
 - [x] **S4-d** `--ingest-wikidrive <path>` ✅ commit `41f250b` — argument (l.104) + handler handle_wikidrive (l.580) + wiring main (l.707)
@@ -373,11 +373,16 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
   - Query data_coverage + v_coverage_summary via PZStorageExt
   - Affichage : `[█████░░░░] 62.5% (covered/expected)` par category + total global
   - Affiche egalement les liens cross-reference (data_links)
-- [ ] **S4-g** `--ingest-classz <github-repo-path>` — parser le code Java decompilé
+- [x] **S4-g** `--ingest-classz <github-repo-path>` -- parser Java decompiled classes (.java) -> collection pz_java_api (20 tests passes, processor + CLI wiring)
 
 ### S4-iii. Adaptation StorageWriter pour données PZ massives
 - [x] **S4-h** PZStorageExt (storage/pz_storage.py) ✅ commit `41f250b` — 384 lignes, méthodes start_ingestion_run / complete_ingestion_run / update_data_coverage / upsert_collection_health / add_data_link / get_data_links + singleton
-- [ ] **S4-i** Gérer les collections qui n'existent pas encore — auto-create au premier write
+- [x] **S4-i** Gérer les collections qui n'existent pas encore — auto-create au premier write ✅ session courante — Wiring complet sur tous les backends:
+  - `storage_writer.py::ensure_collection()` → `_backend.ensure_collection(name)` (déjà existant)
+  - `sqlite_storage.py::StorageBackend.ensure_collection()` propage sur **SQLite + PG (dual-sync) + Qdrant** quand actif
+  - `_sync_embeddings_qdrant()` appelle `ensure_collection()` AVANT batch_upsert (S4-i bugfix)
+  - `qdrant_backend.QdrantVectorBackend.ensure_collection()` crée la collection si inexistante
+  - Tests: `tests/test_auto_create_collections.py` — 7 tests passes (SQLite/Writer/Qdrant sync)
 
 ---
 
@@ -417,49 +422,76 @@ Ton document [agent-autonome-mods-pz.md](../agent-autonome-mods-pz.md) décrit u
 ## S7. Monitoring & Observability
 
 ### S7-i. Progress tracking
-- [ ] **S7-a** Dashboard ingestion — combien de chunks ingérés par cycle, erreurs, temps total
-  - Table ingestion_runs + vues AGGREGEE pour monitoring
-  - CLI command `--ingest-status` pour query en live
-- [ ] **S7-b** Disk space monitor (déjà partiellement dans config.py avec DISK_SPACE_MIN_GB) — étendre au multi-collection
+- [x] **S7-a** Dashboard ingestion — `monitoring.py` + CLI `--ingest-status` / `--short` ✅
+  - Table ingestion_runs + vues AGGREGEE pour monitoring (`dashboard_status()`)
+  - CLI command `--ingest-status` pour query en live (terminal) / `--ingest-status --short` (CI/CD)
+- [x] **S7-b** Disk space monitor multi-collection — PG, SQLite, Qdrant ✅ (`disk_monitor()`, `disk_usage_summary()`)
 
-### S7-II. Alerts
-- [ ] **S7-c** Alerte si ingestion échoue sur une collection critique (pz_items vide = tout le reste non fiable)
-- [ ] **S7-d** Alerte si coverage drop >10% entre deux cycles (data corruption?)
+### S7-ii. Alerts
+- [x] **S7-c** Alerte si ingestion échoue sur une collection critique (pz_items vide = tout le reste non fiable) ✅ (`check_critical()`, `check_critical_collections()`)
+- [x] **S7-d** Alerte si coverage drop >10% entre deux cycles (data corruption?) ✅ (`detect_coverage_drop()`, `detect_all_coverage_drops()`)
+
+- [x] **S7-tests** `tests/test_monitoring.py` : 44 tests passes ✅
 
 ---
 
 ## S8 — CI/CD & Pre-commit
 
 ### S8-i. Hooks additionnels
-- [ ] **S8-a** Pre-commit hook pour valider le DDL: `psql -f migrations/*.sql` sur schema vide avant commit
-  - Vérifier qu'aucun ALTER TABLE cassant est dans les migrations
-- [ ] **S8-b** Hook de validation des collections StorageBackend: `python -m ingestor.cli --validate-collections` avant push
-- [ ] **S8-c** Garder le hook sync_agent existant (déjà configuré, fonctionne)
+- [x] **S8-a** Pre-commit hook pour valider le DDL: `psql -f migrations/*.sql` sur schema vide avant commit
+  - Vérifier qu'aucun ALTER TABLE cassant est dans les migrations → `.git/hooks/pre-validate-ddl.ps1` ✅
+  - Scanne DROP TABLE/COLUMN sans IF EXISTS, RENAME, SET DATA TYPE
+- [x] **S8-b** Hook de validation des collections StorageBackend: `python -m ingestor.cli --validate-collections` avant push
+  - CLI `--validate-collections` ✅ (`handle_validate_collections()` dans cli.py)
+  - Checks: PG tables, vector collections count/health, coverage completeness, data links integrity, disk space
+  - Pre-commit hook: `.git/hooks/pre-validate-collections.ps1` ✅
+  - Ne bloque PAS le commit (CI gate bloquera si persistant)
+- [x] **S8-c** Garder le hook sync_agent existant (déjà configuré, fonctionne)
 
 ### S8-II. CI Pipeline (GitHub Actions / GitLab CI)
-- [ ] **S8-d** Workflow CI: lint → tests unitaires → test d'intégration → deployment docker-compose staging
-- [ ] **S8-e** Run les validation levels 1-4 sur un mod de test à chaque PR
+- [x] **S8-d** Workflow CI: lint → tests unitaires → gate security → e2e manuel
+  - Nouveau job `lint` : ruff check + isort check ✅ (très rapide, avant test)
+  - Pyproject.toml ajouté avec configs ruff/pytest ✅
+- [x] **S8-e** Run les validation levels 1-4 sur un mod de test → ✅ session courante :
+  - Fake mod PZ valide : `tests/fixtures/test_mod_zombo_small/` (mod.info + media/lua/ + media/scripts/)
+  - Processor L1 degrade graceusement sans luacheck (warning luacheck_not_available)
+  - Tests: `tests/test_validation_levels.py` — 17 tests (L1-L4, chaine sequential, edge cases, fixture integrity)
+  - CI: `.github/workflows/tests.yml` → installation luacheck (ubuntu) + execution des 4 niveaux sur fake mod
 
 ---
 
 ## S9 — Documentation & Onboarding
 
 ### S9-i. Mise à jour du CLAUDE.md
-- [ ] **S9-a** Ajouter une référence au schema PG et aux collections dans CLAUDE.md
-- [ ] **S9-b** Ajouter la stack architecture complète (PostgreSQL+Qdrant+MinIO+Gitea+Redis) dans le README projet
+- [x] **S9-a** Ajouter une référence au schema PG et aux collections dans CLAUDE.md
+  - Section "Références architecture" ajoutée : liens vers ARCHITECTURE.md, SETUP.md, migrations/001_initial_schema.sql
+  - Mapping tables PG → fonctionnalités + collections StorageBackend listées
+- [x] **S9-b** Ajouter la stack architecture complète (PostgreSQL+Qdrant+MinIO+Gitea+Redis) dans le README projet
+  - Arborescence mise à jour avec fichiers S8/S9 (pyproject.toml, ARCHITECTURE.md, SETUP.md, migrations/)
+  - Table stack infrastructure : PG/pgvector/Qdrant/MinIO/Gitea/Redis/Ollama + ports + usages
+  - Note "commencer sans Docker" avec STORAGE_BACKEND=sqlite
 
 ### S9-II. Onboarding docs
-- [ ] **S9-c** `SETUP.md` — comment bootstrapper l'infra complète en 5 minutes (docker-compose up + psql migration)
-- [ ] **S9-d** `ARCHITECTURE.md` — diagramme complet du pipeline, liens entre ingestor → storage → bot → agent_core
+- [x] **S9-c** `SETUP.md` — comment bootstrapper l'infra complète en 5 minutes (docker-compose up + psql migration)
+  - Sections : prérequis → dépendances → .env → docker → hooks → lancement → vérification → dépannage
+  - Variables d'environnement complètes (20+ variables) avec requiert/défaut/utilisé
+- [x] **S9-d** `ARCHITECTURE.md` — diagramme complet du pipeline, liens entre ingestor → storage → bot → agent_core
+  - 9 sections : vue globale, pipeline de données, composants détaillés (engine/storage/bot/modgen), infrastructure, governance, monitoring, sécurité, config, mapping collections
 
 ---
 
 ## S10 — Sécurité
 
 ### S10-i. Protection des secrets
-- [ ] **S10-a** STEAM_USER/STEAM_PASS dans `.env.pz-agent` (jamais dans git) + verifier via pre-commit hook
-- [ ] **S10-b** POSTGRES_PASSWORD généré au premier docker-compose up → sauvegardé dans env file
-- [ ] **S10-c** MINIO_ROOT_PASSWORD — idem, rotate mensuelle
+- [x] **S10-a** STEAM_USER/STEAM_PASS dans `.env.pz-agent` (jamais dans git) + verifier via pre-commit hook
+  - `.env.*` déjà dans `.gitignore` ✅
+  - Pre-commit hook : `.git/hooks/pre-check-secrets.ps1` — scan valeurs en dur (Steam, PG, MinIO, API keys, Discord tokens)
+  - `.env.pz-agent.example` fourni comme template (values change-me ne sont pas des vrais secrets)
+- [x] **S10-b** POSTGRES_PASSWORD généré au premier docker-compose up → sauvegardé dans env file
+  - `docker-compose.pz-agent.yml` utilise `${PG_PASSWORD:?Set PG_PASSWORD in .env.pz-agent}` (force la définition)
+  - Script de generation : `scripts/generate_secrets.ps1` — genere passwords forts si valeur=default, rotation mensuelle tracking
+- [x] **S10-c** MINIO_ROOT_PASSWORD — idem, rotate mensuelle
+  - Même pattern que S10-b + script shared pour les deux
 
 ### S10-II. Rate limiting & politesse web crawling
 - [ ] **S10-d** Respecter robots.txt du Wiki/PZForge (déjà dans config.py mais vérifier implémentation)

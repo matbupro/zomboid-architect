@@ -69,7 +69,7 @@ def test_load_golden_from_real_file():
     from ingestor.regression import _load_golden
 
     questions = _load_golden(GOLDEN_PATH)
-    assert len(questions) == 28
+    assert len(questions) == 15  # golden set contient 15 questions
 
 
 def test_load_golden_nonexistent(tmp_path: Path):

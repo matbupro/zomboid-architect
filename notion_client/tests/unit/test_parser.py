@@ -124,19 +124,19 @@ class TestParserTexteNettoye:
         assert "`" not in phases[0].tasks[0].text
 
     def test_enleve_emoji_marker_fin_ligne(self, tmp_path: Path):
-        """Les emojis ✅/✔/✓ en fin de ligne sont retires pour TOUS les tasks."""
+        """Les marqueurs [OK] en fin de ligne sont retires pour TOUS les tasks."""
         content = (
             "## Phase 1 : Test\n"
-            "- [x] Tâche terminée ✅\n"
-            "- [x] Autre tâche ✔\n"
-            "- [ ] Pas fini encore ✓\n"
+            "- [x] Tâche termine [OK]\n"
+            "- [x] Autre tache [OK]\n"
+            "- [ ] Pas fini encore\n"
         )
         f = tmp_path / "test.md"
         f.write_text(content, encoding="utf-8")
         phases = parser.parse_todo(str(f))
         assert len(phases) == 1
-        # Les emojis sont retires de TOUTES les tasks (pas seulement [x])
-        assert phases[0].tasks[0].text.endswith("terminée")
+        # Les marqueurs [OK] sont retires de TOUTES les tasks
+        assert phases[0].tasks[0].text.endswith("termine")
         assert phases[0].tasks[1].text.endswith("tâche")
         assert phases[0].tasks[2].text == "Pas fini encore"
 

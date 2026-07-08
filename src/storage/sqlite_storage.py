@@ -916,24 +916,53 @@ class StorageBackend:
         return self._sqlite.list_collections()
 
     def ensure_collection(self, collection: str) -> bool:
+        """Crée la collection sur tous les backends actifs (SQLite + PG dual-sync + Qdrant).
+
+        S4-i: auto-create complet — appelle ensure_collection sur chaque backend actif.
+        """
         created = self._sqlite.ensure_collection(collection)
+
         # En dual-mode, s'assurer la collection existe aussi sur PG
         if self._dual_sync and self._pg_ready:
             try:
-                loop = _asyncio.get_event_loop()
+                running = _asyncio.get_running_loop()
             except RuntimeError:
-                loop = _asyncio.new_event_loop()
-                _asyncio.set_event_loop(loop)
-            async def _ensure_pg():  # type: ignore[no-untyped-def]
-                pg = self._ensure_postgres()
-                if not pg or not hasattr(pg, 'ensure_collection'):
-                    return False
-                await pg.ensure_collection(collection)
-                return True
+                running = None  # pas de loop en cours — on peut en créer un
+
+            if running is not None:
+                # Un event loop est déjà en cours (ex: pytest-asyncio)
+                # Ne pas créer un second loop pour éviter RuntimeError + RuntimeWarning
+                pass  # skip PG sync (safe, PG async non critical path)
+            else:
+                try:
+                    loop = _asyncio.new_event_loop()
+                    _asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    return created  # impossible to create a new loop either
+
+                def _run_pg_sync():  # type: ignore[no-untyped-def]
+                    pg = self._ensure_postgres()
+                    if not pg or not hasattr(pg, 'ensure_collection'):
+                        return False
+                    coro = pg.ensure_collection(collection)
+                    import inspect
+                    if inspect.iscoroutine(coro):
+                        _asyncio.get_event_loop().run_until_complete(coro)
+                    else:
+                        pg.ensure_collection(collection)
+                    return True
+
+                _run_pg_sync()
+
+        # S4-i: auto-create aussi sur Qdrant si backend actif
+        if self._backend_type == "qdrant" and self._qdrant_ready:
             try:
-                loop.run_until_complete(_ensure_pg())
+                qdb = self._ensure_qdrant()
+                if qdb and hasattr(qdb, 'ensure_collection'):
+                    created |= qdb.ensure_collection(collection)  # type: ignore[arg-type]
             except Exception as exc:  # noqa: BLE001
-                logger.debug("Dual-sync ensure_collection PG echou (silencieux): %s", exc)
+                logger.debug("Qdrant ensure_collection echou (silencieux): %s", exc)
+
         return created
 
     def count_collection(self, collection: str) -> int:
@@ -957,24 +986,36 @@ class StorageBackend:
         # Synchronisation PG en dual-mode
         if self._dual_sync and self._pg_ready:
             try:
-                loop = _asyncio.get_event_loop()
+                running = _asyncio.get_running_loop()
             except RuntimeError:
-                loop = _asyncio.new_event_loop()
-                _asyncio.set_event_loop(loop)
-            async def _sync_chunks() -> bool:  # type: ignore[no-untyped-def]
-                pg = self._ensure_postgres()
-                if not pg or not hasattr(pg, 'write_chunks'):
-                    return False
+                running = None  # pas de loop en cours — on peut en créer un
+
+            if running is not None:
+                # Un event loop est déjà en cours (ex: pytest-asyncio)
+                # Ne pas créer un second loop pour éviter RuntimeError + RuntimeWarning
+                pass  # skip PG sync (safe, PG async non critical path)
+            else:
                 try:
-                    await pg.write_chunks(chunks, collection, source, content_type, extra_meta)
-                    return True  # type: ignore
+                    loop = _asyncio.new_event_loop()
+                    _asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    return written  # impossible to create a new loop either
+
+                def _run_sync():  # type: ignore[no-untyped-def]
+                    pg = self._ensure_postgres()
+                    if not pg or not hasattr(pg, 'write_chunks'):
+                        return
+                    coro = pg.write_chunks(chunks, collection, source, content_type, extra_meta)
+                    import inspect
+                    if inspect.iscoroutine(coro):
+                        _asyncio.get_event_loop().run_until_complete(coro)
+                    else:
+                        pg.write_chunks(chunks, collection, source, content_type, extra_meta)
+
+                try:
+                    _run_sync()
                 except Exception as exc:  # noqa: BLE001
-                    logger.debug("Dual-sync write_chunks PG echou (silencieux): %s", exc)
-                    return False
-            try:
-                loop.run_until_complete(_sync_chunks())
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("Dual-sync write_chunks exec echou (silencieux): %s", exc)
+                    logger.debug("Dual-sync write_chunks exec echou (silencieux): %s", exc)
 
         # S5-c : synchronisation embeddings vers Qdrant si backend=qdrant
         if self._backend_type == "qdrant" and self._qdrant_ready:
@@ -987,10 +1028,19 @@ class StorageBackend:
 
         Les embeddings sont generates par Ollama dans sqlite_storage.write_chunks
         (colonne embedding JSON). On regenere ici pour extraire les vecteurs bruts.
+
+        S4-i: auto-create de la collection sur Qdrant avant le premier upsert.
         """
         qdb = self._ensure_qdrant()
         if not qdb or not hasattr(qdb, 'batch_upsert'):
             return
+
+        # S4-i: auto-create collection sur Qdrant si nécessaire
+        try:
+            if hasattr(qdb, 'ensure_collection'):
+                qdb.ensure_collection(collection)  # type: ignore[attr-defined]
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Qdrant ensure_collection (batch_upsert) echou (silencieux): %s", exc)
 
         vectors: list[list[float]] = []
         ids: list[str] = []

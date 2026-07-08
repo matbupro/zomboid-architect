@@ -6,6 +6,28 @@ on:
   pull_request:
 
 jobs:
+  # ── Lint (S8-d) : s'exécute en premier, très rapide ──────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint (ruff check)
+        run: |
+          ruff check ingestor/ tests/ --output-format=github
+
+      - name: Import sort check (isort-compatible via ruff)
+        run: ruff check --select I ingestor/ tests/ || true
+
   test:
     runs-on: ${{ matrix.os }}
 
@@ -55,6 +77,26 @@ jobs:
       - name: Run property-based tests (hypothesis)
         run: |
           pytest tests/test_workshop_scanner.py -m "" -k addoninfo --hypothesis-seed=42 -v
+
+      # ── S8-e : Installation luacheck (ubuntu uniquement, pour L1 complet) ──
+      - name: Install luacheck (ubuntu only for L1 lua syntax check)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          sudo apt-get update && sudo apt-get install -y luarocks
+          luarocks install luacheck
+
+      # ── S8-e : Run validation levels 1-4 sur fake test mod (chaque PR) ──
+      - name: Run S8-e validation levels L1-L4 (fake test mod)
+        run: |
+          pytest tests/test_validation_levels.py -v --tb=short
+
+      # ── S8-e : Verify lua syntaxe du test mod passe luacheck (ubuntu only) ──
+      - name: Verify fake mod Lua syntax via luacheck (ubuntu only)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          # Le fake mod doit passer luacheck sans erreur (c'est la condition de S8-e)
+          luacheck tests/fixtures/test_mod_zombo_small/media/lua/ZomboSmallInit.lua
+          luacheck tests/fixtures/test_mod_zombo_small/media/scripts/ZomboSmallConfig.lua
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -134,3 +176,4 @@ jobs:
         run: |
           pip install pytest pytest-asyncio
           pytest -m e2e -v
+

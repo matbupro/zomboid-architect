@@ -199,7 +199,7 @@ def restore(backup_id: str) -> bool:
 
     if not candidates:
         log.error("backup not found", extra={"backup_id": backup_id})
-        print(f"  ✗ Backup '{backup_id}' not found.")
+        print(f"  [FAIL] Backup '{backup_id}' not found.")
         return False
 
     snapshot = candidates[0]
@@ -217,7 +217,7 @@ def restore(backup_id: str) -> bool:
             "pre_backup_id": pre_backup_id,
             "pre_backup_dir": str(pre_dest),
         })
-        print(f"  💾 Pre-restore snapshot: {pre_dest.name}")
+        print(f"  [DISK] Pre-restore snapshot: {pre_dest.name}")
 
     # ── 3. Restore from directory or tar.gz ──
     if snapshot.suffixes == [".tar", ".gz"]:
@@ -238,17 +238,17 @@ def restore(backup_id: str) -> bool:
             shutil.rmtree(prod_target, ignore_errors=True)
             shutil.copytree(source, prod_target, symlinks=True)
 
-        print(f"  ✓ Restored archive: {snapshot.name}  →  {str(prod_target)}")
+        print(f"  [OK] Restored archive: {snapshot.name}  ->  {str(prod_target)}")
     elif snapshot.is_dir():
         # ── Directory backup ──
         log.info("Restoring from directory snapshot", extra={"source": str(snapshot)})
         shutil.rmtree(prod_target, ignore_errors=True)
         shutil.copytree(snapshot, prod_target, symlinks=True)
 
-        print(f"  ✓ Restored: {snapshot.name}  →  {str(prod_target)}")
+        print(f"  [OK] Restored: {snapshot.name}  ->  {str(prod_target)}")
     else:
         log.error("unrecognized backup format", extra={"path": str(snapshot)})
-        print(f"  ✗ Unrecognized backup format: {snapshot.name}")
+        print(f"  [FAIL] Unrecognized backup format: {snapshot.name}")
         return False
 
     # ── 4. Audit trail ──
@@ -282,7 +282,7 @@ def rollback_latest() -> bool:
 
     if not prod_backups:
         log.error("no production backups found")
-        print("  ✗ No production backups found.")
+        print("  [FAIL] No production backups found.")
         return False
 
     latest = prod_backups[0]
@@ -292,7 +292,7 @@ def rollback_latest() -> bool:
         "rollback initiated",
         extra={"target_backup": meta["display_name"], "backup_date": meta["date"]},
     )
-    print(f"  ⚡ Rollback to: {meta['display_name']}  ({meta['date']})")
+    print(f"  [RUN] Rollback to: {meta['display_name']}  ({meta['date']})")
 
     return restore(meta["id"])
 
