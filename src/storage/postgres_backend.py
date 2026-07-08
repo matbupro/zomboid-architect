@@ -518,7 +518,7 @@ class PostgresStorageBackend:
         return f"z_{collection}"
 
     async def _generate_query_embedding(self, query_text: str) -> list[float] | None:
-        """Genere l'embedding de la requete via Ollama (reuse le cache SQLite)."""
+        """Genere l'embedding de la requete via Ollama."""
         if not self._conn:
             return None  # pool non initialisé — embedding impossible
 

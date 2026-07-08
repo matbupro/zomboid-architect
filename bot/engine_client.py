@@ -79,7 +79,7 @@ class _StorageWrapper:
         if embedding:
             return self._query_with_embedding(collection, query_text, embedding, n_results)
 
-        # Sinon on genere l'embedding via Ollama intégré au SQLiteStorage
+        # Sinon on genere l'embedding via Ollama + StorageBackend (PostgreSQL/pgvector)
         results = self._maybe_await(self._backend.query(
             collection, query_text, n_results=n_results,
             filters=where, game_version=game_version,
@@ -172,7 +172,7 @@ def document_or_text(doc: Any) -> str:
 class KnowledgeEngineClient:
     """Wrapper unifié devant le knowledge engine.
 
-    Utilise StorageBackend (SQLite par defaut, PostgreSQL optionnel).
+    Utilise StorageBackend (PostgreSQL/pgvector par défaut).
     Supporte lookup déterministe par ID (pz_get_item) sans vectoriel.
     """
 

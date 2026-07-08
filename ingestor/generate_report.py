@@ -159,7 +159,7 @@ def _collect_collections() -> list[CollectionInfo]:
 def _compute_golden_recall(
     golden: list[dict],
 ) -> dict[str, GoldenHit]:
-    """Calcule recall@5 par question du golden set via le storage (SQLite/Postgres).
+    """Calcule recall@5 par question du golden set via le storage (PostgreSQL/pgvector).
 
     Utilise query_staging (deleguÃ© au StorageBackend) pour interroger les collections.
     """

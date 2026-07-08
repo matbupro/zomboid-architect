@@ -1,10 +1,6 @@
 """src/storage/qdrant_backend — Backend Qdrant pour recherche vectorielle.
 
-Remplace les embeddings SQLite par Qdrant distant (docker-compose.pz-agent.yml).
-
-Architecture hybride :
-  - SQLite → texte + metadata (persistance locale)
-  - Qdrant → vecteurs d'embedding (recherche cosinus rapide)
+Backend Qdrant distant pour recherche vectorielle d'embeddings (docker-compose.pz-agent.yml).
 
 Schema Qdrant (collection per category) :
   collection_name = <pz_items, pz_recipes, ...>
@@ -20,10 +16,9 @@ Usage :
     results = qdb.query("axe pickup", collection="pz_items", n=5)
 
 Backend selection via env :
-  STORAGE_BACKEND=qdrant  → Qdrant distant + SQLite fallback texte
-  STORAGE_BACKEND=sqlite  → SQLite local (defaut, pas de dep externe)
+  STORAGE_BACKEND=qdrant  → Qdrant distant (vecteurs d'embedding)
 
-Created on 2026-07-07 — S5-c: Migration embeddings SQLite → Qdrant.
+Created on 2026-07-07 — S5-c: Backend Qdrant vectoriel.
 """
 
 from __future__ import annotations
@@ -523,88 +518,6 @@ class QdrantVectorBackend:
 
         all_results.sort(key=lambda x: x[0], reverse=True)
         return [r for _, r in all_results[:n_results]]
-
-    # ------------------------------------------------------------------
-    # Migration — copie les embeddings SQLite vers Qdrant
-    # ------------------------------------------------------------------
-
-    def migrate_from_sqlite(
-        self,
-        sqlite_dir: str = "data/storage",
-        categories: list[str] | None = None,
-    ) -> dict[str, int]:
-        """Migre les embeddings existants depuis SQLite vers Qdrant.
-
-        Lit la base SQLite locale, genere les vecteurs via Ollama si besoin,
-        et les upsert dans Qdrant.
-
-        Returns:
-            Dict {category: nb_points_migres}
-        """
-        import json as _json
-        import sqlite3 as _sqlite3
-
-        results: dict[str, int] = {}
-        cats = categories or DEFAULT_QDRANT_CATEGORIES
-
-        db_path = str(Path(sqlite_dir) / "zomboid.db")
-        if not Path(db_path).exists():
-            logger.warning("Base SQLite introuvable (%s) — migration annulée", db_path)
-            return results
-
-        # S'assurer les collections Qdrant existent
-        self.ensure_all_collections(cats, recreate=False)
-
-        conn = _sqlite3.connect(db_path)
-        conn.row_factory = _sqlite3.Row
-
-        for cat in cats:
-            table = f"z_{cat}"
-            try:
-                rows = conn.execute(
-                    f"SELECT id, text, embedding, metadata, source FROM {table} WHERE embedding IS NOT NULL"
-                ).fetchall()
-            except Exception:  # noqa: BLE001
-                logger.warning("Table SQLite '%s' introuvable — skip", table)
-                results[cat] = 0
-                continue
-
-            if not rows:
-                results[cat] = 0
-                continue
-
-            # Convertir les embeddings JSON → float arrays
-            vectors: list[list[float]] = []
-            ids: list[str] = []
-            payloads: list[dict[str, Any]] = []
-
-            for row in rows:
-                try:
-                    emb = _json.loads(row["embedding"])
-                    if not isinstance(emb, list) or len(emb) != self._vector_size:
-                        continue  # skip invalid vectors
-                except (TypeError, json.JSONDecodeError):
-                    continue
-
-                vectors.append(emb)
-                ids.append(row["id"])
-                try:
-                    meta = _json.loads(row["metadata"]) if row["metadata"] else {}
-                except (TypeError, json.JSONDecodeError):
-                    meta = {}
-                meta["text"] = row["text"] or ""
-                meta["source"] = row["source"] or ""
-                payloads.append(meta)
-
-            # Batch upsert sur Qdrant
-            if vectors:
-                success = self.batch_upsert(cat, vectors, ids, payloads)
-                results[cat] = len(vectors) if success else 0
-
-        conn.close()
-        total = sum(results.values())
-        logger.info("Migration SQLite → Qdrant terminee : %d points migres sur %d categories", total, len(cats))
-        return results
 
     # ------------------------------------------------------------------
     # Health check

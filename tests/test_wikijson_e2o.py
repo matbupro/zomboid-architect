@@ -3,8 +3,8 @@
 Couvre le flux entier :
   1. Fichier wiki.json simulé (données PZ réalistes)
   2. WikiJsonProcessor.extract() → ExtractionResult avec chunks categorisés
-  3. StorageWriter.write_chunks_to_storage() → SQLite backend
-  4. Query directe PG/SQlite sur les collections pour vérification
+  3. StorageWriter.write_chunks_to_storage() → PostgreSQL/pgvector backend
+  4. Query directe PG sur les collections pour vérification
 
 Usage:
     pytest tests/test_wikijson_e2o.py -v --tb=short
@@ -312,7 +312,7 @@ async def test_e2o_full_pipeline_wikidrive_json(tmp_path: Path):
 
 
 async def test_e2o_store_chunks_via_storagewriter(tmp_path: Path):
-    """Les chunks extraits sont stockes dans SQLite via StorageWriter."""
+    """Les chunks extraits sont stockes via StorageBackend (PostgreSQL/pgvector)."""
     from ingestor.storage.storage_writer import StorageWriter
 
     wikifile = _make_wikidrive_json(tmp_path)
@@ -321,7 +321,7 @@ async def test_e2o_store_chunks_via_storagewriter(tmp_path: Path):
     proc = WikiJsonProcessor(config=IngestorConfig())
     result = await proc.extract(str(wikifile))
 
-    # Ecrire dans le storage (embedding=None car pas d'Ollama, mais c'est OK pour SQLite)
+    # Ecrire dans le storage (embedding=None car pas d'Ollama, mais c'est OK pour PG)
     writer = StorageWriter()
     written = await writer.write_chunks_to_storage(
         chunks=result.chunks,
@@ -463,7 +463,7 @@ async def test_e2o_large_item_set(tmp_path: Path):
 
     assert len(result.chunks) == 50, f"50 chunks items attendus, trouvé {len(result.chunks)}"
 
-    # Ecrire et verifier count (nom unique par test pour isolation SQLite)
+    # Ecrire et verifier count (nom unique par test pour isolation)
     col_name = f"pz_large_{id(f)}"
     writer = StorageWriter()
     written = await writer.write_chunks_to_storage(

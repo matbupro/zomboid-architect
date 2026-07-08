@@ -68,7 +68,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="", intents=intents)
 
 # Client knowledge engine + LLM provider
-engine = KnowledgeEngineClient()  # SQLite/PostgreSQL via StorageBackend
+engine = KnowledgeEngineClient()  # PostgreSQL/pgvector via StorageBackend
 ollama, claude = create_providers(
     ollama_url=settings.OLLAMA_BASE_URL,
     ollama_model=settings.OLLAMA_MODEL,
@@ -167,7 +167,7 @@ async def cmd_help(interaction: discord.Interaction):
         description=help_text,
         color=discord.Color.dark_green(),
     )
-    embed.set_footer(text="Propulsé par Ollama local + SQLite")
+    embed.set_footer(text="Propulsé par Ollama local + PostgreSQL/pgvector")
     await interaction.response.send_message(embed=embed)
 
 
@@ -605,7 +605,7 @@ def _generate_workspace_report() -> str:
     except Exception:
         ollama_status = "[FAIL] Hors ligne ou injoignable"
 
-    # Health du storage vectoriel (SQLite/PostgreSQL)
+    # Health du storage vectoriel (PostgreSQL/pgvector)
     storage_status = "[WARN] Non teste"
     try:
         from src.storage import StorageBackend
@@ -640,7 +640,7 @@ def _generate_workspace_report() -> str:
 
 **[CONN] Services :**
 - Ollama : {ollama_status}
-- Storage (SQLite/PostgreSQL) : {storage_status}
+- Storage (PostgreSQL/pgvector) : {storage_status}
 
 **[CHANNEL] Canaux actifs :**
 - Discord : `{bot.user.name}` en ligne [OK]

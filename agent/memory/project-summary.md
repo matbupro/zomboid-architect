@@ -21,7 +21,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
 │   ingestor   │────▶│  StorageBack │◀────│    bot      │
-│  multi-format│     │ (SQLite)     │     │  (Discord)  │
+│  multi-format│     │ (PG/pgvector)│     │  (Discord)  │
 └─────────────┘     └──────────────┘     └─────────────┘
         │                                             │
         ▼                                             ▼
@@ -31,7 +31,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ```
 
 ### A. `ingestor/` — Moteur d'ingestion multi-format
-**Rôle** : Détecter le type de fichier/URL, extraire son contenu, créer des chunks vectorisés et les envoyer au StorageBackend (SQLite).
+**Rôle** : Détecter le type de fichier/URL, extraire son contenu, créer des chunks vectorisés et les envoyer au StorageBackend (PostgreSQL/pgvector).
 
 **Entrées supportées** : PDF, images (OCR), audio (transcription), vidéo (transcription), documents (.docx, .epub), texte brut, HTML (web crawling), archives PBO (mods), scripts Lua, configs de jeu (.lua, .tiles, .lotpack, etc.)
 
@@ -52,7 +52,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 **CLI** : [`ingestor/cli.py`](../ingestor/cli.py) — point d'entrée en ligne de commande (`python -m ingestor.cli`).
 
 ### B. `bot/` — Bot Discord
-**Rôle** : Interface conversationnelle du moteur. Reçoit les messages → cherche dans StorageBackend (SQLite vectoriel) → construit un prompt LLM → répond via Discord.
+**Rôle** : Interface conversationnelle du moteur. Reçoit les messages → cherche dans StorageBackend (PostgreSQL/pgvector) → construit un prompt LLM → répond via Discord.
 
 **Fichier clé** : [`bot/main.py`](../bot/main.py) — point d'entrée (`python -m bot.main`). Slash commands + DM automatique.
 
@@ -75,14 +75,14 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ### C. `src/` — Core du moteur
 **Sous-modules** :
 - `src/governance/` — logiques de contrôle : logger, worker, lock, game_version filter, production_guard
-- `src/retrieval/` — client retrieval (`sqlite_storage.py` via StorageBackend)
+- `src/retrieval/` — client retrieval (StorageBackend PostgreSQL/pgvector)
 - `src/modgen/` — générateur de mods Zomboid (ModSpec, ModGenerator)
 
 **governance/logger.py** : Logger centralisé avec logs JSON horodatés. Utilisé partout dans le code.
 
 ---
 
-## 3. Stockage vectoriel (SQLite via StorageBackend)
+## 3. Stockage vectoriel (PostgreSQL/pgvector via StorageBackend)
 
 **5 collections principales** :
 | Collection | Contenu |
@@ -102,7 +102,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 ```
 1. INGESTION
    source (fichier/URL) → IngestionEngine.detect_type() → processeur spécialisé
-   → chunks + embedding (Ollama nomic-embed-text) → StorageBackend (SQLite vectoriel)
+   → chunks + embedding (Ollama nomic-embed-text) → StorageBackend (PostgreSQL/pgvector)
 
 2. RECHERCHE (via bot ou MCP)
    message utilisateur → detect_intent() → enrich_context() [vector search StorageBackend]
@@ -139,7 +139,7 @@ Le projet repose sur des principes stricts : zéro hallucination numérique, dé
 # Tous les services
 docker compose up -d
 
-# Uniquement le bot (ollama sur l'hôte Windows, SQLite local)
+# Uniquement le bot (ollama sur l'hôte Windows, PG/pgvector remote)
 docker compose up -d bot
 
 # Ingestion manuelle
@@ -150,7 +150,7 @@ docker compose run --rm ingestor python -m ingestor.cli
 | Variable | Défaut | Rôle |
 |----------|--------|------|
 | `DISCORD_TOKEN` | — | Token du bot Discord (obligatoire) |
-| `STORAGE_BACKEND` | `sqlite` | Type de stockage vectoriel (sqlite, postgres) |
+| `STORAGE_BACKEND` | `postgres` | Type de stockage vectoriel (postgres par défaut, optionnel : qdrant) |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | URL Ollama |
 | `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle d'embedding |
 | `CLAUDE_API_KEY` | — | Clé Claude (fallback, optionnel) |
@@ -165,9 +165,9 @@ docker compose run --rm ingestor python -m ingestor.cli
 data/
 ├── raw/              # Extractions brutes (jamais modifiées) — source of truth
 ├── staging/          # Zone de travail temporaire
-│   └── storage/      # StorageBackend SQLite en test
+│   └── storage/      # PG/pgvector staging data
 ├── production/       # Données validées (intouchables sans process)
-│   └── storage/      # StorageBackend SQLite servi au bot
+│   └── storage/      # PG/pgvector production data
 ├── quarantine/       # Entités rejetées + .seen_hashes (incrémental)
 └── backups/          # Snapshots horodatés + rotation
 ```
@@ -261,10 +261,10 @@ Le projet synchronise `agent/todo.md` avec une base Notion via [`notion_client/`
 
 | Besoin | Fichiers à lire en premier |
 |--------|---------------------------|
-| Comprendre un flux de réponse | `bot/pipeline.py` → `bot/engine_client.py` → `src/storage/sqlite_storage.py` |
+| Comprendre un flux de réponse | `bot/pipeline.py` → `bot/engine_client.py` → `src/storage/postgres_backend.py` |
 | Ajouter un processeur d'ingestion | `ingestor/processors/base.py` (base) + ajouter dans `ingestor/engine.py` |
 | Modifier le bot Discord | `bot/main.py` + `bot/pipeline.py` |
-| Changer les collections vectorielles | `ingestor/config.py` + `src/storage/sqlite_storage.py` |
+| Changer les collections vectorielles | `ingestor/config.py` + `src/storage/postgres_backend.py` |
 | Comprendre la logique de gouvernance | `src/governance/` (logger, worker, lock, production_guard) |
 | Lancer l'ingestion | `ingestor/cli.py` ou `docker compose run --rm ingestor` |
 | Générer un mod | `src/modgen/generator.py` + `bot/main.py:cmd_modgen` |

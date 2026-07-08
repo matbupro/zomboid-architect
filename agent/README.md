@@ -13,7 +13,6 @@ Ceci est **mon** espace memoire. Le dossier agent/ contient tous mes fichiers de
 | rules.md | 12 commandements + regles d'or du projet
 | syntax.md | Etat actuel du projet (ce fichier)
 | todo.md | TODO list completee (mise a jour continue)
-| todo_storage_migration.md | (non decrit)
 
 ## Maintenance
 

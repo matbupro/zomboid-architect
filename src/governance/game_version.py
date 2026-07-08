@@ -137,7 +137,7 @@ def tag_chunk_with_version(chunk: dict) -> dict:
 
     This function is the single place where ``game_version`` is stamped onto
     chunks produced by the parser.  Call it before writing any chunk to the
-    backend (SQLite/PostgreSQL via StorageBackend) so that both staging and
+    backend (PostgreSQL via StorageBackend) so that both staging and
     production databases always carry a version tag.
 
     Args:
@@ -153,7 +153,7 @@ def tag_chunk_with_version(chunk: dict) -> dict:
     return chunk
 
 
-# ─── Storage-backend filter builders (SQLite JSON / MongoDB-style $and) ──────
+# ─── Storage-backend filter builders (MongoDB-style $and via PostgreSQL/pgvector) ──────
 
 
 def build_version_filter(
@@ -161,7 +161,7 @@ def build_version_filter(
 ) -> dict[str, Any] | None:
     """Build a storage-backend-compatible ``$and`` filter for game-version isolation.
 
-    The storage backend (SQLite via JSON operators or PostgreSQL via pgvector) supports
+    The storage backend (PostgreSQL via StorageBackend with MongoDB-style operators) supports
     MongoDB-style operators such as ``$eq``, ``$and``, and ``$or``.  This helper constructs
     the minimal expression needed to isolate a single game version:
 

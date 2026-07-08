@@ -56,7 +56,7 @@ class IngestorConfig:
     # OCR
     OCR_LANG: str = "fra+eng"
 
-    # Collections (StorageBackend — SQLite/PostgreSQL vector store)
+    # Collections (StorageBackend — PostgreSQL/pgvector vector store)
     COLLECTIONS: list[str] = field(default_factory=lambda: [
         "pz_items", "pz_recipes", "pz_mechanics",
         "pz_lua_api", "pz_java_api",  # existantes
@@ -107,7 +107,7 @@ def load_config() -> IngestorConfig:
     workshop_root_str = os.getenv("WORKSHOP_CONTENT_ROOT")
 
     return IngestorConfig(
-        STORAGE_BACKEND=os.getenv("STORAGE_BACKEND", "sqlite"),
+        STORAGE_BACKEND=os.getenv("STORAGE_BACKEND", "postgres"),
         STORAGE_QDRANT_URL=os.getenv("STORAGE_QDRANT_URL", "http://localhost:6333"),
         STORAGE_DUAL_SYNC=os.getenv("STORAGE_DUAL_SYNC", "false").lower() in ("true", "1", "yes"),
         OLLAMA_BASE_URL=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434"),

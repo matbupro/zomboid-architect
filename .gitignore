@@ -60,7 +60,7 @@ backups/manual/
 backups/staging/
 backups/production/
 
-# Vector storage (SQLite data dirs)
+# Vector & local storage data dirs
 db/staging/
 db/production/
 data/storage/

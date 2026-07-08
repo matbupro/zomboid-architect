@@ -289,10 +289,10 @@ DrawSectionHeader "Database"
 $storageUrl = "http://localhost:8000"
 try{
     $resp = Invoke-WebRequest -Uri "$storageUrl/health" -TimeoutSec 3 -UseBasicParsing
-    if($resp.StatusCode -eq 200){ Write-Row "Storage (SQLite)" "ok"; AddCheck "ok" }
-    else{ Write-Row "Storage (SQLite)" "warn"; AddCheck "warn" }
+    if($resp.StatusCode -eq 200){ Write-Row "Storage (PG/Qdrant)" "ok"; AddCheck "ok" }
+    else{ Write-Row "Storage (PG/Qdrant)" "warn"; AddCheck "warn" }
 }catch{
-    Write-Row "Storage (SQLite)" "warn"; AddCheck "warn"
+    Write-Row "Storage (PG/Qdrant)" "warn"; AddCheck "warn"
 }
 
 DrawSectionHeader ".env Configurations"

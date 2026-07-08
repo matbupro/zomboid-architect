@@ -139,7 +139,7 @@ def _run_golden_set(golden_path: Path) -> GateResult:
     recall_scores: list[float] = []
     failed_ids: list[str] = []
 
-    # Import lazy — utilise StorageBackend (SQLite/postgres) pour le golden set
+    # Import lazy — utilise StorageBackend (PostgreSQL/pgvector) pour le golden set
     from src.retrieval import query_staging  # noqa: F401
 
     game_version = get_current_game_version().value

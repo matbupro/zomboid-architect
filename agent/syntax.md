@@ -3,19 +3,23 @@
 ## Status
 **Derniere MAJ agent/ : 2026-07-08 par sync_agent.ps1 automatique.**
 
-Dernier commit : 491c8b5
+Dernier commit : 2ddcb71
 Version moteur : 0.4.0-alpha
 
 ## Arborescence (git ls-files, mise a jour auto)
 
 `
   |-- .claude/settings.local.json
+  |-- .commit_msg.md
   |-- .env.unified
   |-- .github/workflows/tests.yml
   |-- .gitignore
   |-- .test_output/.gitkeep
-  |-- .test_output/ztest_1hx1jdbi/err.txt
-  |-- .test_output/ztest_1hx1jdbi/out.txt
+  |-- .test_output/ztest_gi8xn9ut/err.txt
+  |-- .test_output/ztest_gi8xn9ut/out.txt
+  |-- .test_output/ztest_pgs_migration/out.txt
+  |-- .test_output/ztest_pgs_migration/out2.txt
+  |-- .test_output/ztest_pgs_migration/out3.txt
   |-- _test_result.txt
   |-- _test_result2.txt
   |-- _test_run.py
@@ -30,6 +34,7 @@ Version moteur : 0.4.0-alpha
   |-- agent/rules.md
   |-- agent/syntax.md
   |-- agent/todo.md
+  |-- agent/todo_storage_migration.md
   |-- agent-autonome-mods-pz.md
   |-- ARCHITECTURE.md
   |-- audit.ps1
@@ -115,7 +120,6 @@ Version moteur : 0.4.0-alpha
   |-- INSTALL.md
   |-- Makefile
   |-- migrations/001_initial_schema.sql
-  |-- migrations/convert_sqlite_to_pg.py
   |-- mods/.gitkeep
   |-- notion_client/.gitignore
   |-- notion_client/__init__.py
@@ -175,7 +179,6 @@ Version moteur : 0.4.0-alpha
   |-- src/storage/__init__.py
   |-- src/storage/postgres_backend.py
   |-- src/storage/qdrant_backend.py
-  |-- src/storage/sqlite_storage.py
   |-- tests/conftest.py
   |-- tests/fixtures/test_mod_zombo_small/media/lua/ZomboSmallInit.lua
   |-- tests/fixtures/test_mod_zombo_small/media/scripts/ZomboSmallConfig.lua
@@ -185,7 +188,6 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_auto_create_collections.py
   |-- tests/test_brave_search.py
   |-- tests/test_cli.py
-  |-- tests/test_dual_backend.py
   |-- tests/test_game_version_filtering.py
   |-- tests/test_golden_set.py
   |-- tests/test_incremental_ingest.py
@@ -203,7 +205,6 @@ Version moteur : 0.4.0-alpha
   |-- tests/test_qdrant_backend.py
   |-- tests/test_regression.py
   |-- tests/test_regression_collection_extend.py
-  |-- tests/test_sqlite_storage.py
   |-- tests/test_steamcmd_client.py
   |-- tests/test_storage_writer.py
   |-- tests/test_tag_release.py

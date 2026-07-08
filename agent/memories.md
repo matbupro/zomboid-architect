@@ -39,7 +39,7 @@ Suppression 12 golden reports obsolètes + 6 fichiers database/ superseded. Proj
 
 ### 2026-07-06 — Release v0.4.0-alpha + Phase 9 CLI
 - Release v0.4.0-alpha complete : VERSION + CHANGELOG + README mis à jour
-- Phase 3.5 V1 terminee: SQLite storage + Ollama embedding (zero service externe) + 36 tests passing
+- Phase 3.5 V1 terminee: Storage backend local + Ollama embedding (zero service externe) + 36 tests passing
 - Phase 10 Docker validatee: build/run/search cross-collection + mark complete
 - Phase 9 CLI validatee : --file + --dir testés, MIME detection fix, auto-accept non-TTY, 62 tests passing
 - Phase 8 Web crawling termine : cloudscraper CF bypass, PZ wiki extraction, cross-collection search verified
@@ -81,4 +81,7 @@ S4-e pipeline ingest-pz-full + S4-f coverage-report — orchestrateur complet + 
 daily auto-sync routine — post RuntimeWarning fixes, test suite analysis
 
 ## Session du 2026-07-08
-S9: Migration SQLite→PostgreSQL-only — suppression sqlite_storage.py, refacto storage layer PG, migration 20+ callers, update docs
+S9: PostgreSQL-only — suppression sqlite_storage.py, refacto storage layer PG, migration 20+ callers, update docs
+
+## Session du 2026-07-08
+Clean SQLite traces from auto-generated files after S9 migration

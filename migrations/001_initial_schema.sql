@@ -432,7 +432,7 @@ CREATE INDEX idx_coverage_category ON data_coverage(category);
 CREATE INDEX idx_coverage_documented ON data_coverage(is_documented) WHERE is_documented = FALSE;
 
 
--- collection_health — monitoring par collection Qdrant/SQLite
+-- collection_health — monitoring par collection PG/Qdrant
 CREATE TABLE collection_health (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     collection_name VARCHAR(64) NOT NULL UNIQUE,

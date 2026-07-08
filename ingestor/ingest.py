@@ -377,7 +377,7 @@ def _pre_ingest_backup() -> Optional[Path]:
     snapshot_path = _BACKUP_DIR / f"staging_backup_{stamp}.tar.gz"
 
     with tarfile.open(snapshot_path, "w:gz") as tar:
-        # Ne pas sauvegarder les fichiers de lock SQLite
+        # Ne pas sauvegarder les fichiers de lock (migrations/deprecated)
         for root, dirs, files in os.walk(STAGING_DIR):
             for fname in files:
                 fpath = Path(root) / fname

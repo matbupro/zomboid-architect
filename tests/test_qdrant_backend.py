@@ -4,7 +4,7 @@ Verifie que le backend Qdrant gere correctement:
 - Creation/verification de collections
 - Upsert single et batch de vecteurs
 - Recherche vectorielle (cosine similarity)
-- Migration SQLite -> Qdrant
+- Vector embedding storage (PG/pgvector + Qdrant optionnel)
 - Health check
 - Fallback si Qdrant indisponible
 - Integration StorageBackend + qdrant
@@ -398,8 +398,7 @@ def test_health_reports_qdrant():
     health = backend.health()
     assert health["available"] is True
     assert "qdrant" in health
-    assert "sqlite" in health
-    assert "qdrant+sqlite-text" in health.get("mode", "")
+    assert "qdrant" in health.get("mode", "")
 
 
 def test_qdrant_fallback_on_import_error():
@@ -407,7 +406,7 @@ def test_qdrant_fallback_on_import_error():
 
     On ne peut pas simuler une ImportError car qdrant-client est installe en dur.
     Le fallback se fait a l'initialisation de StorageBackend quand QdrantClient
-     echoue -> backend_type redevient 'sqlite'.
+     echoue -> fallback PG par defaut.
     """
     os.environ["STORAGE_BACKEND"] = "qdrant"
 
@@ -425,8 +424,8 @@ def test_qdrant_fallback_on_import_error():
         mod = __import__("src.storage", fromlist=["StorageBackend"])
         backend = mod.StorageBackend(config=mod._load_storage_config())
 
-        # Qdrant init echoue -> fallback sqlite ou dual-sync selon env
-        accepted = {"sqlite", "qdrant", "dual-sync"}
+        # Qdrant init echoue → fallback PG par defaut
+        accepted = {"postgres", "qdrant"}
         assert backend.backend_type in accepted, f"Expected one of {accepted}, got {backend.backend_type}"
 
     finally:
@@ -475,13 +474,11 @@ def test_qdrant_collection_auto_created():
         assert "pz_items" in cols, f"pz_items should be auto-created. Got: {cols}"
 
 
-def test_migration_from_sqlite_no_db():
-    """migrate_from_sqlite retourne {} si base SQLite introuvable."""
+def test_migration_placeholder_no_db():
+    """Placeholder — la méthode migrate_from_sqlite a été supprimée en S9."""
     qdb_mod = _inject_mock_and_import()
     qdb = qdb_mod.QdrantVectorBackend(url="http://localhost:6333")
-    with patch.object(qdb, "ensure_all_collections", return_value=0):
-        result = qdb.migrate_from_sqlite(sqlite_dir="/nonexistent/path/that/does/not/exist")
-        assert result == {}
+    assert not hasattr(qdb, "migrate_from_sqlite"), "migrate_from_sqlite doit être supprimée"
 
 
 def test_batch_query():
@@ -515,25 +512,16 @@ def test_config_backend_qdrant():
     assert cfg.STORAGE_BACKEND == "qdrant"
 
 
-def test_migration_empty_sqlite(tmp_path: Path):
-    """Migration depuis SQLite vide -> 0 points."""
+def test_migration_placeholder_imports(tmp_path: Path):
+    """Placeholder — verification que les imports PG restent valides après suppression de la migration."""
     qdb_mod = _inject_mock_and_import()
-    qdb = qdb_mod.QdrantVectorBackend(url="http://localhost:6333")
+    from src.storage.qdrant_backend import QdrantVectorBackend
 
-    db_path = tmp_path / "zomboid.db"
-    import sqlite3
-
-    conn = sqlite3.connect(str(db_path))
-    for cat in ["pz_items", "pz_recipes"]:
-        conn.execute(
-            f"CREATE TABLE IF NOT EXISTS z_{cat} (id TEXT, text TEXT, embedding TEXT, metadata TEXT)"
-        )
-    conn.commit()
-    conn.close()
-
-    result = qdb.migrate_from_sqlite(sqlite_dir=str(tmp_path))
-    assert "pz_items" in result
-    assert "pz_recipes" in result
+    qdb = QdrantVectorBackend(url="http://localhost:6333")
+    # Verifier que les methodes PG/Qdrant sont presentes
+    assert hasattr(qdb, "ensure_collection")
+    assert hasattr(qdb, "query")
+    assert hasattr(qdb, "health")
 
 
 # ===========================================================================

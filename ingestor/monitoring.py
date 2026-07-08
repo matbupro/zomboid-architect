@@ -3,7 +3,7 @@ monitoring — S7 : Monitoring, Observability & Alertes pour le pipeline d'inges
 
 Fournit :
 - Dashboard CLI (--ingest-status) avec stats aggregation par cycle/source
-- Disk space monitor multi-collection (PG + Qdrant + SQLite)
+- Disk space monitor multi-collection (PG + Qdrant)
 - Alerts sur collections critiques (pz_items vide = tout le reste non fiable)
 - Detection coverage drop (>10% entre deux cycles)
 
@@ -41,7 +41,7 @@ class CollectionHealth:
     vector_dim: int
     is_healthy: bool
     last_updated: str | None = None
-    storage_backend: str = "unknown"  # postgres / qdrant / sqlite
+    storage_backend: str = "unknown"  # postgres / qdrant
 
 
 @dataclass
@@ -87,7 +87,7 @@ class DiskUsageInfo:
     total_gb: float
     free_gb: float
     usage_pct: float
-    backend: str  # pg, qdrant, sqlite, minio
+    backend: str  # pg, qdrant, minio
 
 
 @dataclass
@@ -499,7 +499,7 @@ class IngestMonitor:
             # Detection du backend courant
             from ingestor.config import load_config
             cfg = load_config()
-            backend_type = os.getenv("STORAGE_BACKEND", cfg.STORAGE_BACKEND or "sqlite")
+            backend_type = os.getenv("STORAGE_BACKEND", cfg.STORAGE_BACKEND or "postgres")
 
             return [
                 CollectionHealth(
@@ -517,7 +517,7 @@ class IngestMonitor:
             return []
 
     async def _disk_usage_multi_backend(self) -> list[DiskUsageInfo]:
-        """Return disk usage par backend de stockage (PG, Qdrant, SQLite, MinIO)."""
+        """Return disk usage par backend de stockage (PG, Qdrant, MinIO)."""
         results: list[DiskUsageInfo] = []
 
         # --- PG data directory ---
@@ -532,19 +532,6 @@ class IngestMonitor:
         except Exception:
             pass
 
-        # --- SQLite storage ---
-        sqlite_path = os.getenv("ZOMBOID_STORAGE_PATH", "data/storage/zomboid.db")
-        if os.path.exists(sqlite_path):
-            try:
-                du = self._disk_usage_path(os.path.dirname(sqlite_path) or ".")
-                db_size_gb = os.path.getsize(sqlite_path) / (1024 ** 3)
-                if du and du[1] > 0:
-                    results.append(DiskUsageInfo(
-                        path=sqlite_path, used_gb=db_size_gb, total_gb=du[1], free_gb=du[2],
-                        usage_pct=db_size_gb / du[1] * 100, backend="sqlite",
-                    ))
-            except Exception:
-                pass
 
         # --- Qdrant data dir (via env ou default) ---
         qdrant_data = os.getenv("QDRANT_DATA_PATH", "data/qdrant")
@@ -637,7 +624,6 @@ def disk_usage_summary() -> list[DiskUsageInfo]:
 
     for name, path in [
         ("pg", os.getenv("PGDATA", "/var/lib/postgresql/data")),
-        ("sqlite", os.path.dirname(os.getenv("ZOMBOID_STORAGE_PATH", "data/storage/zomboid.db")) or "."),
         ("qdrant", os.getenv("QDRANT_DATA_PATH", "data/qdrant")),
     ]:
         if os.path.exists(path):

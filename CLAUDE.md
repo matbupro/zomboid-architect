@@ -41,7 +41,7 @@ Si l'utilisateur mentionne un changement structurel important, exécuter le sync
 | `ARCHITECTURE.md` | à la racine | Diagramme complet du pipeline : Sources → Ingestor → Storage → Bot Discord |
 | `SETUP.md` | à la racine | Bootstrap infra en 5 min (docker-compose + psql migration) |
 | Schema PG | `migrations/001_initial_schema.sql` | 17 tables, 7 ENUMs, 3 views, triggers — **unique source de vérité DB** |
-| Collections Storage | `ingestor/storage/storage_writer.py` + `pz_storage.py` | Abstraction multi-backend (SQLite ↔ PG/pgvector) |
+| Collections Storage | `ingestor/storage/storage_writer.py` + `pz_storage.py` | Abstraction multi-backend (PostgreSQL/pgvector par défaut, Qdrant optionnel) |
 | Collections PG | `.github/workflows/tests.yml:89-140` | security gate bloque écriture manuelle de production/ |
 
 ### Collections PG principales (migrations/001_initial_schema.sql)

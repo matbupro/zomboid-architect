@@ -23,13 +23,13 @@
 - [x] Écrire `promote.py` (staging → production, gated par golden set)
 - [x] Interdire toute écriture directe en `production/` (guard + CI gate)
 - [x] Backup DB + rotation avant chaque ré-ingestion majeure (+ rollback auto)
-- [x] Migrer vers PostgreSQL/pgvector pour supporter 100k+ items (storage vectoriel insuffisant pour requêtes déterministes à grande échelle) — ✅ V1 SQLite + StorageBackend implémenté, tous les callers migrés. storage vectoriel retiré du runtime. [supprimé — sqlite_storage.py] [historique] supprimé. test_storage_writer.py → test_storage_writer.py (22 tests mock).
+- [x] Migrer vers PostgreSQL/pgvector pour supporter 100k+ items (storage vectoriel insuffisant pour requêtes déterministes à grande échelle) — ✅ PG-only actif. SQLiteStorage supprimé S9. test_storage_writer.py → 22 tests mock.
 
 ## PHASE 3.5 : Architecture de stockage (nouvelle) ✅ TERMINÉ
-- [x] Analyser storage vectoriel vs SQLite/PostgreSQL pour PZ à grande échelle
+- [x] Analyser storage vectoriel vs PostgreSQL/pgvector pour PZ à grande échelle
 - [x] Decision : PostgreSQL + pgvector remplace storage vectoriel + Qdrant (1 BDD au lieu de 2)
-- [x] V1 : SQLite + colonne embedding optionnelle Ollama (zero nouveau service) — StorageBackend ✅, todos: storage layer, callers migrés, .env config
-- [ ] V2 : Migration PostgreSQL + pgvector (HNSW index vectoriel) quand > 10k items — stub dans src/storage/postgres_backend.py, actif via STORAGE_BACKEND=postgres
+- [x] V1 : PostgreSQL + pgvector avec colonne embedding optionnelle Ollama (zero nouveau service) — StorageBackend ✅, todos: storage layer, callers migrés, .env config
+- [x] V2 : Migration PostgreSQL + pgvector (HNSW index vectoriel) quand > 10k items — COMPLETÉ en S9
 - [x] Golden set aligne sur données réellement ingérées (recall=0.933, promotion réussie ✅)
 
 ## PHASE 4 : Branchement MCP & Tests Agent
@@ -62,7 +62,7 @@
 - [x] Arborescence `ingestor/` créée (config, engine, processors/, storage/, search/, embedding/)
 - [x] Interface `Processor.extract()` + `ExtractionResult` / `Chunk` base classes
 - [x] Moteur de détection MIME automatique (engine.py)
-- [x] storage vectoriel writer → migré vers StorageBackend (SQLite par défaut) via StorageWriter/StorageWriter
+- [x] storage vectoriel writer → migré vers StorageBackend (PostgreSQL/pgvector par défaut) via StorageWriter/StorageWriter
 - [x] Dépendances installées : pip install -r ingestor/requirements.txt
 - [x] Playwright + Chromium installé (`playwright install chromium`)
 - [x] FFmpeg installé en DLL (via PotPlayer) — binaire standalone à installer pour le processing vidéo
@@ -139,13 +139,13 @@
 | **Ingestor** (`ingestor/`) | cli.py, processors/, storage/, engine.py, promote.py, ingest.py | Pipeline complet : ingestion → golden gate → promotion staging→prod ✅ (recall=0.933). Backup pre-ingest + rollback intégré. Guard production/intégration dans promote.py. |
 | **Gouvernance** (`src/governance/`) | logger.py, parser.py, game_version.py, worker.py, production_guard.py | `production_guard.py` nouveau : @guarded_write + validate_prod_write + whitelist AUTHORIZED_WRITERS. Guard CI intégré dans `.github/workflows/tests.yml`. |
 | **Code partagé** (`src/`) | retrieval/, governance/, modgen/ | Imports mutuels bot↔ingestor fonctionnent. Aucune import circulaire. |
-| **Data / BDD** (`data/`, `db/`) | Staging, production, sync utils | StorageBackend (SQLite) staging → promotion atomique via `.incoming` ✅. Backups rotation 10 max. Golden set aligne sur données réellement ingérées (15 IDs). storage vectoriel retiré du runtime. |
+| **Data / BDD** (`data/`, `db/`) | Staging, production, sync utils | StorageBackend (PostgreSQL/pgvector) staging → promotion atomique via `.incoming` ✅. Backups rotation 10 max. Golden set aligne sur données réellement ingérées (15 IDs). |
 | **Tests** (`tests/`) | pytest conf, unitaires | Golden set gate, golden.json aligné, storage writer tests |
-| **Docs / README** | README, diagramme architecture | agent-autonome-mods-pz.md créé — spec architecture full-stack (PostgreSQL+Qdrant+MinIO+Gitea+Redis). Décision : SQLite/pgvector pour V1/V2 au lieu de refonte complète. |
+| **Docs / README** | README, diagramme architecture | agent-autonome-mods-pz.md créé — spec architecture full-stack (PostgreSQL+Qdrant+MinIO+Gitea+Redis). PG-only actif. |
 | **CI / Makefile** | install-hooks, ingest, test, promote, backup | Gate security nouveau : bloque écriture directe production/ + vérifie intégrité guard. |
 
 ### Points de friction potentiels
-1. **storage vectoriel → PostgreSQL/pgvector** — migration nécessaire à long terme pour supporter 100k+ items avec requêtes déterministes exactes (pgvector remplace storage_vectoriel+Qdrant en une BDD).
+1. **Scale PG vers 100k+ items** — PG/pgvector actif, monitoring coverage/santé en place. Optimisations indexes possibles.
 2. **Source documentation mods** : `/moddoc` délègue au LLM — nécessite une référence statique (API Lua/Java) pour réponses déterministes.
 3. **Tests CI externes** : Ollama/storage_vectoriel doivent être mockés pour builds stables.
 
@@ -195,13 +195,15 @@
 
 ## Sync auto: last_sync: 2026-07-08
 
-## NOUVEAU : Phase S9 — Migration SQLite → PostgreSQL-only ⬜ (détaillé dans agent/todo_storage_migration.md)
-- [ ] P1-Supprimer fichiers morts (sqlite_storage.py, test_sqlite_storage.py, test_dual_backend.py, convert_sqlite_to_pg.py)
-- [ ] P2-Refactor core storage layer (PG default, clean __init__.py)
-- [ ] P3-Migrer tous les callers (bot/, retrieval/, ingestor/)
-- [ ] P4-Config default → postgres, remove dual-sync legacy
-- [ ] P5-Adapter tests + full suite validation
-- [ ] P6-Update docs (ARCHITECTURE, SETUP, README, CHANGELOG)
-- [ ] P7-Validate final: pytest full + lint + import check
+## Phase S9 — Migration SQLite → PostgreSQL-only ✅ (committé 2ddcb71)
+- [x] P1-Supprimer fichiers morts (sqlite_storage.py, test_sqlite_storage.py, test_dual_backend.py, convert_sqlite_to_pg.py)
+- [x] P2-Refactor core storage layer (PG default, clean __init__.py)
+- [x] P3-Migrer tous les callers (bot/, retrieval/, ingestor/)
+- [x] P4-Config default → postgres, remove dual-sync legacy
+- [x] P5-Adapter tests + full suite validation
+- [x] P6-Update docs (ARCHITECTURE, SETUP, README, CHANGELOG)
+- [x] P7-Validate final: pytest full + lint + import check
+
+## Sync auto: last_sync: 2026-07-08
 
 ## Sync auto: last_sync: 2026-07-08

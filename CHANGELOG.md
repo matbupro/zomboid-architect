@@ -8,7 +8,7 @@ Toutes les modifications notables, organisées par session de développement.
 
 ### Nouveau moteur d'ingestion multi-format (Phases 7 → 9)
 
-Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx, epub, web), extraction en texte pur, embedding via Ollama, stockage [storage vectoriel]/SQLite.  [historique]
+Pipeline complet de lecture de **tout format** (PDF, images, vidéo, audio, docx, epub, web), extraction en texte pur, embedding via Ollama, stockage PostgreSQL/pgvector.
 
 | Fichier | Rôle |
 |---------|------|
@@ -103,7 +103,7 @@ Tous les imports `from src.storage.sqlite_storage import ...` remplacés par `fr
 
 #### Docs mises à jour
 
-- `ARCHITECTURE.md` — diagramme PG/pgvector uniquement (plus de "SQLite Backend")
+- `ARCHITECTURE.md` — diagramme PG/pgvector uniquement, refs SQLite nettoyées
 - `SETUP.md` — instructions PostgreSQL natif Windows (`winget install PostgreSQL.16`)
 - `README.md` — STORAGE_BACKEND default → postgres, arcitecture diagram clean
 - `ingestor/README.md` — toutes refs "SQLite vectoriel" → "PostgreSQL/pgvector"
@@ -507,3 +507,8 @@ ddgs 9.x a retiré le paramètre `time` de l'API.
 
 **Changements :**
 - feat(storage): S5-c PostgreSQL/pgvector backend complet — write/query/cross-search
+
+### 2026-07-08 - commit 2ddcb71
+
+**Changements :**
+- feat(storage): S9 — PostgreSQL uniquement (suppression SQLite)

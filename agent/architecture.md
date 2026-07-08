@@ -6,7 +6,7 @@
 |-----------|-------|----------|
 | Embedding | bge-m3 | Bilingue FR/EN, adapté au corpus mixte |
 | Reranker | cross-encoder | Précision finale après rappel vectoriel |
-| Base DB | SQLite + StorageBackend | Locale, zéro dépendance externe, vectoriel optionnel |
+| Base DB | PostgreSQL/pgvector + StorageBackend | Stockage unique, zéro fallback SQLite (supprimé S9) |
 
 ## 5 Collections dédiées (pas de pollution inter-domaine)
 

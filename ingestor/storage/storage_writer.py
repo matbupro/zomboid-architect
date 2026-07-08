@@ -3,7 +3,7 @@ storage_writer — Écrivain de chunks vectoriels pour le Knowledge Engine Zombo
 
 Gère :
 - Écriture de chunks avec embedding (Ollama nomic-embed-text)
-- Requête vectorielle multi-collection via StorageBackend (SQLite/PostgreSQL)
+- Requête vectorielle multi-collection via StorageBackend (PostgreSQL/Qdrant)
 - Cross-collection search (une requête sur toutes les collections)
 
 Schéma de données par chunk :
@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class SearchResult:
-    """Résultat d'une requête vectorielle (SQLite/pgvector) — compatible avec le moteur existant."""
+    """Résultat d'une requête vectorielle (pgvector) — compatible avec le moteur existant."""
     collection: str
     id: str
     prose: str
@@ -108,7 +108,7 @@ class OllamaEmbedder:
 class StorageWriter:
     """Orchestre l'écriture dans le storage vectoriel : embedding → storage → indexation.
 
-    Utilise src.storage.StorageBackend (SQLite par defaut, PostgreSQL optionnel).
+    Utilise src.storage.StorageBackend (PostgreSQL par defaut, Qdrant optionnel).
     Les embeddings sont generes via Ollama nomic-embed-text.
     """
 
@@ -161,7 +161,7 @@ class StorageWriter:
     ) -> bool:
         """Ecrit des chunks dans le storage vectoriel (embedding + stockage).
 
-        Alias backward-compat : ecrit via StorageBackend (SQLite par defaut).
+Alias backward-compat : ecrit via StorageBackend (PostgreSQL).
 
         Args:
             chunks: Liste de Chunk objects avec .text et .metadata.

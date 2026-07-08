@@ -132,13 +132,6 @@ def build_parser() -> argparse.ArgumentParser:
     steam_group.add_argument("--workshop-scan", action="store_true", help="Scanner les mods installÃ©s dans le Steam Workshop")
     steam_group.add_argument("--mod-ingest", type=str, metavar="DIR", help="Ingerer tous les mods d'un repertoire (ex: workshop/content/1042170)")
 
-    # Migration commands
-    mig_group = parser.add_mutually_exclusive_group()
-    mig_group.add_argument("--migrate-pg", action="store_true", help="Migrer les donnees SQLite → PostgreSQL/pgvector")
-    mig_group.add_argument(
-        "--migrate-pg-dry-run", action="store_true",
-        help="Lister les collections SQLite sans migrer (dry run)",
-    )
 
     return parser
 
@@ -1283,179 +1276,6 @@ async def handle_validate_collections() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Migration SQLite → PostgreSQL — S5/a : --migrate-pg
-# ---------------------------------------------------------------------------
-
-def handle_migrate_pg(dry_run: bool = False, sqlite_path: str = "data/storage/zomboid.db",
-                      pg_host: str = "localhost", pg_port: int = 5432,
-                      pg_db: str = "zomboid_storage", pg_user: str = "postgres",
-                      pg_pass: str = "") -> None:
-    """Commande : --migrate-pg — migrer les donnees SQLite → PostgreSQL/pgvector.
-
-    Utilise le script migrations/convert_sqlite_to_pg.py avec argparse integration.
-    """
-    # Reuse migration logic directly (avoid subprocess overhead)
-    import json as _json
-    import sqlite3 as _sqlite3
-    from pathlib import Path as _Path
-
-    db = _Path(sqlite_path)
-    if not db.exists():
-        print(f"[ERROR] Base SQLite inexistante: {sqlite_path}")
-        return
-
-    # Lister les collections
-    conn = _sqlite3.connect(str(db))
-    try:
-        tables = [r[0] for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'z_%'",
-        ).fetchall()]
-    finally:
-        conn.close()
-
-    if not tables:
-        print(f"[INFO] Aucune collection trouvee dans {sqlite_path}")
-        return
-
-    if dry_run:
-        print(f"\n{'='*60}")
-        print(f"=== Dry Run — Migration SQLite → PG ===\n")
-        print(f"Source : {sqlite_path}")
-        print(f"Cible  : {pg_user}@{pg_host}:{pg_port}/{pg_db}\n")
-        total = 0
-        for t in sorted(tables):
-            conn = _sqlite3.connect(str(db))
-            rows = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-            conn.close()
-            print(f"  {t}: {rows} lignes")
-            total += rows
-        print(f"\n{'─'*60}")
-        print(f"Total: {total} lignes dans {len(tables)} collections\n")
-        print("[INFO] Pour migrer, utiliser sans --migrate-pg-dry-run:")
-        print("  python -m ingestor.cli --migrate-pg")
-        return
-
-    # Migration effective
-    try:
-        import psycopg2
-    except ImportError:
-        print("[ERROR] psycopg2 requis. Installer: pip install psycopg2-binary")
-        return
-
-    pg_conn = psycopg2.connect(
-        host=pg_host, port=pg_port, dbname=pg_db,
-        user=pg_user, password=pg_pass,
-    )
-    pg_conn.autocommit = False
-    cursor = pg_conn.cursor()
-
-    try:
-        cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        pg_conn.commit()
-    except Exception as exc:  # noqa: BLE001
-        print(f"[ERROR] Erreur CREATE EXTENSION vector: {exc}")
-        pg_conn.close()
-        return
-
-    inserted_total = 0
-    try:
-        for table_name in sorted(tables):
-            conn = _sqlite3.connect(str(db))
-            rows_data = conn.execute(f"SELECT * FROM {table_name}").fetchall()
-            colnames = [d[0] for d in conn.execute(
-                f"PRAGMA table_info({table_name})"
-            ).description]
-            conn.close()
-
-            if not rows_data:
-                print(f"  [SKIP] {table_name}: vide")
-                continue
-
-            collection_name = table_name[2:]  # z_pz_items → pz_items
-            pg_table = f"z_{collection_name}"
-
-            # Créer la table PG
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {pg_table} (
-                    chunk_id   TEXT PRIMARY KEY,
-                    text       TEXT NOT NULL,
-                    embedding  vector(768),
-                    metadata_  jsonb DEFAULT '{{}}',
-                    source     TEXT,
-                    version    TEXT,
-                    ingest_time DOUBLE PRECISION
-                )
-            """)
-
-            # Trunc + insert (migrer les donnees entieres)
-            cursor.execute(f"TRUNCATE {pg_table} CASCADE")
-            pg_conn.commit()
-
-            inserted = 0
-            for row in rows_data:
-                d = dict(zip(colnames, row))
-                chunk_id = str(d.get("id", "") or "")
-                text = str(d.get("text", "") or "").strip()
-                if not text:
-                    continue
-
-                # Convertir embedding JSON → pgvector literal
-                raw_emb = d.get("embedding")
-                emb_str = None
-                if isinstance(raw_emb, str):
-                    try:
-                        emb_list = _json.loads(raw_emb)
-                        if isinstance(emb_list, list):
-                            emb_str = "[" + ",".join(f"{v:.8f}" for v in emb_list) + "]"
-                    except (_json.JSONDecodeError, TypeError):
-                        pass
-                elif isinstance(raw_emb, list):
-                    emb_str = "[" + ",".join(f"{v:.8f}" for v in raw_emb) + "]"
-
-                meta = d.get("metadata", d.get("metadata_", {})) or {}
-                if isinstance(meta, str):
-                    try:
-                        meta = _json.loads(meta)
-                    except (_json.JSONDecodeError, TypeError):
-                        meta = {}
-
-                source = d.get("source") or None
-                version = d.get("version") or None
-                ingest_time = float(d.get("ingest_time", 0)) or 0
-
-                cursor.execute(f"""
-                    INSERT INTO {pg_table}
-                        (chunk_id, text, embedding, metadata_, source, version, ingest_time)
-                    VALUES (%s, %s, %s::vector, %s::jsonb, %s, %s, %s)
-                    ON CONFLICT (chunk_id) DO UPDATE SET
-                        text = EXCLUDED.text,
-                        embedding = EXCLUDED.embedding,
-                        metadata_ = EXCLUDED.metadata_,
-                        version = EXCLUDED.version,
-                        ingest_time = EXCLUDED.ingest_time
-                """, (
-                    chunk_id, text, emb_str,
-                    _json.dumps(meta, ensure_ascii=False), source, version, ingest_time,
-                ))
-                inserted += 1
-
-            pg_conn.commit()
-            inserted_total += inserted
-            print(f"  [OK] {table_name} → {pg_table}: {inserted} lignes")
-
-    except Exception as exc:  # noqa: BLE001
-        pg_conn.rollback()
-        print(f"[ERROR] Migration echouee: {exc}")
-        raise
-    finally:
-        cursor.close()
-        pg_conn.close()
-
-    print(f"\n{'='*60}")
-    print(f"[OK] Migration terminee: {inserted_total} lignes migrees vers PostgreSQL\n")
-
-
-# ---------------------------------------------------------------------------
 # Steam & Mod handlers
 
 async def main(args: argparse.Namespace) -> None:
@@ -1480,11 +1300,6 @@ async def main(args: argparse.Namespace) -> None:
         await handle_ingest_status(args)
     elif args.validate_collections:
         await handle_validate_collections()
-    # Migration commands
-    elif args.migrate_pg_dry_run:
-        handle_migrate_pg(dry_run=True)
-    elif args.migrate_pg:
-        handle_migrate_pg(dry_run=False)
     # Steam & Mod commands (prioritaires)
     elif args.steam_scan:
         await handle_steam_scan(args)

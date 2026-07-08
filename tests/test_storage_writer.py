@@ -1,7 +1,7 @@
 ﻿"""test_storage_writer -- Tests unitaires pour StorageWriter (StorageBackend + OllamaEmbedder).
 
 Mode mock : fonctionne avec mock uniquement (sans Ollama).
-Teste le StorageBackend layer (SQLite) via StorageWriter/StorageWriter alias.
+Teste le StorageBackend layer (PostgreSQL/pgvector) via StorageWriter/StorageWriter alias.
 
 Usage:
     python tests/test_storage_writer.py
