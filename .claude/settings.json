@@ -1,0 +1,10 @@
+{
+  "LlmModelOverride": "qwen3.5:9b",
+  "Ollama_BASE_URL": "http://localhost:11434",
+  "LLM_API_PARAMS": {
+    "temperature": 0,
+    "max_tokens": 8192
+  },
+  "EMBEDDING_MODEL": null,
+  "STORAGE_BACKEND": "postgres"
+}
